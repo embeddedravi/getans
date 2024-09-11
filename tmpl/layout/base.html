@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>{{.Title}}</title>   
+        <link rel="stylesheet" href="static/css/tailwind.css" />
+        <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+        <script src="https://unpkg.com/htmx.org@2.0.2" integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ" crossorigin="anonymous"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/mask@3.x.x/dist/cdn.min.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+        {{.Links}}
+    </head>
+    <body x-data="{ isSidebarOpen: true, isDark: false }" 
+    x-init="localStorage.getItem('isDark') === 'dark' ? isDark = true : isDark = false; 
+    $watch('isDark', value => localStorage.setItem('isDark', value ? 'dark' : 'light'))" class="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
+      <div :class="{ 'dark': isDark }" class="h-full bg-gray-100 dark:bg-gray-900">
+         <button x-on:click="isSidebarOpen = !isSidebarOpen; console.log(isSidebarOpen)" type="button" class="inline-flex items-center p-2 mt-2 ms-3 text-sm text-gray-500 rounded-lg sm:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600">
+            <span class="sr-only">Open sidebar</span>
+            <svg class="w-6 h-6" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <path clip-rule="evenodd" fill-rule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 10.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10z"></path>
+            </svg>
+         </button>
+         <aside  class="fixed top-0 left-0 z-40 w-64 h-screen transition duration-500 ease-in-out sm:translate-x-0" aria-label="Sidebar" :class="isSidebarOpen ? '' : '-translate-x-full'">
+            {{template "Navbar" .}}
+         </aside>
+         <div x-on:click="isSidebarOpen = false" class="h-full bg-gray-100 dark:bg-gray-900">
+            <div class="p-4 h-full sm:ml-64 dark:bg-gray-900">
+               {{ template "Breadcrumbs" . }}
+               {{ template "content" .}}
+            </div>
+        </div>
+      </div>
+    </body>
+    {{.JsLinks}}
+</html>

@@ -1,35 +1,43 @@
 {{define "content"}}
-
   <!-- component -->
-<div class="bg-gray-100 dark:bg-gray-900 flex flex-col justify-center items-center sm:py-12 h-full overflow-y-auto">
+<div class="bg-gray-100 dark:bg-gray-900 flex flex-col justify-center items-center sm:py-12">
    <div class="justify-center items-center sm:shadow-lg shadow-gray-400 dark:shadow-gray-700 sm:rounded-lg bg-white dark:bg-gray-900 p-4 sm:pb-8 w-[320px] sm:max-w-[400px] lg:w-full md:max-w-md xl:max-w-xl">
      <div class="flex flex-shrink items-center justify-center my-4 sm:my-12 bg-blue-100 dark:bg-blue-900 p-2">
          <div class="w-3/4 xl:w-1/2 text-center" >
             <span class="text-2xl text-uppercase  font-bold text-gray-900 dark:text-white">SIGN IN</span>
          </div>
      </div>
-      <form class="w-full pb-12" method="POST" action="/signin">
-         <div x-data="{ mdlEmail: '', start: false }" class="mb-3">
+      <form class="w-full pb-12" method="POST" action="/signin" id="signin_form">
+         <div class="mb-3">
             <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Email address</label>
-            <input x-model="mdlEmail" x-on:keyup="start = true" id="email" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Enter your email address"/>
-            <div class="h-3"><span class="text-red-500 dark:text-orange-400 text-xs mt-2" :class="(start && !mdlEmail.match(/[^@]+@[^@]+\.[^@]+/)) ? '' : 'hidden'">Please Enter a valid Email Address</span></div>
+            <input  name="email" onkeyup="isValidEmail(this)" id="email" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Enter your email address"/>
+            <div class="h-3">
+               <span class="text-red-500 dark:text-orange-400 text-xs my-2 hidden" id="email_indicator" >Please Enter a valid Email Address</span>
+            </div>
          </div> 
-         <div class="mb-6">
+         <div class="mb-3">
             <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
-            <input type="password" id="password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="•••••••••"  />
+            <input type="password" name="password" id="password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="•••••••••"  />
+            <div class="h-3">
+               <span class="text-red-500 dark:text-orange-400 text-xs my-2 hidden" id="password_indicator" >Please Enter a valid Password</span>
+            </div>
          </div> 
-         <div x-data="{ mdlTerms: true }" class="flex flex-col items-start mb-6">
+         <div class="flex flex-col items-start mb-3">
             <div class="flex items-center w-full h-5">
-               <input id="terms" type="checkbox"  x-model="mdlTerms" class="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-blue-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-blue-600 dark:ring-offset-gray-800"  />
+               <input id="terms" type="checkbox" onchange="showTermsIndicator(this)" class="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-blue-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-blue-600 dark:ring-offset-gray-800"  />
                <label for="terms" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">I agree with the <a href="#" class="text-blue-600 hover:underline dark:text-blue-500">terms and conditions</a>.</label>
             </div>
-            <div class=" w-full h-3"><span class="text-red-500 dark:text-orange-400 text-xs mt-2" :class="!mdlTerms ? '' : 'hidden'">You must agree with terms and conditions</span></div>
+            <div class=" w-full h-3"><span class="text-red-500 dark:text-orange-400 text-xs my-2 hidden" id="terms_indicator">You must agree with terms and conditions</span></div>
+         </div>
+         <div class=" w-full h-3 mb-6">
+            <span class="text-red-500 dark:text-orange-400 text-xs my-2 hidden" id="response_msg_indicator" >
+               
+            </span>
          </div>
          <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Submit</button>
       </form>
    </div>  
- 
-   
+  
  </div>
 
 {{ end }}

@@ -4,4 +4,8 @@ use (
 	.
 	./tmpl
 	./tmpl/layout
+	./model
+	./handler
+	./handler/user
+	./mongodb
 )

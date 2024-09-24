@@ -3,57 +3,80 @@
   <!-- component -->
 <div class="bg-gray-100 dark:bg-gray-900 flex flex-col justify-center items-center sm:py-12 overflow-y-auto">
    <div class="justify-center items-center sm:shadow-lg shadow-gray-400 dark:shadow-gray-700 sm:rounded-lg bg-white dark:bg-gray-900 p-4 sm:pb-8 w-[320px] sm:max-w-[400px] lg:w-full md:max-w-md xl:max-w-xl">
-     <div class="flex flex-shrink items-center justify-center my-4 sm:my-12">
+     <div class="flex flex-shrink items-center justify-center my-4 sm:my-6">
          <div class="w-3/4 xl:w-1/2 text-center" >
             <span class="text-2xl text-uppercase  font-bold text-gray-900 dark:text-white">SIGN UP</span>
          </div>
      </div>
-      <form class="w-full pb-12">
-         <div class="grid gap-6 mb-6 xl:grid-cols-2">
+      <form class="w-full pb-12" method="POST" action="/signup" id="signup_form">
+         <div class="grid gap-6 mb-3 xl:grid-cols-2">
             <div>
-               <label for="first_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">First name</label>
-               <input type="text" id="first_name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="John" required />
+               <label for="first_name"  class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">First name</label>
+               <input value="sds" type="text" oninput="validateInput(this, /^[a-zA-Z ]{3,30}$/, 'first_name_indicator')" name="first_name" id="first_name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="John" required />
+               <div class="h-3">
+                  <span id="first_name_indicator" class="text-red-500 dark:text-orange-400 text-xs my-2 hidden">Please Enter a valid First Name</span>
+               </div>
             </div>
             <div>
                <label for="last_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Last name</label>
-               <input type="text" id="last_name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Doe" required />
+               <input value="sds" type="text" oninput="validateInput(this, /^[a-zA-Z ]{3,30}$/, 'last_name_indicator')" name="last_name" id="last_name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Doe" required />
+               <div class="h-3">
+                  <span id="last_name_indicator" class="text-red-500 dark:text-orange-400 text-xs my-2 hidden">Please Enter a valid Last Name</span>
+               </div>
             </div>
+
             <div>
-               <label for="company" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Company</label>
-               <input type="text" id="company" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Flowbite" required />
-            </div>  
-            <div>
-               <label for="phone" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Phone number</label>
-               <input type="tel" id="phone" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="123-45-678" pattern="[0-9]{3}-[0-9]{2}-[0-9]{3}" required />
+               <label for="dob" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Date of Birth</label>
+               <input value="1985-02-22" type="date" oninput="validateInput(this,/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/,'dob_indicator')" name="dob" id="dob" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="dd-mm-yyyy" required />
+               <div class="h-3">
+                  <span id="dob_indicator" class="text-red-500 dark:text-orange-400 text-xs my-2 hidden">Please Enter a valid Date of Birth</span>
+               </div>
             </div>
+
             <div>
-               <label for="website" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Website URL</label>
-               <input type="url" id="website" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="flowbite.com" required />
-            </div>
-            <div>
-               <label for="visitors" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Unique visitors (per month)</label>
-               <input type="number" id="visitors" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="" required />
+               <label for="mobile" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Mobile</label>
+               <input value="9876543210" type="number" oninput="validateInput(this,/^\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}$/,'mobile_indicator')" name="mobile" id="mobile" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="+91 9876543210" required />
+               <div class="h-3">
+                  <span id="mobile_indicator" class="text-red-500 dark:text-orange-400 text-xs my-2 hidden">Please Enter a valid Mobile</span>
+               </div>
             </div>
          </div>
-         <div class="mb-6">
-            <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Email address</label>
-            <input type="email" id="email" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="john.doe@company.com" required />
-         </div> 
-         <div class="mb-6">
-            <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
-            <input type="password" id="password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="•••••••••" required />
-         </div> 
-         <div class="mb-6">
-            <label for="confirm_password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Confirm password</label>
-            <input type="password" id="confirm_password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="•••••••••" required />
-         </div> 
-         <div class="flex items-start mb-6">
-            <div class="flex items-center h-5">
-            <input id="remember" type="checkbox" value="" class="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-blue-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-blue-600 dark:ring-offset-gray-800" required />
+         <div class="grid gap-6 mb-6 grid-cols-1">
+            <div>
+               <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Email address</label>
+               <input value="fgfgf@dfdf.hh" type="email" oninput="isValidEmail(this)" name="email"  id="email" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="john.doe@company.com" required />
+               <div class="h-3">
+                  <span id="email_indicator" class="text-red-500 dark:text-orange-400 text-xs my-2 hidden">Please Enter a valid Email</span>
+               </div>
+            </div> 
+            <div>
+               <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
+               <input value="password" type="password" oninput="validateInput(this,/^[A-Za-z\d@$!%*?&]{8,}$/,'password_indicator'); if(document.getElementById('confirm_password').value !== '') {document.getElementById('confirm_password').dispatchEvent(new Event('input',{bubbles: true}));}" name="password"  id="password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="•••••••••" required />
+               <div class="h-3">
+                  <span id="password_indicator" class="text-red-500 dark:text-orange-400 text-xs my-2 hidden">Please Enter a valid Password</span>
+               </div>
+            </div> 
+            <div>
+               <label for="confirm_password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Confirm password</label>
+               <input value="password" type="password" name="confirm_password" id="confirm_password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="•••••••••" required />
+               <div class="h-3">
+                  <span id="confirm_password_indicator" class="text-red-500 dark:text-orange-400 text-xs my-2 hidden">Password and Confirm Password does not match</span>
+               </div>
+            </div> 
+            <div class="flex flex-col items-start">
+               <div class="flex items-center h-5">
+               <input id="remember" name="remember" type="checkbox" value="terms" onchange="isValidTerms(this)" class="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-blue-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-blue-600 dark:ring-offset-gray-800" required />
+               <label for="remember" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">I agree with the <a href="#" class="text-blue-600 hover:underline dark:text-blue-500">terms and conditions</a>.</label>
+               </div>
+               <div class="h-3">
+                  <span id="terms_indicator" class="text-red-500 dark:text-orange-400 text-xs my-2 hidden">You must agree terms and conditions</span>
+               </div>
             </div>
-            <label for="remember" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">I agree with the <a href="#" class="text-blue-600 hover:underline dark:text-blue-500">terms and conditions</a>.</label>
+            <div class="h-3 mb-3">
+               <span id="response_msg_indicator" class="text-red-500 dark:text-orange-400 text-xs hidden"></span>
+            </div>
+            <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Submit</button>
          </div>
-         <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Submit</button>
       </form>
    </div>  
  

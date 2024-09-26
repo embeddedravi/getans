@@ -10,8 +10,6 @@ const Constant = {
   }
 };
 
-
-
 localStorage.getItem('dropdownOpen1') === 'opened' ? dropdownOpen1 = true : dropdownOpen1 = false;
 localStorage.getItem('themeName') === 'Dark' ? isDark = true : isDark = false;
 
@@ -68,6 +66,31 @@ const isValidPassword = (element) => {
     passwordIndicator.classList.toggle('hidden', isValid);
     return isValid;
 };
+
+/**
+ * Given a form, this function returns the form data as a json object.
+ * @param {HTMLFormElement} form The form whose data needs to be converted to json.
+ * @returns {Object} The form data as a json object.
+ */
+const getFormDataJson = (form) => {
+    const jsonData = {};
+    for (const element of form.elements) {
+        if (element.name.trim().length !=0) {
+            if (element.type === 'radio') {
+                if (element.checked) {
+                    jsonData[element.name] = element.value;
+                }
+            }
+            else if (element.type === 'checkbox') {
+                jsonData[element.name] = element.checked;
+            }
+            else {
+                jsonData[element.name] = element.value;
+            }
+        }
+    }
+    return jsonData;
+}
 
 /**
  * Toggle the theme between light and dark

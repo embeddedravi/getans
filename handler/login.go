@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"getans/defines"
 	"getans/model"
 	"getans/mongodb"
-	"getans/tmpl"
 	"net/http"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -23,29 +24,47 @@ func SignInHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, email+password+" updated")
 		return
 	}
-	Breadcrumbs := []tmpl.BreadCrumbs{
+	Breadcrumbs := []model.BreadCrumbs{
 		{URL: "#", Name: "Sign In"},
 	}
 
-	page := tmpl.Page{
+	page := model.Page{
 		Title:       "GetAns - Sign In", // Set your page title here
 		Links:       "",                 // Set your links here
 		JsLinks:     "",                 // Set your JavaScript links here
 		Breadcrumbs: Breadcrumbs,
 	}
 
-	page.MakePage(w, r, tmpl.SigninPage)
+	if r.Method == http.MethodPost {
+		var userData model.MdlUserSigninForm
+
+		// Parse the request body
+		if err := json.NewDecoder(r.Body).Decode(&userData); err != nil {
+			model.ErrorResponse(err.Error()).
+				MakeResponse(w)
+			return
+		}
+
+		// Validate terms and conditions
+		if !userData.Terms {
+			model.ErrorResponse("Must agree with terms and conditions").
+				MakeResponse(w)
+		}
+
+	} else {
+		page.MakePage(w, r, model.SigninPage)
+	}
 
 }
 
 func SignUpHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "json")
 
-	Breadcrumbs := []tmpl.BreadCrumbs{
+	Breadcrumbs := []model.BreadCrumbs{
 		{URL: "#", Name: "Sign Up"},
 	}
 
-	page := tmpl.Page{
+	page := model.Page{
 		Title:       "GetAns - Sign Up", // Set your page title here
 		Links:       "",                 // Set your links here
 		JsLinks:     "",                 // Set your JavaScript links here
@@ -53,77 +72,106 @@ func SignUpHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == http.MethodPost {
-		var userData model.UserDetails
-		err := json.NewDecoder(r.Body).Decode(&userData)
-		if err != nil {
-			resp := model.ErrorResponse()
-			resp.Message = err.Error()
-			resp.MakeResponse(w)
+
+		var userData model.MdlUserSignupForm
+		// Parse the request body
+		if err := json.NewDecoder(r.Body).Decode(&userData); err != nil {
+			model.ErrorResponse(err.Error()).
+				MakeResponse(w)
 			return
 		}
+
+		// Validate terms and conditions
+		if !userData.Terms {
+			model.ErrorResponse("Must agree with terms and conditions").
+				MakeResponse(w)
+		}
+		// Validate the user dob
 		dobTime, err := time.Parse("2006-01-02", userData.Dob)
 		if err != nil {
-			resp := model.ErrorResponse()
-			resp.Message = err.Error()
-			resp.MakeResponse(w)
+			model.ErrorResponse(err.Error()).
+				MakeResponse(w)
 			return
 		}
-
 		// Calculate the age
 		age := time.Since(dobTime).Hours() / 24 / 365
-
 		// Check if the age is within the valid range
 		if age < 18 || age > 120 {
-			resp := model.ErrorResponse()
-			resp.Message = "Age must be between 18 and 120"
-			resp.MakeResponse(w)
+			model.ErrorResponse("Age must be between 18 and 120").
+				MakeResponse(w)
 			return
 		}
+		// Check password length
+		if len(userData.Password) < 6 {
+			model.ErrorResponse("Password must be at least 8 characters long").
+				MakeResponse(w)
+			return
+		}
+		// Check if email is already registered
+		if model.IsEmailRegistered(userData.Email) {
+			model.ErrorResponse("Email already registered").
+				MakeResponse(w)
+			return
+		}
+		// Hash the password
 		hash, err := model.HashPassword(userData.Password)
 		if err != nil {
-			resp := model.ErrorResponse()
-			resp.Message = err.Error()
-			resp.MakeResponse(w)
+			model.ErrorResponse(err.Error()).
+				MakeResponse(w)
 			return
 		}
 		userData.Password = hash
+		// Insert the user data into the database
 
-		if !model.VerifyPassword("password", hash) {
-			resp := model.ErrorResponse()
-			resp.Message = "Password is not password"
-			resp.MakeResponse(w)
-			return
+		var userDetail model.MdlUserDetails
+		if err := mapstructure.Decode(userData, &userDetail); err != nil {
+			// handle error
 		}
+		userDetail.CreatedAt = time.Now().Format("2006-01-02 15:04:05")
+		userDetail.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
+		userDetail.Type = "user"
+		userDetail.Status = "active"
+		userDetail.Verified = false
+
 		mongodb.Connect()
 		coll := mongodb.Client.Database("GetansDb").Collection("userDetails")
 		defer mongodb.Disconnect()
 
-		result, err := coll.InsertOne(context.TODO(), userData)
+		result, err := coll.InsertOne(context.TODO(), userDetail)
 
 		if err != nil {
-			resp := model.ErrorResponse()
-			resp.Message = err.Error()
-			resp.MakeResponse(w)
+			model.ErrorResponse(err.Error()).
+				MakeResponse(w)
 		} else {
-			resp := model.SuccessResponse()
 			// Get the inserted ID as a string
-			_, ok := result.InsertedID.(primitive.ObjectID)
-			if !ok {
-				resp := model.ErrorResponse()
-				resp.Message = "InsertedID is not of type ObjectID"
-				resp.MakeResponse(w)
+			if _, ok := result.InsertedID.(primitive.ObjectID); !ok {
+				model.ErrorResponse("InsertedID is not of type ObjectID").
+					MakeResponse(w)
 				return
 			}
-
-			// insertedIDStr := objID.Hex()
-			resp.Status = model.Status.Success
-			resp.Message = "User created successfully. "
-			resp.Redirect = "/signin"
-			resp.MakeResponse(w)
+			model.SuccessResponse("User created successfully. Redirecting to sign in page...").
+				SetStatus(defines.StatusSuccess).
+				SetRedirect("/signin").
+				MakeResponse(w)
+			// resp := model.SuccessResponse()
+			// resp.IsModal = true
+			// mdl := model.MdlModel{
+			// 	MdlTitle:      "User Created",
+			// 	MdlContent:    "User created successfully. " + fmt.Sprint(result.InsertedID),
+			// 	UpdateBtnName: "Ok",
+			// 	NeedCloseBtn:  true,
+			// }
+			// resp.MdlText, err = tmpl.RenderTemplate(tmpl.MdlTemplate, mdl)
+			// if err != nil {
+			// 	model.ErrorResponse(err.Error()).
+			// 		MakeResponse(w)
+			// 	return
+			// }
+			// resp.MakeResponse(w)
 		}
 		return
 	} else {
-		page.MakePage(w, r, tmpl.SignupPage)
+		page.MakePage(w, r, model.SignupPage)
 	}
 }
 

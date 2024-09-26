@@ -9,7 +9,7 @@
         {{.Links}}
     </head>
     <body class="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
-      <div class="h-full bg-gray-100 dark:bg-gray-900">
+      <div id="contentElement" class="h-full bg-gray-100 dark:bg-gray-900">
          <button  type="button" class="inline-flex items-center p-2 mt-2 ms-3 text-sm text-gray-500 rounded-lg sm:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
           onclick="document.getElementById('nav_sidebar').classList.toggle('-translate-x-full')">
             <span class="sr-only">Open sidebar</span>
@@ -26,6 +26,8 @@
                {{ template "content" .}}
             </div>
         </div>
+      </div>
+      <div id="modalElement" class="hidden bg-gray-900 bg-opacity-50 dark:bg-gray-900 dark:bg-opacity-80 size-full fixed top-0 start-0 z-[80] overflow-hidden pointer-events-none" role="dialog" tabindex="-1">
       </div>
     </body>
     {{.JsLinks}}

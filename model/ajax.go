@@ -2,22 +2,9 @@ package model
 
 import (
 	"encoding/json"
+	"getans/defines"
 	"net/http"
 )
-
-type Const struct {
-	Success string `json:"success" bson:"success" validate:"required"`
-	Error   string `json:"error" bson:"error" validate:"required"`
-	Info    string `json:"info" bson:"info" validate:"required"`
-	Warning string `json:"warning" bson:"warning" validate:"required"`
-}
-
-var Status = Const{
-	Success: "success",
-	Error:   "error",
-	Info:    "info",
-	Warning: "warning",
-}
 
 type AjaxResponse struct {
 	Success  bool        `json:"success"`
@@ -25,10 +12,12 @@ type AjaxResponse struct {
 	Message  string      `json:"message" validate:"required"`
 	Data     interface{} `json:"data"`
 	Redirect string      `json:"redirect"`
+	IsModal  bool        `json:"isModal"`
+	MdlText  string      `json:"mdlText"`
 }
 
-func (r *AjaxResponse) MakeResponse(w http.ResponseWriter) {
-	if r.Status == Status.Success {
+func (r AjaxResponse) MakeResponse(w http.ResponseWriter) {
+	if r.Status == defines.StatusSuccess {
 		r.Success = true
 	} else {
 		r.Success = false
@@ -38,34 +27,71 @@ func (r *AjaxResponse) MakeResponse(w http.ResponseWriter) {
 	json.NewEncoder(w).Encode(r)
 }
 
-func ErrorResponse() AjaxResponse {
+func (r AjaxResponse) SetStatus(status ...string) AjaxResponse {
+	if len(status) > 0 {
+		r.Status = status[0]
+	}
+	return r
+}
+
+func (r AjaxResponse) SetRedirect(url ...string) AjaxResponse {
+	if len(url) > 0 {
+		r.Redirect = url[0]
+	}
+	return r
+}
+
+func ErrorResponse(error ...string) AjaxResponse {
+	message := "Error message"
+	if len(error) > 0 {
+		message = error[0]
+	}
 	return AjaxResponse{
 		Success: false,
-		Status:  Status.Error,
-		Message: "Error message",
+		Status:  defines.StatusError,
+		Message: message,
 	}
 }
 
-func InfoResponse() AjaxResponse {
+func InfoResponse(info ...string) AjaxResponse {
+	message := "Info message"
+	if len(info) > 0 {
+		message = info[0]
+	}
 	return AjaxResponse{
 		Success: false,
-		Status:  Status.Info,
-		Message: "Info message",
+		Status:  defines.StatusInfo,
+		Message: message,
 	}
 }
 
-func SuccessResponse() AjaxResponse {
+func SuccessResponse(msg ...string) AjaxResponse {
+	message := "Submitted successfully"
+	if len(msg) > 0 {
+		message = msg[0]
+	}
 	return AjaxResponse{
 		Success: true,
-		Status:  Status.Success,
-		Message: "Submitted successfully",
+		Status:  defines.StatusSuccess,
+		Message: message,
+	}
+}
+func WarningResponse(warn ...string) AjaxResponse {
+	message := "Warning message"
+	if len(warn) > 0 {
+		message = warn[0]
+	}
+	return AjaxResponse{
+		Success: false,
+		Status:  defines.StatusWarning,
+		Message: message,
 	}
 }
 
-func WarningResponse() AjaxResponse {
-	return AjaxResponse{
-		Success: false,
-		Status:  Status.Warning,
-		Message: "Warning message",
-	}
+type MdlModel struct {
+	MdlTitle      string
+	MdlContent    string
+	UpdateBtnName string
+	NeedCloseBtn  bool
+	NeedUpdateBtn bool
 }

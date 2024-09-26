@@ -1,6 +1,7 @@
-package tmpl
+package model
 
 import (
+	"bytes"
 	"html/template"
 	"net/http"
 	"os"
@@ -19,7 +20,7 @@ type Page struct {
 	Breadcrumbs []BreadCrumbs `required:"true"`
 }
 
-var SigninPage, SignupPage, IndexPage *template.Template
+var MdlTemplate, SigninPage, SignupPage, IndexPage *template.Template
 
 func init() {
 	cwd, err := os.Getwd()
@@ -31,6 +32,7 @@ func init() {
 	SigninPage = template.Must(template.New("base.html").ParseFiles(Path+"base.html", Path+"common.html", Path+"content/signin.html"))
 	SignupPage = template.Must(template.New("base.html").ParseFiles(Path+"base.html", Path+"common.html", Path+"content/signup.html"))
 	IndexPage = template.Must(template.New("base.html").ParseFiles(Path+"base.html", Path+"common.html", Path+"content.html"))
+	MdlTemplate = template.Must(template.New("modal.html").ParseFiles(Path + "modal.html"))
 
 }
 
@@ -41,4 +43,13 @@ func (p Page) MakePage(w http.ResponseWriter, r *http.Request, tmpl *template.Te
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func RenderTemplate(tmpl *template.Template, data MdlModel) (string, error) {
+	var buf bytes.Buffer
+	err := tmpl.Execute(&buf, data)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }

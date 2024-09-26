@@ -2,7 +2,7 @@ package main
 
 import (
 	"getans/handler"
-	userHandler "getans/handler/user"
+	"getans/handler/user"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -21,7 +21,7 @@ func main() {
 	r.HandleFunc("/signup", handler.SignUpHandler)
 	r.HandleFunc("/logout", handler.LogoutHandler)
 
-	u.HandleFunc("/", userHandler.Profile)
+	u.HandleFunc("/", user.Profile)
 
 	http.Handle("/", r)
 	http.ListenAndServe(":8080", nil)

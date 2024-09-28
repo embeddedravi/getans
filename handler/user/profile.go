@@ -1,7 +1,7 @@
 package user
 
 import (
-	"getans/model"
+	"main/model"
 	"net/http"
 )
 

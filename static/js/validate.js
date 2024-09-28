@@ -1,24 +1,30 @@
 // import otherFile from 'init.js';
+// import sha256 from 'sha256.js';
 
-
-document.getElementById('DropDownList1').classList.toggle('hidden', !dropdownOpen1);
+const dropDownMenu1 = document.getElementById('DropDownList1');
 document.documentElement.classList.toggle('dark', isDark);
 
-let dropdown_1 = document.getElementById('DropdownMenuButton1');
+if(dropDownMenu1) {
+    dropDownMenu1.classList.toggle('hidden', !dropdownOpen1);
 
-dropdown_1.addEventListener('click', () => {
-    dropdownOpen1 = !dropdownOpen1;
-    localStorage.setItem('dropdownOpen1', dropdownOpen1 ? 'opened' : 'closed');
-    document.getElementById('DropDownList1').classList.toggle('hidden', !dropdownOpen1);
-})
+    let dropdown_1 = document.getElementById('DropdownMenuButton1');
+    if(dropdown_1) {
+            dropdown_1.addEventListener('click', () => {
+            dropdownOpen1 = !dropdownOpen1;
+            localStorage.setItem('dropdownOpen1', dropdownOpen1 ? 'opened' : 'closed');
+            dropDownMenu1.classList.toggle('hidden', !dropdownOpen1);
+        })
+    }
+}
+
 
 let signInForm = document.getElementById('signin_form');
 if(signInForm) {
     signInForm.addEventListener('submit', (event) => {
         event.preventDefault();
-        let email  = signupForm.querySelector('input[name="email"]');
-        let password  = signupForm.querySelector('input[name="password"]');
-        let terms  = signupForm.querySelector('input[name="terms"]');
+        let email  = signInForm.querySelector('input[name="email"]');
+        let password  = signInForm.querySelector('input[name="password"]');
+        let terms  = signInForm.querySelector('input[name="terms"]');
 
         let jsonData = getFormDataJson(signInForm);
 
@@ -29,7 +35,7 @@ if(signInForm) {
             responseMessage.innerText = 'Please fill in the required fields';
             return false;
         }
-
+        jsonData['password'] = SHA256(password.value);
         responseMessage.innerText = 'Logging in...';
         ajaxPostJsonAsync("/signin", event=>handleResponse(event,responseMessage), jsonData)
         return true;
@@ -69,7 +75,7 @@ if(signupForm) {
             responseMessage.innerText = 'Please fill in the required fields';
             return false;
         }
-
+        jsonData['password'] = SHA256(password.value);
         ajaxPostJsonAsync("/signup", event=>handleResponse(event,responseMessage), jsonData)
 
         responseMessage.innerText = 'Creating account...';

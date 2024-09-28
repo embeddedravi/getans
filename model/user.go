@@ -2,11 +2,15 @@ package model
 
 import (
 	"context"
-	"encoding/base64"
-	"getans/mongodb"
+	"encoding/json"
+	"fmt"
+	"main/defines"
+	"main/mongodb"
+	"net/http"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"golang.org/x/crypto/bcrypt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type MdlUserSignupForm struct {
@@ -21,18 +25,19 @@ type MdlUserSignupForm struct {
 }
 
 type MdlUserDetails struct {
-	FirstName string `json:"firstname" bson:"firstname" validate:"required min=3 max=30"`
-	LastName  string `json:"lastname" bson:"lastname" validate:"required min=3 max=30"`
-	Mobile    string `json:"mobile" bson:"mobile" validate:"required"`
-	Email     string `json:"email" bson:"email" validate:"required,email"`
-	Password  string `json:"password" bson:"password" validate:"required"`
-	Gender    string `json:"gender" bson:"gender" validate:"required oneof=male female other"`
-	Dob       string `json:"dob" bson:"dob" validate:"required"`
-	Verified  bool   `json:"verified" bson:"verified"`
-	Status    string `json:"status" bson:"status"`
-	Type      string `json:"type" bson:"type"`
-	CreatedAt string `json:"created_at" bson:"created_at"`
-	UpdatedAt string `json:"updated_at" bson:"updated_at"`
+	FirstName string             `json:"firstname" bson:"firstname" validate:"required min=3 max=30"`
+	LastName  string             `json:"lastname" bson:"lastname" validate:"required min=3 max=30"`
+	Mobile    string             `json:"mobile" bson:"mobile" validate:"required"`
+	Email     string             `json:"email" bson:"email" validate:"required,email"`
+	Password  string             `json:"password" bson:"password" validate:"required"`
+	Gender    string             `json:"gender" bson:"gender" validate:"required oneof=male female other"`
+	Dob       string             `json:"dob" bson:"dob" validate:"required"`
+	Verified  bool               `json:"verified" bson:"verified"`
+	Status    string             `json:"status" bson:"status"`
+	Type      string             `json:"type" bson:"type"`
+	CreatedAt string             `json:"created_at" bson:"created_at"`
+	UpdatedAt string             `json:"updated_at" bson:"updated_at"`
+	UserID    primitive.ObjectID `json:"_id" bson:"_id"`
 }
 
 type MdlUserSigninForm struct {
@@ -40,36 +45,74 @@ type MdlUserSigninForm struct {
 	Password string `json:"password" bson:"password" validate:"required"`
 	Terms    bool   `json:"terms" bson:"terms" validate:"required"`
 }
-
-func HashPassword(password string) (string, error) {
-	// Hash the password with the salt
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-	// fmt.Fprint(os.Stdout, "password: "+password+"\n"+"saltc: "+base64.StdEncoding.EncodeToString(salt)+"\n")
-	// Return the salt and hashed password as separate strings
-	return base64.StdEncoding.EncodeToString(hashedPassword), nil
+type MdlClientDetails struct {
+	ClientIP    string         `json:"client_ip" bson:"client_ip"`
+	UserAgent   string         `json:"user_agent" bson:"user_agent"`
+	IsLoggedIn  bool           `json:"is_logged_in" bson:"is_logged_in"`
+	IsBlocked   bool           `json:"is_blocked" bson:"is_blocked"`
+	BlockedAt   string         `json:"blocked_at" bson:"blocked_at"`
+	UserDetails MdlUserDetails `json:"user_details" bson:"user_details"`
 }
 
-func VerifyPassword(password string, hashedPassword string) bool {
-	// Decode the salt value
-	hashedPasswordBytes, err := base64.StdEncoding.DecodeString(hashedPassword)
+func GetClientDetails(r *http.Request) MdlClientDetails {
+
+	var clientDetails MdlClientDetails
+
+	cookie := GetCookies(r)
+
+	for _, c := range cookie {
+		if c.Name == defines.CookieName {
+			clientDetails.Initialize(c.Value)
+			return clientDetails
+		}
+	}
+	clientDetails.IsLoggedIn = false
+	return clientDetails
+
+}
+
+func (m *MdlClientDetails) Initialize(hash string) bool {
+	jsonString, err := Decrypt(defines.ClientHashKey, hash)
+	// fmt.Println(jsonString)
 	if err != nil {
 		return false
 	}
-	// Directly compare the password with the stored hashed password
-	err = bcrypt.CompareHashAndPassword([]byte(hashedPasswordBytes), []byte(password))
-	return err == nil
+	decoder := json.NewDecoder(strings.NewReader(string(jsonString)))
+	err = decoder.Decode(&m)
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	return true
+}
+func (m MdlClientDetails) JsonString() (string, error) {
+	var buf strings.Builder
+	encoder := json.NewEncoder(&buf)
+	err := encoder.Encode(m)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
-func IsEmailRegistered(email string) bool {
-
-	// Check if the email is already registered
+func VerifyLogin(clientDetails MdlClientDetails) bool {
 	mongodb.Connect()
 	coll := mongodb.Client.Database("GetansDb").Collection("userDetails")
 	defer mongodb.Disconnect()
 
-	count, err := coll.CountDocuments(context.TODO(), bson.M{"email": email})
-	return err == nil && count > 0
+	result := coll.FindOne(context.TODO(), bson.M{"_id": clientDetails.UserDetails.UserID})
+
+	var userDetails MdlUserDetails
+	err := result.Decode(&userDetails)
+	// fmt.Println(userDetails)
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+
+	if userDetails.Password != clientDetails.UserDetails.Password || userDetails.UpdatedAt != clientDetails.UserDetails.UpdatedAt {
+		return false
+	}
+
+	return true
 }

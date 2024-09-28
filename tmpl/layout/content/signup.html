@@ -67,14 +67,14 @@
             </div> 
             <div>
                <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
-               <input value="password" type="password" oninput="validateInput(this,/^[A-Za-z\d@$!%*?&]{8,}$/,'password_indicator'); if(document.getElementById('confirm_password').value !== '') {document.getElementById('confirm_password').dispatchEvent(new Event('input',{bubbles: true}));}" name="password"  id="password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="•••••••••" required />
+               <input  autocomplete="off" value="password" type="password" oninput="validateInput(this,/^[A-Za-z\d@$!%*?&]{8,}$/,'password_indicator'); if(document.getElementById('confirm_password').value !== '') {document.getElementById('confirm_password').dispatchEvent(new Event('input',{bubbles: true}));}" name="password"  id="password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="•••••••••" required />
                <div class="h-3">
                   <span id="password_indicator" class="text-red-500 dark:text-orange-400 text-xs my-2 hidden">Please Enter a valid Password</span>
                </div>
             </div> 
             <div>
                <label for="confirm_password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Confirm password</label>
-               <input value="password" type="password" name="confirm_password" id="confirm_password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="•••••••••" required />
+               <input  autocomplete="off" value="password" type="password" name="confirm_password" id="confirm_password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="•••••••••" required />
                <div class="h-3">
                   <span id="confirm_password_indicator" class="text-red-500 dark:text-orange-400 text-xs my-2 hidden">Password and Confirm Password does not match</span>
                </div>

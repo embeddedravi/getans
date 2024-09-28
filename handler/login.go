@@ -3,27 +3,30 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"getans/defines"
-	"getans/model"
-	"getans/mongodb"
+	"main/defines"
+	"main/model"
+	"main/mongodb"
 	"net/http"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func SignInHandler(w http.ResponseWriter, r *http.Request) {
 
-	w.Header().Set("Content-Type", "text/html")
-	if r.Method == "POST" {
-		email := r.FormValue("email")
-		password := r.FormValue("password")
-
-		fmt.Fprintf(w, email+password+" updated")
-		return
+	clientDetails := model.GetClientDetails(r)
+	// fmt.Print(clientDetails)
+	if clientDetails.IsLoggedIn {
+		if model.VerifyLogin(clientDetails) {
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
+		}
 	}
+
+	w.Header().Set("Content-Type", "text/html")
+
 	Breadcrumbs := []model.BreadCrumbs{
 		{URL: "#", Name: "Sign In"},
 	}
@@ -33,6 +36,7 @@ func SignInHandler(w http.ResponseWriter, r *http.Request) {
 		Links:       "",                 // Set your links here
 		JsLinks:     "",                 // Set your JavaScript links here
 		Breadcrumbs: Breadcrumbs,
+		Client:      clientDetails,
 	}
 
 	if r.Method == http.MethodPost {
@@ -51,6 +55,63 @@ func SignInHandler(w http.ResponseWriter, r *http.Request) {
 				MakeResponse(w)
 		}
 
+		// Check if the email is already registered
+		mongodb.Connect()
+		coll := mongodb.Client.Database("GetansDb").Collection("userDetails")
+		defer mongodb.Disconnect()
+
+		result := coll.FindOne(context.TODO(), bson.M{"email": userData.Email})
+
+		if result.Err() == nil {
+			var userDetails model.MdlUserDetails
+			err := result.Decode(&userDetails)
+			if err != nil {
+				model.ErrorResponse(err.Error()).
+					MakeResponse(w)
+				return
+			}
+
+			if model.VerifyPassword(userData.Password, userDetails.Password) {
+
+				// Create session
+				clientDetails := model.MdlClientDetails{
+					ClientIP:    r.RemoteAddr,
+					UserAgent:   r.UserAgent(),
+					IsLoggedIn:  true,
+					IsBlocked:   false,
+					BlockedAt:   "",
+					UserDetails: userDetails,
+				}
+				res, err := clientDetails.JsonString()
+				if err != nil {
+					model.ErrorResponse(err.Error()).
+						MakeResponse(w)
+					return
+				}
+
+				base64, err := model.Encrypt([]byte(defines.ClientHashKey), []byte(res))
+				if err != nil {
+					model.ErrorResponse(err.Error()).
+						MakeResponse(w)
+					return
+				}
+
+				model.SetCookie(w, defines.CookieName, base64)
+
+				model.SuccessResponse("User logged in successfully. Redirecting to home page...").
+					SetStatus(defines.StatusSuccess).
+					SetRedirect("/").
+					MakeResponse(w)
+
+			} else {
+				model.ErrorResponse("Incorrect email or password").
+					MakeResponse(w)
+			}
+		} else {
+			model.ErrorResponse("Incorrect email or password").
+				MakeResponse(w)
+		}
+
 	} else {
 		page.MakePage(w, r, model.SigninPage)
 	}
@@ -59,6 +120,8 @@ func SignInHandler(w http.ResponseWriter, r *http.Request) {
 
 func SignUpHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "json")
+
+	clientDetails := model.GetClientDetails(r)
 
 	Breadcrumbs := []model.BreadCrumbs{
 		{URL: "#", Name: "Sign Up"},
@@ -69,6 +132,7 @@ func SignUpHandler(w http.ResponseWriter, r *http.Request) {
 		Links:       "",                 // Set your links here
 		JsLinks:     "",                 // Set your JavaScript links here
 		Breadcrumbs: Breadcrumbs,
+		Client:      clientDetails,
 	}
 
 	if r.Method == http.MethodPost {
@@ -149,6 +213,7 @@ func SignUpHandler(w http.ResponseWriter, r *http.Request) {
 					MakeResponse(w)
 				return
 			}
+
 			model.SuccessResponse("User created successfully. Redirecting to sign in page...").
 				SetStatus(defines.StatusSuccess).
 				SetRedirect("/signin").
@@ -176,5 +241,6 @@ func SignUpHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello, you've been logged out")
+	model.SetLogout(w)
+	http.Redirect(w, r, "/", http.StatusFound)
 }

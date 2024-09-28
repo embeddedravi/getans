@@ -105,6 +105,17 @@ const toggleTheme = () => {
     document.documentElement.classList.toggle('dark', isDark);
 }
 
+const logoutClient = () => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/logout');
+    xhr.onload = () => {
+        if (xhr.status === 200) {
+            window.location.reload();
+        }
+    };
+    xhr.send();
+}
+
 /**
  * Perform an asynchronous POST request with JSON data
  * @param {string} url The url to make the request to

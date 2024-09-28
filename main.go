@@ -1,8 +1,12 @@
 package main
 
 import (
-	"getans/handler"
-	"getans/handler/user"
+	"fmt"
+	"log"
+	"main/defines"
+	"main/handler"
+	"main/handler/user"
+	"main/model"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -10,8 +14,7 @@ import (
 
 func main() {
 
-	staticDir := "./static"
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(defines.DocRootPath))))
 
 	r := mux.NewRouter()
 	u := r.PathPrefix("/user").Subrouter()
@@ -24,5 +27,13 @@ func main() {
 	u.HandleFunc("/", user.Profile)
 
 	http.Handle("/", r)
-	http.ListenAndServe(":8080", nil)
+
+	if !model.IsPortAvailable(8080) {
+		log.Println("Port 8080 is not available")
+		fmt.Println("Press a key to continue...")
+		fmt.Scanln()
+	} else {
+		log.Println("Listening on :8080")
+		log.Fatal(http.ListenAndServe(":8080", nil))
+	}
 }

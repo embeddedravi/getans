@@ -2,7 +2,7 @@ package model
 
 import (
 	"encoding/json"
-	"getans/defines"
+	"main/defines"
 	"net/http"
 )
 

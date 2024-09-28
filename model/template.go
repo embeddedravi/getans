@@ -1,10 +1,9 @@
 package model
 
 import (
-	"bytes"
 	"html/template"
+	"main/defines"
 	"net/http"
-	"os"
 )
 
 type BreadCrumbs struct {
@@ -18,24 +17,20 @@ type Page struct {
 	JsLinks     string        `required:"true"`
 	LogoSVG     string        `required:"true"`
 	Breadcrumbs []BreadCrumbs `required:"true"`
+	Client      MdlClientDetails
 }
 
 var MdlTemplate, SigninPage, SignupPage, IndexPage *template.Template
 
 func init() {
-	cwd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	Path := cwd + "/tmpl/layout/"
 
+	Path := defines.LayoutPath
 	SigninPage = template.Must(template.New("base.html").ParseFiles(Path+"base.html", Path+"common.html", Path+"content/signin.html"))
 	SignupPage = template.Must(template.New("base.html").ParseFiles(Path+"base.html", Path+"common.html", Path+"content/signup.html"))
 	IndexPage = template.Must(template.New("base.html").ParseFiles(Path+"base.html", Path+"common.html", Path+"content.html"))
 	MdlTemplate = template.Must(template.New("modal.html").ParseFiles(Path + "modal.html"))
 
 }
-
 func (p Page) MakePage(w http.ResponseWriter, r *http.Request, tmpl *template.Template) {
 
 	err := tmpl.Execute(w, p)
@@ -43,13 +38,4 @@ func (p Page) MakePage(w http.ResponseWriter, r *http.Request, tmpl *template.Te
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-}
-
-func RenderTemplate(tmpl *template.Template, data MdlModel) (string, error) {
-	var buf bytes.Buffer
-	err := tmpl.Execute(&buf, data)
-	if err != nil {
-		return "", err
-	}
-	return buf.String(), nil
 }

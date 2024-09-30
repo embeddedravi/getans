@@ -13,7 +13,6 @@ import (
 )
 
 func main() {
-
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(defines.DocRootPath))))
 
 	r := mux.NewRouter()

@@ -113,6 +113,5 @@ func VerifyLogin(clientDetails MdlClientDetails) bool {
 	if userDetails.Password != clientDetails.UserDetails.Password || userDetails.UpdatedAt != clientDetails.UserDetails.UpdatedAt {
 		return false
 	}
-
 	return true
 }

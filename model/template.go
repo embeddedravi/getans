@@ -20,7 +20,7 @@ type Page struct {
 	Client      MdlClientDetails
 }
 
-var MdlTemplate, SigninPage, SignupPage, IndexPage *template.Template
+var MdlTemplate, SigninPage, SignupPage, IndexPage, ProfilePage *template.Template
 
 func init() {
 
@@ -28,8 +28,9 @@ func init() {
 	SigninPage = template.Must(template.New("base.html").ParseFiles(Path+"base.html", Path+"common.html", Path+"content/signin.html"))
 	SignupPage = template.Must(template.New("base.html").ParseFiles(Path+"base.html", Path+"common.html", Path+"content/signup.html"))
 	IndexPage = template.Must(template.New("base.html").ParseFiles(Path+"base.html", Path+"common.html", Path+"content.html"))
-	MdlTemplate = template.Must(template.New("modal.html").ParseFiles(Path + "modal.html"))
+	ProfilePage = template.Must(template.New("base.html").ParseFiles(Path+"base.html", Path+"common.html", Path+"content/profile.html"))
 
+	MdlTemplate = template.Must(template.New("modal.html").ParseFiles(Path + "modal.html"))
 }
 func (p Page) MakePage(w http.ResponseWriter, r *http.Request, tmpl *template.Template) {
 

@@ -171,5 +171,6 @@ func GetCookies(r *http.Request) []*http.Cookie {
 }
 
 func SetLogout(w http.ResponseWriter) {
+
 	SetCookie(w, defines.CookieName, "", -1)
 }

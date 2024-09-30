@@ -92,6 +92,7 @@ type MdlModel struct {
 	MdlTitle      string
 	MdlContent    string
 	UpdateBtnName string
+
 	NeedCloseBtn  bool
 	NeedUpdateBtn bool
 }

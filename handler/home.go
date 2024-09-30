@@ -22,5 +22,4 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	page.MakePage(w, r, model.IndexPage)
-
 }

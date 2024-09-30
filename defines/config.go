@@ -27,5 +27,4 @@ func init() {
 	if ClientHashKey == "" {
 		ClientHashKey = "24@#dffgrretgfgdd"
 	}
-
 }

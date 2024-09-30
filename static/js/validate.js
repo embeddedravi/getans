@@ -17,7 +17,6 @@ if(dropDownMenu1) {
     }
 }
 
-
 let signInForm = document.getElementById('signin_form');
 if(signInForm) {
     signInForm.addEventListener('submit', (event) => {

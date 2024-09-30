@@ -239,7 +239,6 @@ func SignUpHandler(w http.ResponseWriter, r *http.Request) {
 		page.MakePage(w, r, model.SignupPage)
 	}
 }
-
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	model.SetLogout(w)
 	http.Redirect(w, r, "/", http.StatusFound)

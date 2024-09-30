@@ -54,6 +54,7 @@ const isValidTerms = (element) => {
     return element.checked;
 };
 
+
 /**
  * Returns true if the password is not empty, false otherwise.
  * @param {HTMLElement} element The HTML element of the password input.

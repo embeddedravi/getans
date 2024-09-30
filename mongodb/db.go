@@ -11,7 +11,6 @@ import (
 var Client *mongo.Client
 
 func Connect() {
-
 	Client, _ = mongo.Connect(context.TODO(), options.Client().ApplyURI(defines.DbURI))
 
 	// defer func() {
@@ -20,7 +19,6 @@ func Connect() {
 	// 	}
 	// }()
 }
-
 func Disconnect() {
 	if err := Client.Disconnect(context.TODO()); err != nil {
 		panic(err)

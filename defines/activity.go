@@ -6,7 +6,6 @@ const (
 	UserActivityRegister    = "register"
 	UserActivityProfileEdit = "profile_edit"
 	UserActivityDelete      = "delete"
-
 	ClientActivityLoginfail = "loginfail"
 	ClientActivitylike      = "like"
 )

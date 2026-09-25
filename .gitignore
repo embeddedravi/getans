@@ -1,0 +1,6 @@
+backend/zenv
+dashboard-flask/zenv
+dashboard-flask/node_modules
+backend/.env
+dashboard-flask/.env
+backend/alembic.ini

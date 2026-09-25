@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  h1,
+  h2,
+  h3 {
+    font-family: "Space Grotesk", sans-serif;
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Pulsing "live" dot -- tied to real connection state, not decorative */
+@keyframes pulse-live {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.live-dot {
+  animation: pulse-live 1.6s ease-in-out infinite;
+}

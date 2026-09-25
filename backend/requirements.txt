@@ -1,0 +1,13 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-socketio>=5.11
+sqlalchemy[asyncio]>=2.0
+aiomysql>=0.2.0
+cryptography>=41.0.0
+alembic>=1.13
+redis>=5.0
+pydantic-settings>=2.4
+pyjwt>=2.9
+passlib[bcrypt]>=1.7
+python-multipart>=0.0.9
+email-validator>=2.0.0

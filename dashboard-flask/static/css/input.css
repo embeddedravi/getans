@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Google Fonts are loaded via <link> in base.html ── */
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Space Grotesk', sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Smooth scroll */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  /* Tabular / monospaced numbers */
+  .tabular {
+    font-family: 'IBM Plex Mono', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Fade-in animation for flash messages */
+  .animate-fadeIn {
+    animation: fadeIn 0.25s ease-out;
+  }
+}
+
+/* ── Live dot pulse ─────────────────────────────────────────────────────── */
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+.live-dot {
+  animation: pulse-live 1.6s ease-in-out infinite;
+}
+
+/* ── Fade in keyframes ──────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── DaisyUI table tweaks ───────────────────────────────────────────────── */
+.table th {
+  font-weight: 500;
+  background-color: transparent;
+}

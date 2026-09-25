@@ -1,1 +1,0 @@
-{"root":["./src/App.tsx","./src/main.tsx","./src/types.ts","./src/components/Layout.tsx","./src/components/Sidebar.tsx","./src/components/TopBar.tsx","./src/lib/api.ts","./src/lib/socket.ts","./src/pages/AnalyticsPage.tsx","./src/pages/CampaignsPage.tsx","./src/pages/LoginPage.tsx","./src/pages/PublishersPage.tsx"],"version":"5.9.3"}

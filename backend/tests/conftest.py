@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-import fakeredis.aioredis
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
@@ -56,23 +55,6 @@ def _override_session_factory(monkeypatch):
     """Point every module that imported the real session factory at the test one."""
     monkeypatch.setattr("app.services.publisher_auth.async_session_factory", TestSessionFactory)
     monkeypatch.setattr("app.services.budget_tracker.async_session_factory", TestSessionFactory)
-
-
-# --- Redis ---------------------------------------------------------------
-
-
-@pytest_asyncio.fixture
-async def fake_redis():
-    redis = fakeredis.aioredis.FakeRedis(decode_responses=True)
-    yield redis
-    await redis.flushall()
-
-
-@pytest.fixture(autouse=True)
-def _patch_redis(fake_redis, monkeypatch):
-    monkeypatch.setattr("app.services.ad_selector.redis_client", fake_redis)
-    monkeypatch.setattr("app.services.publisher_auth.redis_client", fake_redis)
-    monkeypatch.setattr("app.services.budget_tracker.redis_client", fake_redis)
 
 
 # --- HTTP client -----------------------------------------------------------

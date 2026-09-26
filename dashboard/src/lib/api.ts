@@ -58,5 +58,5 @@ export const api = {
     }),
 
   campaignStats: (start: string, end: string) =>
-    request(`/analytics/campaigns?start=${start}&end=${end}`),
+    request(`/analytics/campaigns?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),
 };

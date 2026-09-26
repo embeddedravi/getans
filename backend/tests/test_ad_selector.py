@@ -7,7 +7,7 @@ import pytest
 from app.models.ad_unit import AdUnit
 from app.models.campaign import Campaign
 from app.models.creative import Creative
-from app.services.ad_selector import NoEligibleCampaignError, RequestContext, select_ad
+from app.services.ad_selector import NoEligibleCampaignError, RequestContext, select_ad, _spend_cache
 
 
 async def _make_ad_unit(db, publisher, width=300, height=250) -> AdUnit:
@@ -127,12 +127,12 @@ async def test_higher_priority_campaign_wins(db, publisher, advertiser):
 
 
 @pytest.mark.asyncio
-async def test_daily_cap_exhausted_excludes_campaign(db, publisher, advertiser, fake_redis):
+async def test_daily_cap_exhausted_excludes_campaign(db, publisher, advertiser):
     ad_unit = await _make_ad_unit(db, publisher)
     campaign = await _make_campaign(db, advertiser, daily_cap=1.0)
 
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    await fake_redis.set(f"campaign:{campaign.id}:spend:{today}", "1.50")
+    _spend_cache[f"{campaign.id}:{today}"] = 1.50
 
     with pytest.raises(NoEligibleCampaignError):
         await select_ad(db, ad_unit.id)
@@ -151,3 +151,10 @@ async def test_daily_cap_with_remaining_budget_selects_campaign(
     result = await select_ad(db, ad_unit.id)
 
     assert result.campaign_id == campaign.id
+
+@pytest.fixture(autouse=True)
+def _clear_spend_cache():
+    from app.services.ad_selector import _spend_cache
+    _spend_cache.clear()
+    yield
+    _spend_cache.clear()

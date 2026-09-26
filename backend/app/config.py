@@ -11,9 +11,6 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "mysql+aiomysql://root:password@localhost:3306/mydb"
 
-    # Redis
-    redis_url: str = "redis://localhost:6379/0"
-
     # Auth
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"

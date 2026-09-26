@@ -32,6 +32,7 @@ try:
     from app.config import settings
     from app.core.security import hash_password
     from app.db.base import Base
+    from app.models import ad_unit, advertiser, campaign, creative, event, publisher  # noqa: F401
     from app.models.user import User
 except ModuleNotFoundError as exc:
     print(f"\n❌  Import error: {exc}")

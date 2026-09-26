@@ -1,10 +1,8 @@
 """
 Socket.IO namespace pushing live metrics to dashboard clients.
 
-Dashboard clients don't talk to the ad-serving pipeline directly -- they
-subscribe here, and this namespace relays messages published by
-budget_tracker.record_event() over Redis pub/sub. This keeps ad-serving
-throughput independent of how many dashboards happen to be open.
+No longer relayed through Redis pub/sub -- budget_tracker.record_event()
+calls emit_metric_update() directly, since both run in the same process.
 
 Events:
     server -> client: "metric_update"  { type, campaign_id, ad_unit_id, timestamp }
@@ -12,15 +10,13 @@ Events:
 
 from __future__ import annotations
 
-import asyncio
-import json
 import logging
 
 import socketio
 
-from app.core.redis_client import DASHBOARD_METRICS_CHANNEL, redis_client
-
 logger = logging.getLogger(__name__)
+
+_sio: socketio.AsyncServer | None = None
 
 
 class DashboardNamespace(socketio.AsyncNamespace):
@@ -34,30 +30,14 @@ class DashboardNamespace(socketio.AsyncNamespace):
         logger.debug("Dashboard client disconnected: %s", sid)
 
 
-async def start_dashboard_relay(sio: socketio.AsyncServer) -> None:
-    """Background task: subscribes to Redis and relays messages to Socket.IO clients.
-
-    Call this once at app startup, e.g.:
-        asyncio.create_task(start_dashboard_relay(sio))
-    """
-    pubsub = redis_client.pubsub()
-    await pubsub.subscribe(DASHBOARD_METRICS_CHANNEL)
-
-    try:
-        async for message in pubsub.listen():
-            if message["type"] != "message":
-                continue
-            try:
-                payload = json.loads(message["data"])
-            except (TypeError, json.JSONDecodeError):
-                logger.warning("Bad dashboard metrics payload: %r", message["data"])
-                continue
-
-            await sio.emit("metric_update", payload, namespace="/dashboard")
-    except asyncio.CancelledError:
-        await pubsub.unsubscribe(DASHBOARD_METRICS_CHANNEL)
-        raise
+async def emit_metric_update(payload: dict) -> None:
+    if _sio is None:
+        logger.warning("Dashboard namespace not registered; dropping metric_update")
+        return
+    await _sio.emit("metric_update", payload, namespace="/dashboard")
 
 
 def register_dashboard_namespace(sio: socketio.AsyncServer) -> None:
+    global _sio
+    _sio = sio
     sio.register_namespace(DashboardNamespace("/dashboard"))

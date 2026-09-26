@@ -1,19 +1,6 @@
 """
 Ad selection service.
-
-Given an ad unit (a slot on a publisher's page) and optional request context
-(geo, device, page keywords, etc.), select the best eligible campaign's
-creative to serve.
-
-Selection order:
-    1. Filter to campaigns that are active, within date range, and match
-       the ad unit's dimensions.
-    2. Filter to campaigns that pass targeting rules against the request context.
-    3. Filter to campaigns with remaining budget (checked against Redis, the
-       fast-path budget counter -- not Postgres, to avoid a DB hit on every
-       ad request).
-    4. Rank remaining campaigns by priority, then by a small random factor
-       to avoid one campaign always winning ties.
+...
 """
 
 from __future__ import annotations
@@ -25,18 +12,21 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.redis_client import redis_client
 from app.models.ad_unit import AdUnit
 from app.models.campaign import Campaign
 from app.models.creative import Creative
 
+# In-memory spend cache: {"campaign_id:YYYY-MM-DD": spend_so_far}
+# NOTE: resets on process restart and is per-process only. Fine for a single
+# backend instance; will under-enforce daily caps if you ever run multiple
+# workers/replicas. See README for the Redis-backed alternative.
+_spend_cache: dict[str, float] = {}
+
 
 @dataclass
 class RequestContext:
-    """Signals passed along with an ad request, used for targeting."""
-
     country: str | None = None
-    device_type: str | None = None  # "desktop" | "mobile" | "tablet"
+    device_type: str | None = None
     page_keywords: list[str] | None = None
 
 
@@ -89,7 +79,7 @@ async def select_ad(
     if not targeted:
         raise NoEligibleCampaignError("No campaigns match targeting rules")
 
-    with_budget = [c for c in targeted if await _has_remaining_budget(c)]
+    with_budget = [c for c in targeted if _has_remaining_budget(c)]
     if not with_budget:
         raise NoEligibleCampaignError("No campaigns have remaining budget")
 
@@ -113,15 +103,6 @@ async def select_ad(
 
 
 def _matches_targeting(campaign: Campaign, context: RequestContext) -> bool:
-    """Check request context against a campaign's targeting_rules JSON.
-
-    targeting_rules shape (all keys optional -- absence means "no restriction"):
-        {
-            "countries": ["US", "CA"],
-            "device_types": ["mobile"],
-            "keywords": ["travel", "outdoors"]
-        }
-    """
     rules = campaign.targeting_rules or {}
 
     countries = rules.get("countries")
@@ -141,29 +122,26 @@ def _matches_targeting(campaign: Campaign, context: RequestContext) -> bool:
     return True
 
 
-async def _has_remaining_budget(campaign: Campaign) -> bool:
-    """Check Redis fast-path spend counter against the campaign's daily cap.
+def _has_remaining_budget(campaign: Campaign) -> bool:
+    """In-memory replacement for the old Redis-backed spend check.
 
-    Spend is incremented by the event-tracking service on every impression/click.
-    Falling back to "allow" if Redis is unreachable is a deliberate choice --
-    better to slightly overspend a campaign than to serve zero ads on a Redis
-    outage. Adjust for your risk tolerance.
+    No longer async since there's no I/O involved.
     """
     if campaign.daily_cap is None:
         return True
 
-    key = f"campaign:{campaign.id}:spend:{_today_key()}"
-    try:
-        spend_raw = await redis_client.get(key)
-    except Exception:
-        return True
-
-    spend = float(spend_raw) if spend_raw is not None else 0.0
+    key = f"{campaign.id}:{_today_key()}"
+    spend = _spend_cache.get(key, 0.0)
     return spend < campaign.daily_cap
 
 
+def record_spend(campaign_id: int, amount: float) -> None:
+    """Called by budget_tracker after each impression/click."""
+    key = f"{campaign_id}:{_today_key()}"
+    _spend_cache[key] = _spend_cache.get(key, 0.0) + amount
+
+
 def _rank_and_pick(campaigns: list[Campaign]) -> Campaign:
-    """Highest priority wins; ties broken with weighted random choice."""
     max_priority = max(c.priority for c in campaigns)
     top_tier = [c for c in campaigns if c.priority == max_priority]
     return random.choice(top_tier)

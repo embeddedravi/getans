@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 from functools import wraps
 from datetime import datetime, timedelta, timezone
+from urllib.parse import quote
 
 import requests
 from flask import (
@@ -122,7 +123,7 @@ def analytics():
     try:
         stats = _api(
             "GET",
-            f"/analytics/campaigns?start={start.isoformat()}&end={end.isoformat()}",
+            f"/analytics/campaigns?start={quote(start.isoformat())}&end={quote(end.isoformat())}",
         )
     except Exception:
         stats = []
@@ -250,7 +251,7 @@ def proxy_analytics():
     start = request.args.get("start", "")
     end = request.args.get("end", "")
     try:
-        data = _api("GET", f"/analytics/campaigns?start={start}&end={end}")
+        data = _api("GET", f"/analytics/campaigns?start={quote(start)}&end={quote(end)}")
         return jsonify(data)
     except Exception:
         return jsonify([])

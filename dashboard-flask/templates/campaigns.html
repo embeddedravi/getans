@@ -6,10 +6,10 @@
 
 {% block content %}
 
-<!-- ── Header ─────────────────────────────────────────────────────────── -->
+<!-- Section bar -->
 <div class="flex items-center justify-between mb-5">
   <p class="text-sm text-neutral-content">
-    {{ campaigns | length }} campaign{{ '' if campaigns | length == 1 else 's' }}
+    {{ campaigns | length if campaigns else 0 }} campaign{{ '' if campaigns and campaigns | length == 1 else 's' }}
   </p>
   <button class="btn btn-primary btn-sm gap-2" onclick="document.getElementById('modal-create-campaign').showModal()">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -19,16 +19,16 @@
   </button>
 </div>
 
-<!-- ── Table ──────────────────────────────────────────────────────────── -->
+<!-- Campaign listing table -->
 <div class="border border-base-300 bg-base-200 rounded-lg overflow-hidden">
   <div class="overflow-x-auto">
-    <table class="table">
+    <table class="table w-full">
       <thead>
         <tr class="text-xs text-neutral-content border-b border-base-300">
           <th>Name</th>
           <th>Status</th>
-          <th class="tabular">Priority</th>
-          <th class="tabular">Daily cap</th>
+          <th class="tabular-nums">Priority</th>
+          <th class="tabular-nums">Daily cap</th>
           <th>Window</th>
           <th class="text-right">Actions</th>
         </tr>
@@ -41,8 +41,8 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-9 w-9 text-neutral-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
-                <p class="text-sm text-neutral-content">No campaigns yet.</p>
-                <p class="text-xs text-neutral-content/60">Create one to start serving ads.</p>
+                <p class="text-sm text-neutral-content">No campaigns available.</p>
+                <p class="text-xs text-neutral-content/60">Create one to start serving ad placements.</p>
               </div>
             </td>
           </tr>
@@ -51,26 +51,26 @@
             <tr class="border-b border-base-300 last:border-0 hover:bg-base-300/20 transition-colors">
               <td class="font-medium">{{ c.name }}</td>
               <td>
-                <!-- Toggle active status via POST form -->
                 <form method="POST" action="/campaigns/{{ c.id }}/toggle" class="inline">
-                  <input type="hidden" name="is_active" value="{{ 'true' if c.is_active else 'false' }}" />
+                  <input type="hidden" name="is_active" value="{{ 'false' if c.is_active else 'true' }}" />
                   <button type="submit"
-                          class="badge cursor-pointer hover:opacity-80 transition-opacity
+                          class="badge cursor-pointer hover:opacity-80 transition-opacity border-0
                                  {{ 'badge-success' if c.is_active else 'badge-ghost' }}">
                     {{ 'Active' if c.is_active else 'Paused' }}
                   </button>
                 </form>
               </td>
-              <td class="tabular">{{ c.priority }}</td>
-              <td class="tabular">
+              <td class="tabular-nums">{{ c.priority }}</td>
+              <td class="tabular-nums">
                 {{ '$%.2f'|format(c.daily_cap) if c.daily_cap is not none else 'No cap' }}
               </td>
-              <td class="tabular text-xs text-neutral-content">
-                {{ c.start_date[:10] }} – {{ c.end_date[:10] }}
+              <td class="tabular-nums text-xs text-neutral-content">
+                {{ c.start_date.strftime('%Y-%m-%d') if c.start_date.strftime is defined else c.start_date[:10] }} – 
+                {{ c.end_date.strftime('%Y-%m-%d') if c.end_date and c.end_date.strftime is defined else (c.end_date[:10] if c.end_date else 'Ongoing') }}
               </td>
               <td class="text-right">
                 <form method="POST" action="/campaigns/{{ c.id }}/delete" class="inline"
-                      onsubmit="return confirm('Delete campaign \'{{ c.name }}\'? This cannot be undone.')">
+                      onsubmit="return confirm('Delete campaign \'{{ c.name }}\'? This action cannot be undone.')">
                   <button type="submit" class="btn btn-ghost btn-xs text-error hover:bg-error/10">
                     Delete
                   </button>
@@ -84,7 +84,7 @@
   </div>
 </div>
 
-<!-- ── Create campaign modal ──────────────────────────────────────────── -->
+<!-- Modal: New Campaign -->
 <dialog id="modal-create-campaign" class="modal">
   <div class="modal-box bg-base-200 border border-base-300 max-w-md">
     <form method="dialog" class="absolute top-4 right-4">
@@ -96,7 +96,7 @@
     <form method="POST" action="/campaigns/create" class="space-y-4">
       <label class="block">
         <span class="block text-xs text-neutral-content mb-1.5">Campaign name</span>
-        <input name="name" required class="input input-bordered input-sm w-full bg-base-100" placeholder="Summer Sale 2025" />
+        <input name="name" required class="input input-bordered input-sm w-full bg-base-100" placeholder="Q4 Promotional Blitz" />
       </label>
 
       <label class="block">

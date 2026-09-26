@@ -6,41 +6,46 @@
 
 {% block content %}
 
-<!-- ── Stat cards ──────────────────────────────────────────────────────── -->
+<!-- Live metric stat cards -->
 <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
 
   <div class="border border-base-300 bg-base-200 rounded-lg p-5 relative overflow-hidden group hover:border-warning/50 transition-colors">
     <div class="absolute top-0 right-0 w-20 h-20 bg-warning/5 rounded-full -translate-y-6 translate-x-6 group-hover:bg-warning/10 transition-colors"></div>
     <p class="text-xs text-neutral-content mb-3 flex items-center gap-1.5">
-      <span class="live-dot w-1.5 h-1.5 rounded-full bg-warning inline-block"></span>
+      <span class="w-1.5 h-1.5 rounded-full bg-warning inline-block animate-ping"></span>
       Impressions this session
     </p>
-    <p class="text-3xl font-semibold text-warning tabular" id="live-impressions">0</p>
+    <p class="text-3xl font-semibold text-warning tabular-nums" id="live-impressions">0</p>
     <p class="text-xs text-neutral-content mt-1">Real-time via Socket.IO</p>
   </div>
 
   <div class="border border-base-300 bg-base-200 rounded-lg p-5 relative overflow-hidden group hover:border-secondary/50 transition-colors">
     <div class="absolute top-0 right-0 w-20 h-20 bg-secondary/5 rounded-full -translate-y-6 translate-x-6 group-hover:bg-secondary/10 transition-colors"></div>
     <p class="text-xs text-neutral-content mb-3 flex items-center gap-1.5">
-      <span class="live-dot w-1.5 h-1.5 rounded-full bg-secondary inline-block"></span>
+      <span class="w-1.5 h-1.5 rounded-full bg-secondary inline-block animate-ping"></span>
       Clicks this session
     </p>
-    <p class="text-3xl font-semibold text-secondary tabular" id="live-clicks">0</p>
+    <p class="text-3xl font-semibold text-secondary tabular-nums" id="live-clicks">0</p>
     <p class="text-xs text-neutral-content mt-1">Real-time via Socket.IO</p>
   </div>
 
   <div class="border border-base-300 bg-base-200 rounded-lg p-5 relative overflow-hidden group hover:border-accent/50 transition-colors sm:col-span-2 xl:col-span-1">
     <div class="absolute top-0 right-0 w-20 h-20 bg-accent/5 rounded-full -translate-y-6 translate-x-6 group-hover:bg-accent/10 transition-colors"></div>
     <p class="text-xs text-neutral-content mb-3">7-day impressions</p>
-    <p class="text-3xl font-semibold text-base-content tabular">{{ totals.impressions | format_num }}</p>
+    <p class="text-3xl font-semibold text-base-content tabular-nums">
+      {{ totals.impressions | format_num if totals is defined and totals.impressions is defined else (totals.impressions if totals is defined else 0) }}
+    </p>
     <p class="text-xs text-neutral-content mt-1">
-      {{ totals.clicks | format_num }} clicks · {{ "%.2f"|format(totals.clicks / totals.impressions * 100 if totals.impressions else 0) }}% CTR
+      {% set total_imp = totals.impressions if totals is defined and totals.impressions else 0 %}
+      {% set total_clk = totals.clicks if totals is defined and totals.clicks else 0 %}
+      {% set ctr_calc = (total_clk / total_imp * 100) if total_imp > 0 else 0.0 %}
+      {{ total_clk }} clicks · {{ "%.2f"|format(ctr_calc) }}% CTR
     </p>
   </div>
 
 </div>
 
-<!-- ── Campaign stats chart ────────────────────────────────────────────── -->
+<!-- Chart container -->
 <div class="border border-base-300 bg-base-200 rounded-lg p-5 mb-6">
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-display text-base font-semibold">Impressions by campaign — last 7 days</h2>
@@ -59,27 +64,26 @@
       <p class="text-xs text-neutral-content/60 mt-1">Once ads start serving, campaign performance will appear here.</p>
     </div>
   {% else %}
-    <!-- Canvas chart rendered by Chart.js -->
     <div class="relative h-72">
       <canvas id="impressions-chart"></canvas>
     </div>
   {% endif %}
 </div>
 
-<!-- ── Per-campaign stats table ────────────────────────────────────────── -->
+<!-- Per-campaign stats table -->
 {% if stats %}
 <div class="border border-base-300 bg-base-200 rounded-lg overflow-hidden">
   <div class="px-5 py-3 border-b border-base-300">
     <h2 class="font-display text-sm font-semibold">Campaign breakdown</h2>
   </div>
   <div class="overflow-x-auto">
-    <table class="table">
+    <table class="table w-full">
       <thead>
         <tr class="text-xs text-neutral-content border-b border-base-300">
           <th>Campaign</th>
-          <th class="tabular text-right">Impressions</th>
-          <th class="tabular text-right">Clicks</th>
-          <th class="tabular text-right">CTR</th>
+          <th class="tabular-nums text-right">Impressions</th>
+          <th class="tabular-nums text-right">Clicks</th>
+          <th class="tabular-nums text-right">CTR</th>
           <th>CTR bar</th>
         </tr>
       </thead>
@@ -88,12 +92,13 @@
         {% for s in stats %}
           <tr class="border-b border-base-300 last:border-0 hover:bg-base-300/30 transition-colors">
             <td class="font-medium">{{ s.campaign_name }}</td>
-            <td class="tabular text-right">{{ s.impressions | format_num }}</td>
-            <td class="tabular text-right text-secondary">{{ s.clicks | format_num }}</td>
-            <td class="tabular text-right text-warning">{{ "%.2f"|format(s.ctr * 100) }}%</td>
+            <td class="tabular-nums text-right">{{ s.impressions }}</td>
+            <td class="tabular-nums text-right text-secondary">{{ s.clicks }}</td>
+            <td class="tabular-nums text-right text-warning">{{ "%.2f"|format(s.ctr * 100 if s.ctr <= 1.0 else s.ctr) }}%</td>
             <td class="w-32">
               <div class="h-1.5 bg-base-300 rounded-full overflow-hidden">
-                <div class="h-full bg-warning rounded-full" style="width: {{ (s.ctr / max_ctr * 100) | round | int if max_ctr else 0 }}%"></div>
+                {% set bar_width = (s.ctr / max_ctr * 100) | round | int if max_ctr and max_ctr > 0 else 0 %}
+                <div class="h-full bg-warning rounded-full" style="width: {{ bar_width }}%"></div>
               </div>
             </td>
           </tr>
@@ -107,79 +112,63 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 
-<script>
-// ── Chart ──────────────────────────────────────────────────────────────────
 {% if stats %}
+<script>
 const statsData = {{ stats | tojson }};
 
 const ctx = document.getElementById('impressions-chart');
-new Chart(ctx, {
-  type: 'bar',
-  data: {
-    labels: statsData.map(s => s.campaign_name),
-    datasets: [
-      {
-        label: 'Impressions',
-        data: statsData.map(s => s.impressions),
-        backgroundColor: 'rgba(242,169,59,0.85)',
-        borderRadius: 4,
-        borderSkipped: false,
-      },
-      {
-        label: 'Clicks',
-        data: statsData.map(s => s.clicks),
-        backgroundColor: 'rgba(91,141,239,0.85)',
-        borderRadius: 4,
-        borderSkipped: false,
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: '#1B212A',
-        borderColor: '#2E3742',
-        borderWidth: 1,
-        titleColor: '#C7CDD6',
-        bodyColor: '#E7EAEE',
-        titleFont: { family: 'IBM Plex Mono', size: 11 },
-        bodyFont:  { family: 'IBM Plex Mono', size: 12 },
-      }
+if (ctx) {
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: statsData.map(s => s.campaign_name),
+      datasets: [
+        {
+          label: 'Impressions',
+          data: statsData.map(s => s.impressions),
+          backgroundColor: 'rgba(242,169,59,0.85)',
+          borderRadius: 4,
+          borderSkipped: false,
+        },
+        {
+          label: 'Clicks',
+          data: statsData.map(s => s.clicks),
+          backgroundColor: 'rgba(91,141,239,0.85)',
+          borderRadius: 4,
+          borderSkipped: false,
+        }
+      ]
     },
-    scales: {
-      x: {
-        grid: { color: '#2E3742' },
-        ticks: { color: '#8B94A3', font: { family: 'IBM Plex Mono', size: 11 } }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1B212A',
+          borderColor: '#2E3742',
+          borderWidth: 1,
+          titleColor: '#C7CDD6',
+          bodyColor: '#E7EAEE',
+          titleFont: { family: 'IBM Plex Mono', size: 11 },
+          bodyFont:  { family: 'IBM Plex Mono', size: 12 },
+        }
       },
-      y: {
-        grid: { color: '#2E3742' },
-        ticks: { color: '#8B94A3', font: { family: 'IBM Plex Mono', size: 11 } }
+      scales: {
+        x: {
+          grid: { color: '#2E3742' },
+          ticks: { color: '#8B94A3', font: { family: 'IBM Plex Mono', size: 11 } }
+        },
+        y: {
+          grid: { color: '#2E3742' },
+          ticks: { color: '#8B94A3', font: { family: 'IBM Plex Mono', size: 11 } }
+        }
       }
     }
-  }
-});
-{% endif %}
-
-// ── Live counter via Socket.IO ─────────────────────────────────────────────
-// Uncomment after installing socket.io-client via CDN if your backend supports it
-/*
-const socket = io('http://localhost:8000', { transports: ['websocket'] });
-socket.on('metric', (data) => {
-  if (data.type === 'impression') {
-    const el = document.getElementById('live-impressions');
-    el.textContent = (parseInt(el.textContent.replace(/,/g,'')) + 1).toLocaleString();
-  }
-  if (data.type === 'click') {
-    const el = document.getElementById('live-clicks');
-    el.textContent = (parseInt(el.textContent.replace(/,/g,'')) + 1).toLocaleString();
-  }
-});
-*/
+  });
+}
 </script>
+{% endif %}
 {% endblock %}

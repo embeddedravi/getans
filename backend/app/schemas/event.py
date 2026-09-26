@@ -27,47 +27,38 @@ class MessageResponse(BaseModel):
     """Standard message response for operations without payload return."""
 
     message: str
+    
+class EventType(str, Enum):
+    IMPRESSION = "impression"
+    CLICK = "click"
+    CONVERSION = "conversion"
+    VIEWABLE_IMPRESSION = "viewable_impression"
 
 
-class CreativeFormat(str, Enum):
-    IMAGE = "image"
-    HTML = "html"
-    VIDEO = "video"
-    NATIVE = "native"
+class EventIngest(BaseModel):
+    """Schema for incoming ad event tracking payloads."""
 
-
-class ReviewStatus(str, Enum):
-    PENDING = "pending"
-    APPROVED = "approved"
-    REJECTED = "rejected"
-
-
-class CreativeCreate(BaseModel):
+    event_id: Optional[str] = Field(None, description="Client-supplied UUID for deduplication")
+    ad_unit_id: int
     campaign_id: int
-    name: Optional[str] = Field(None, max_length=200)
-    asset_url: HttpUrl
-    click_url: HttpUrl
-    impression_tracker_url: Optional[HttpUrl] = None
-    format: CreativeFormat = CreativeFormat.IMAGE
-    width: PositiveInt
-    height: PositiveInt
-    html_snippet: Optional[str] = None
-    custom_attributes: Optional[Dict[str, Any]] = None
+    creative_id: int
+    type: EventType
+    cost: Decimal = Field(Decimal("0.000000"), ge=Decimal("0.000000"))
+    user_agent: Optional[str] = Field(None, max_length=512)
+    meta: Optional[Dict[str, Any]] = None
 
 
-class CreativeOut(BaseModel):
+class EventOut(BaseModel):
     id: int
+    event_id: Optional[str] = None
+    ad_unit_id: int
     campaign_id: int
-    name: Optional[str] = None
-    asset_url: str
-    click_url: str
-    impression_tracker_url: Optional[str] = None
-    format: CreativeFormat
-    width: int
-    height: int
-    is_active: bool
-    review_status: ReviewStatus
-    rejection_reason: Optional[str] = None
-    created_at: datetime
+    creative_id: int
+    type: EventType
+    timestamp: datetime
+    cost: Decimal
+    is_valid: bool
+    country_code: Optional[str] = None
+    meta: Optional[Dict[str, Any]] = None
 
     model_config = ConfigDict(from_attributes=True)

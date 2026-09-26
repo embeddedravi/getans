@@ -22,6 +22,7 @@ from flask import (
     request,
     session,
     url_for,
+    request as flask_request
 )
 from dotenv import load_dotenv
 
@@ -76,6 +77,9 @@ def login_required(f):
 
     return decorated
 
+@app.context_processor
+def inject_current_path():
+    return {"current_path": flask_request.path}
 
 # ── Auth routes ───────────────────────────────────────────────────────────────
 

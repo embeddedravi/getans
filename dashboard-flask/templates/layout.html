@@ -1,15 +1,14 @@
-<!-- Layout template: sidebar + topbar shell wrapping page content -->
 {% extends "base.html" %}
 
 {% block body %}
 <div class="flex h-screen overflow-hidden">
 
-  <!-- ── Sidebar ─────────────────────────────────────────────────────── -->
+  <!-- Sidebar -->
   <aside class="w-60 shrink-0 border-r border-base-300 bg-base-200 flex flex-col">
-    <!-- Logo / Brand -->
+    <!-- Brand -->
     <div class="px-5 py-5 border-b border-base-300 flex items-center gap-3">
-      <div class="w-7 h-7 rounded bg-primary flex items-center justify-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary-content" viewBox="0 0 20 20" fill="currentColor">
+      <div class="w-7 h-7 rounded bg-primary flex items-center justify-center text-primary-content">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
           <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
         </svg>
       </div>
@@ -19,13 +18,13 @@
     <!-- Navigation links -->
     <nav class="flex-1 px-2 py-4 space-y-1">
       {% set nav_links = [
-        ('analytics', '/', 'Analytics', 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'),
-        ('campaigns', '/campaigns', 'Campaigns', 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'),
-        ('publishers', '/publishers', 'Publishers & Slots', 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9'),
+        ('/', 'Analytics', 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'),
+        ('/campaigns', 'Campaigns', 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'),
+        ('/publishers', 'Publishers & Slots', 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9')
       ] %}
 
-      {% for endpoint, href, label, icon_path in nav_links %}
-        {% set is_active = (request.endpoint == endpoint) %}
+      {% for href, label, icon_path in nav_links %}
+        {% set is_active = (current_path == href or (href != '/' and current_path.startswith(href))) %}
         <a href="{{ href }}"
            class="flex items-center gap-3 rounded px-3 py-2.5 text-sm transition-all duration-150
                   {% if is_active %}
@@ -41,20 +40,24 @@
       {% endfor %}
     </nav>
 
-    <!-- Bottom user section -->
+    <!-- User context -->
     <div class="px-4 py-4 border-t border-base-300">
       <div class="flex items-center gap-3 mb-3">
         <div class="avatar placeholder">
-          <div class="bg-primary/20 text-primary rounded-full w-8">
-            <span class="text-xs font-semibold">{{ (session.get('user_email', 'A')[0] | upper) }}</span>
+          <div class="bg-primary/20 text-primary rounded-full w-8 h-8 flex items-center justify-center">
+            <span class="text-xs font-semibold">
+              {{ (session.get('user_email', 'A')[0] | upper) if session is defined and session.get('user_email') else 'A' }}
+            </span>
           </div>
         </div>
         <div class="flex-1 min-w-0">
-          <p class="text-xs font-medium text-base-content truncate">{{ session.get('user_email', 'Admin') }}</p>
+          <p class="text-xs font-medium text-base-content truncate">
+            {{ session.get('user_email', 'Admin') if session is defined and session.get('user_email') else 'Administrator' }}
+          </p>
           <p class="text-xs text-neutral-content">Administrator</p>
         </div>
       </div>
-      <a href="/logout" class="btn btn-ghost btn-xs w-full text-neutral-content hover:text-error">
+      <a href="/logout" class="btn btn-ghost btn-xs w-full text-neutral-content hover:text-error justify-start gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
         </svg>
@@ -63,25 +66,24 @@
     </div>
   </aside>
 
-  <!-- ── Main content ────────────────────────────────────────────────── -->
+  <!-- Main viewport -->
   <div class="flex-1 flex flex-col overflow-hidden">
-
-    <!-- Top bar -->
+    <!-- Top header -->
     <header class="h-14 shrink-0 border-b border-base-300 bg-base-200/80 backdrop-blur-sm flex items-center justify-between px-6">
       <h1 class="font-display text-base font-semibold">{% block page_title %}{% endblock %}</h1>
       <div class="flex items-center gap-2">
         <div class="flex items-center gap-1.5 text-xs text-neutral-content">
-          <span class="live-dot w-1.5 h-1.5 rounded-full bg-success inline-block"></span>
-          Live
+          <span class="w-2 h-2 rounded-full bg-success inline-block animate-pulse"></span>
+          System Active
         </div>
       </div>
     </header>
 
-    <!-- Page content -->
+    <!-- Scrollable content zone -->
     <main class="flex-1 overflow-y-auto p-6">
       {% block content %}{% endblock %}
     </main>
-
   </div>
+
 </div>
 {% endblock %}

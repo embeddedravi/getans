@@ -27,47 +27,39 @@ class MessageResponse(BaseModel):
     """Standard message response for operations without payload return."""
 
     message: str
-
-
-class CreativeFormat(str, Enum):
-    IMAGE = "image"
-    HTML = "html"
-    VIDEO = "video"
+    
+class AdFormatType(str, Enum):
+    DISPLAY = "display"
+    BANNER = "banner"
     NATIVE = "native"
+    VIDEO = "video"
+    INTERSTITIAL = "interstitial"
 
 
-class ReviewStatus(str, Enum):
-    PENDING = "pending"
-    APPROVED = "approved"
-    REJECTED = "rejected"
-
-
-class CreativeCreate(BaseModel):
-    campaign_id: int
-    name: Optional[str] = Field(None, max_length=200)
-    asset_url: HttpUrl
-    click_url: HttpUrl
-    impression_tracker_url: Optional[HttpUrl] = None
-    format: CreativeFormat = CreativeFormat.IMAGE
+class AdUnitCreate(BaseModel):
+    publisher_id: int
+    slot_name: str = Field(..., max_length=100)
+    description: Optional[str] = Field(None, max_length=255)
+    format_type: AdFormatType = AdFormatType.DISPLAY
     width: PositiveInt
     height: PositiveInt
-    html_snippet: Optional[str] = None
-    custom_attributes: Optional[Dict[str, Any]] = None
+    reserve_price: Decimal = Field(Decimal("0.0000"), ge=Decimal("0.0000"))
+    allow_house_ads: bool = True
+    settings: Optional[Dict[str, Any]] = None
 
 
-class CreativeOut(BaseModel):
+class AdUnitOut(BaseModel):
     id: int
-    campaign_id: int
-    name: Optional[str] = None
-    asset_url: str
-    click_url: str
-    impression_tracker_url: Optional[str] = None
-    format: CreativeFormat
+    publisher_id: int
+    slot_name: str
+    description: Optional[str] = None
+    format_type: AdFormatType
     width: int
     height: int
+    reserve_price: Decimal
     is_active: bool
-    review_status: ReviewStatus
-    rejection_reason: Optional[str] = None
+    allow_house_ads: bool
+    settings: Optional[Dict[str, Any]] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

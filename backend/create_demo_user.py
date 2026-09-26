@@ -20,9 +20,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 # ── Parse CLI args ────────────────────────────────────────────────────────────
 
 parser = argparse.ArgumentParser(description="Seed a demo admin user into the database.")
-parser.add_argument("--email",    default="admin@demo.com", help="User email (default: admin@demo.com)")
+parser.add_argument("--email",    default="adv@demo.com", help="User email (default: admin@demo.com)")
 parser.add_argument("--password", default="demo1234",       help="User password (default: demo1234)")
-parser.add_argument("--role",     default="admin",          choices=["admin", "advertiser", "publisher"],
+parser.add_argument("--role",     default="advertiser",          choices=["admin", "advertiser", "publisher"],
                     help="User role (default: admin)")
 args = parser.parse_args()
 

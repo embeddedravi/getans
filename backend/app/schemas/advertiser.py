@@ -28,44 +28,53 @@ class MessageResponse(BaseModel):
 
     message: str
 
-
-class PublisherStatus(str, Enum):
-    PENDING_APPROVAL = "pending_approval"
+class AccountStatus(str, Enum):
+    PENDING_VERIFICATION = "pending_verification"
     ACTIVE = "active"
     SUSPENDED = "suspended"
-    REJECTED = "rejected"
+    ARCHIVED = "archived"
 
 
-class PublisherCreate(BaseModel):
+class Currency(str, Enum):
+    USD = "USD"
+    EUR = "EUR"
+    GBP = "GBP"
+
+
+class AdvertiserCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=200)
-    site_url: HttpUrl
-    payout_email: EmailStr
-    domain: Optional[str] = Field(None, max_length=255)
-    category: Optional[str] = Field(None, max_length=100)
+    company_legal_name: Optional[str] = Field(None, max_length=255)
+    billing_email: EmailStr
+    website_url: Optional[HttpUrl] = None
+    industry: Optional[str] = Field(None, max_length=100)
+    currency: Currency = Currency.USD
+    phone_number: Optional[str] = Field(None, max_length=32)
+    vat_number: Optional[str] = Field(None, max_length=64)
 
 
-class PublisherUpdate(BaseModel):
+class AdvertiserUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=2, max_length=200)
-    site_url: Optional[HttpUrl] = None
-    payout_email: Optional[EmailStr] = None
-    status: Optional[PublisherStatus] = None
-    is_active: Optional[bool] = None
-    revenue_share_percentage: Optional[Decimal] = Field(None, ge=Decimal("0.00"), le=Decimal("100.00"))
+    billing_email: Optional[EmailStr] = None
+    website_url: Optional[HttpUrl] = None
+    industry: Optional[str] = None
+    status: Optional[AccountStatus] = None
+    credit_limit: Optional[Decimal] = Field(None, ge=Decimal("0.00"))
+    notes: Optional[str] = None
 
 
-class PublisherOut(BaseModel):
+class AdvertiserOut(BaseModel):
     id: int
     name: str
-    site_url: str
-    domain: Optional[str] = None
-    category: Optional[str] = None
-    api_key: str
-    status: PublisherStatus
-    is_active: bool
-    ads_txt_verified: bool
-    revenue_share_percentage: Decimal
-    unpaid_earnings: Decimal
-    payout_email: EmailStr
+    company_legal_name: Optional[str] = None
+    billing_email: EmailStr
+    website_url: Optional[str] = None
+    industry: Optional[str] = None
+    status: AccountStatus
+    is_verified: bool
+    currency: Currency
+    balance: Decimal
+    credit_limit: Decimal
     created_at: datetime
+    updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

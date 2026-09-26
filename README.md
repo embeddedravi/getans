@@ -52,44 +52,7 @@ the relational database.
 
 ## Architecture
 
-```
-                        ┌──────────────────────┐
-   Publisher's page ───▶│  publisher-snippet/   │
-   (loader.js)          │  Socket.IO client     │
-                        └───────────┬──────────┘
-                                    │ /delivery namespace
-                                    ▼
-                        ┌──────────────────────┐
-                        │   backend/ (FastAPI   │
-                        │   + python-socketio,  │
-                        │   one ASGI process)   │
-                        │                       │
-                        │  REST API ─────────┐  │
-                        │  /delivery ns      │  │
-                        │  /dashboard ns     │  │
-                        └───────┬────────────┼──┘
-                                │            │
-                                ▼            ▼
-                        ┌───────────────────────┐
-                        │  Relational database   │
-                        │  (async SQLAlchemy;    │
-                        │  Postgres in Docker     │
-                        │  Compose, MySQL default │
-                        │  in app/config.py)      │
-                        └───────────────────────┘
-
-                                    ▲
-                     REST calls     │
-        ┌───────────────────────────┴───────────────────────────┐
-        │                                                        │
-┌────────────────┐                                     ┌───────────────────┐
-│  dashboard/     │  React + Vite + Tailwind/DaisyUI     │ dashboard-flask/   │
-│  (SPA)          │  talks directly to the REST API and  │  Server-rendered   │
-│                 │  the /dashboard Socket.IO namespace  │  Flask app that    │
-│                 │  for live metrics                    │  proxies all API   │
-└────────────────┘                                     │  calls to backend  │
-                                                          └───────────────────┘
-```
+![System Architecture](architectural_diagram.jpg)
 
 Two dashboard implementations are included — they are alternatives, not
 dependent on one another. Pick whichever fits your stack, or run both during

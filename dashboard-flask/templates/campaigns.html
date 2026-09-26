@@ -28,7 +28,8 @@
           <th>Name</th>
           <th>Status</th>
           <th class="tabular-nums">Priority</th>
-          <th class="tabular-nums">Daily cap</th>
+          <th>Bidding</th>
+          <th>Budget</th>
           <th>Window</th>
           <th class="text-right">Actions</th>
         </tr>
@@ -36,7 +37,7 @@
       <tbody>
         {% if not campaigns %}
           <tr>
-            <td colspan="6" class="py-14 text-center">
+            <td colspan="7" class="py-14 text-center">
               <div class="flex flex-col items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-9 w-9 text-neutral-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -47,22 +48,44 @@
             </td>
           </tr>
         {% else %}
+          {% set status_badge = {
+            'draft': 'badge-ghost',
+            'scheduled': 'badge-info',
+            'active': 'badge-success',
+            'paused': 'badge-warning',
+            'completed': 'badge-ghost',
+            'exhausted': 'badge-error',
+            'archived': 'badge-ghost',
+          } %}
           {% for c in campaigns %}
             <tr class="border-b border-base-300 last:border-0 hover:bg-base-300/20 transition-colors">
-              <td class="font-medium">{{ c.name }}</td>
-              <td>
+              <td class="font-medium">
+                {{ c.name }}
                 <form method="POST" action="/campaigns/{{ c.id }}/toggle" class="inline">
                   <input type="hidden" name="is_active" value="{{ 'false' if c.is_active else 'true' }}" />
                   <button type="submit"
-                          class="badge cursor-pointer hover:opacity-80 transition-opacity border-0
+                          class="badge badge-xs ml-1 cursor-pointer hover:opacity-80 transition-opacity border-0
                                  {{ 'badge-success' if c.is_active else 'badge-ghost' }}">
-                    {{ 'Active' if c.is_active else 'Paused' }}
+                    {{ 'On' if c.is_active else 'Off' }}
                   </button>
                 </form>
               </td>
+              <td>
+                <span class="badge badge-sm {{ status_badge.get(c.status, 'badge-ghost') }}">{{ c.status }}</span>
+              </td>
               <td class="tabular-nums">{{ c.priority }}</td>
-              <td class="tabular-nums">
-                {{ '$%.2f'|format(c.daily_cap) if c.daily_cap is not none else 'No cap' }}
+              <td class="tabular-nums text-xs">
+                {{ c.bidding_strategy | upper }} · ${{ '%.4f'|format(c.bid_amount) }}
+              </td>
+              <td class="tabular-nums text-xs">
+                <div>{{ '$%.2f/day'|format(c.daily_cap) if c.daily_cap is not none else 'No daily cap' }}</div>
+                <div class="text-neutral-content">
+                  {% if c.total_budget is not none %}
+                    ${{ '%.2f'|format(c.spent_amount) }} / ${{ '%.2f'|format(c.total_budget) }} total
+                  {% else %}
+                    ${{ '%.2f'|format(c.spent_amount) }} spent
+                  {% endif %}
+                </div>
               </td>
               <td class="tabular-nums text-xs text-neutral-content">
                 {{ c.start_date.strftime('%Y-%m-%d') if c.start_date.strftime is defined else c.start_date[:10] }} – 
@@ -96,7 +119,7 @@
     <form method="POST" action="/campaigns/create" class="space-y-4">
       <label class="block">
         <span class="block text-xs text-neutral-content mb-1.5">Campaign name</span>
-        <input name="name" required class="input input-bordered input-sm w-full bg-base-100" placeholder="Q4 Promotional Blitz" />
+        <input name="name" required minlength="2" class="input input-bordered input-sm w-full bg-base-100" placeholder="Q4 Promotional Blitz" />
       </label>
 
       <label class="block">
@@ -106,12 +129,32 @@
 
       <div class="grid grid-cols-2 gap-3">
         <label class="block">
-          <span class="block text-xs text-neutral-content mb-1.5">Priority</span>
-          <input name="priority" type="number" value="1" min="1" class="input input-bordered input-sm w-full bg-base-100" />
+          <span class="block text-xs text-neutral-content mb-1.5">Priority (1-100)</span>
+          <input name="priority" type="number" value="1" min="1" max="100" class="input input-bordered input-sm w-full bg-base-100" />
         </label>
+        <label class="block">
+          <span class="block text-xs text-neutral-content mb-1.5">Bidding strategy</span>
+          <select name="bidding_strategy" class="select select-bordered select-sm w-full bg-base-100">
+            <option value="cpm" selected>CPM</option>
+            <option value="cpc">CPC</option>
+            <option value="cpa">CPA</option>
+          </select>
+        </label>
+      </div>
+
+      <label class="block">
+        <span class="block text-xs text-neutral-content mb-1.5">Bid amount ($)</span>
+        <input name="bid_amount" type="number" step="0.0001" min="0.0001" value="1.0000" required class="input input-bordered input-sm w-full bg-base-100" />
+      </label>
+
+      <div class="grid grid-cols-2 gap-3">
         <label class="block">
           <span class="block text-xs text-neutral-content mb-1.5">Daily cap ($ optional)</span>
           <input name="daily_cap" type="number" step="0.01" min="0" class="input input-bordered input-sm w-full bg-base-100" placeholder="50.00" />
+        </label>
+        <label class="block">
+          <span class="block text-xs text-neutral-content mb-1.5">Total budget ($ optional)</span>
+          <input name="total_budget" type="number" step="0.01" min="0" class="input input-bordered input-sm w-full bg-base-100" placeholder="1000.00" />
         </label>
       </div>
 
@@ -121,8 +164,8 @@
           <input name="start_date" type="date" required class="input input-bordered input-sm w-full bg-base-100" />
         </label>
         <label class="block">
-          <span class="block text-xs text-neutral-content mb-1.5">End date</span>
-          <input name="end_date" type="date" required class="input input-bordered input-sm w-full bg-base-100" />
+          <span class="block text-xs text-neutral-content mb-1.5">End date (optional)</span>
+          <input name="end_date" type="date" class="input input-bordered input-sm w-full bg-base-100" />
         </label>
       </div>
 

@@ -1,7 +1,23 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Layout } from "../components/Layout";
 import { api } from "../lib/api";
-import type { Campaign } from "../types";
+import type { BiddingStrategy, Campaign, CampaignStatus } from "../types";
+
+const STATUS_BADGE: Record<CampaignStatus, string> = {
+  draft: "badge-ghost",
+  scheduled: "badge-info",
+  active: "badge-success",
+  paused: "badge-warning",
+  completed: "badge-ghost",
+  exhausted: "badge-error",
+  archived: "badge-ghost",
+};
+
+const BIDDING_LABEL: Record<BiddingStrategy, string> = {
+  cpm: "CPM",
+  cpc: "CPC",
+  cpa: "CPA",
+};
 
 export function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -47,7 +63,8 @@ export function CampaignsPage() {
               <th>Name</th>
               <th>Status</th>
               <th>Priority</th>
-              <th>Daily cap</th>
+              <th>Bidding</th>
+              <th>Budget</th>
               <th>Window</th>
               <th></th>
             </tr>
@@ -55,35 +72,49 @@ export function CampaignsPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="text-center text-sm text-neutral-content py-6">
+                <td colSpan={7} className="text-center text-sm text-neutral-content py-6">
                   Loading...
                 </td>
               </tr>
             ) : campaigns.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center text-sm text-neutral-content py-6">
+                <td colSpan={7} className="text-center text-sm text-neutral-content py-6">
                   No campaigns yet. Create one to start serving ads.
                 </td>
               </tr>
             ) : (
               campaigns.map((c) => (
                 <tr key={c.id} className="border-b border-base-300 last:border-0">
-                  <td className="font-medium">{c.name}</td>
-                  <td>
+                  <td className="font-medium">
+                    {c.name}
                     <button
                       onClick={() => toggleActive(c)}
-                      className={`badge ${c.is_active ? "badge-success" : "badge-ghost"} cursor-pointer`}
+                      className={`badge ${c.is_active ? "badge-success" : "badge-ghost"} ml-2 cursor-pointer`}
+                      title="Toggle active/paused"
                     >
-                      {c.is_active ? "Active" : "Paused"}
+                      {c.is_active ? "On" : "Off"}
                     </button>
                   </td>
+                  <td>
+                    <span className={`badge ${STATUS_BADGE[c.status]}`}>{c.status}</span>
+                  </td>
                   <td className="tabular">{c.priority}</td>
-                  <td className="tabular">
-                    {c.daily_cap != null ? `$${c.daily_cap.toFixed(2)}` : "No cap"}
+                  <td className="tabular text-xs">
+                    {BIDDING_LABEL[c.bidding_strategy]} · ${Number(c.bid_amount).toFixed(4)}
+                  </td>
+                  <td className="tabular text-xs">
+                    <div>
+                      {c.daily_cap != null ? `$${Number(c.daily_cap).toFixed(2)}/day` : "No daily cap"}
+                    </div>
+                    <div className="text-neutral-content">
+                      {c.total_budget != null
+                        ? `$${Number(c.spent_amount).toFixed(2)} / $${Number(c.total_budget).toFixed(2)} total`
+                        : `$${Number(c.spent_amount).toFixed(2)} spent`}
+                    </div>
                   </td>
                   <td className="tabular text-xs text-neutral-content">
                     {new Date(c.start_date).toLocaleDateString()} –{" "}
-                    {new Date(c.end_date).toLocaleDateString()}
+                    {c.end_date ? new Date(c.end_date).toLocaleDateString() : "Ongoing"}
                   </td>
                   <td>
                     <button
@@ -123,7 +154,10 @@ function CreateCampaignModal({
   const [name, setName] = useState("");
   const [advertiserId, setAdvertiserId] = useState("");
   const [priority, setPriority] = useState("1");
+  const [biddingStrategy, setBiddingStrategy] = useState<BiddingStrategy>("cpm");
+  const [bidAmount, setBidAmount] = useState("1.00");
   const [dailyCap, setDailyCap] = useState("");
+  const [totalBudget, setTotalBudget] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -138,9 +172,14 @@ function CreateCampaignModal({
         advertiser_id: Number(advertiserId),
         name,
         priority: Number(priority),
+        bidding_strategy: biddingStrategy,
+        bid_amount: Number(bidAmount),
         daily_cap: dailyCap ? Number(dailyCap) : null,
+        total_budget: totalBudget ? Number(totalBudget) : null,
         start_date: new Date(startDate).toISOString(),
-        end_date: new Date(endDate).toISOString(),
+        // end_date is optional on the backend now -- omit entirely when left blank
+        // rather than sending an invalid/empty date.
+        ...(endDate ? { end_date: new Date(endDate).toISOString() } : {}),
       });
       onCreated();
     } catch (err) {
@@ -159,6 +198,7 @@ function CreateCampaignModal({
           <Field label="Campaign name">
             <input
               required
+              minLength={2}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="input input-bordered input-sm w-full bg-base-100"
@@ -176,19 +216,59 @@ function CreateCampaignModal({
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Priority">
+            <Field label="Priority (1-100)">
               <input
                 type="number"
+                min={1}
+                max={100}
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
                 className="input input-bordered input-sm w-full bg-base-100"
               />
             </Field>
+            <Field label="Bidding strategy">
+              <select
+                value={biddingStrategy}
+                onChange={(e) => setBiddingStrategy(e.target.value as BiddingStrategy)}
+                className="select select-bordered select-sm w-full bg-base-100"
+              >
+                <option value="cpm">CPM</option>
+                <option value="cpc">CPC</option>
+                <option value="cpa">CPA</option>
+              </select>
+            </Field>
+          </div>
+
+          <Field label="Bid amount ($)">
+            <input
+              type="number"
+              step="0.0001"
+              min="0.0001"
+              required
+              value={bidAmount}
+              onChange={(e) => setBidAmount(e.target.value)}
+              className="input input-bordered input-sm w-full bg-base-100"
+            />
+          </Field>
+
+          <div className="grid grid-cols-2 gap-3">
             <Field label="Daily cap ($, optional)">
               <input
                 type="number"
+                min="0"
+                step="0.01"
                 value={dailyCap}
                 onChange={(e) => setDailyCap(e.target.value)}
+                className="input input-bordered input-sm w-full bg-base-100"
+              />
+            </Field>
+            <Field label="Total budget ($, optional)">
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={totalBudget}
+                onChange={(e) => setTotalBudget(e.target.value)}
                 className="input input-bordered input-sm w-full bg-base-100"
               />
             </Field>
@@ -204,9 +284,8 @@ function CreateCampaignModal({
                 className="input input-bordered input-sm w-full bg-base-100"
               />
             </Field>
-            <Field label="End date">
+            <Field label="End date (optional)">
               <input
-                required
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}

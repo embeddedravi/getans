@@ -156,10 +156,16 @@ def create_campaign():
         "advertiser_id": int(request.form["advertiser_id"]),
         "name": request.form["name"],
         "priority": int(request.form.get("priority", 1)),
+        # backend/app/schemas/campaign.py::CampaignCreate now also takes
+        # bidding_strategy / bid_amount / total_budget, and end_date is optional.
+        "bidding_strategy": request.form.get("bidding_strategy", "cpm"),
+        "bid_amount": float(request.form.get("bid_amount") or 1.0),
         "daily_cap": float(request.form["daily_cap"]) if request.form.get("daily_cap") else None,
+        "total_budget": float(request.form["total_budget"]) if request.form.get("total_budget") else None,
         "start_date": request.form["start_date"] + "T00:00:00Z",
-        "end_date": request.form["end_date"] + "T00:00:00Z",
     }
+    if request.form.get("end_date"):
+        payload["end_date"] = request.form["end_date"] + "T00:00:00Z"
     try:
         _api("POST", "/campaigns", json=payload)
         flash("Campaign created successfully.", "success")
@@ -220,7 +226,17 @@ def publishers():
 @app.route("/publishers/create", methods=["POST"])
 @login_required
 def create_publisher():
-    payload = {"name": request.form["name"], "site_url": request.form["site_url"]}
+    # backend/app/schemas/publisher.py::PublisherCreate requires payout_email
+    # (EmailStr, no default) -- creation without it returns a 422.
+    payload = {
+        "name": request.form["name"],
+        "site_url": request.form["site_url"],
+        "payout_email": request.form["payout_email"],
+    }
+    if request.form.get("domain"):
+        payload["domain"] = request.form["domain"]
+    if request.form.get("category"):
+        payload["category"] = request.form["category"]
     try:
         _api("POST", "/publishers", json=payload)
         flash("Publisher added.", "success")
@@ -235,8 +251,10 @@ def create_ad_unit(publisher_id: int):
     payload = {
         "publisher_id": publisher_id,
         "slot_name": request.form["slot_name"],
+        "format_type": request.form.get("format_type", "display"),
         "width": int(request.form["width"]),
         "height": int(request.form["height"]),
+        "reserve_price": float(request.form.get("reserve_price") or 0),
     }
     try:
         _api("POST", f"/publishers/{publisher_id}/ad-units", json=payload)

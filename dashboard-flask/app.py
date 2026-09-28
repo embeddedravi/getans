@@ -100,6 +100,11 @@ def login():
             data = _api("POST", "/auth/login", json={"mobile": mobile, "password": password})
             session["access_token"] = data["access_token"]
             session["user_mobile"] = mobile
+            try:
+                session["role"] = _api("GET", "/auth/me")["role"]
+            except Exception:
+                session["role"] = None
+
             return redirect(url_for("analytics"))
         except requests.HTTPError as exc:
             try:
@@ -188,6 +193,79 @@ def toggle_campaign(campaign_id: int):
     except Exception as exc:
         flash(f"Update failed: {exc}", "error")
     return redirect(url_for("campaigns"))
+
+@app.route("/campaigns/<int:campaign_id>/creatives")
+@login_required
+def creatives(campaign_id: int):
+    try:
+        campaign = _api("GET", f"/campaigns/{campaign_id}")
+        items = _api("GET", f"/creatives/by-campaign/{campaign_id}")
+    except requests.HTTPError:
+        flash("Could not load creatives for that campaign.", "error")
+        return redirect(url_for("campaigns"))
+    return render_template(
+        "creatives.html",
+        campaign=campaign,
+        creatives=items,
+        is_admin=session.get("role") == "admin",
+    )
+
+
+@app.route("/campaigns/<int:campaign_id>/creatives/create", methods=["POST"])
+@login_required
+def create_creative(campaign_id: int):
+    payload = {
+        "campaign_id": campaign_id,
+        "name": request.form.get("name") or None,
+        "asset_url": request.form["asset_url"],
+        "click_url": request.form["click_url"],
+        "width": int(request.form["width"]),
+        "height": int(request.form["height"]),
+        "format": "image",
+    }
+    try:
+        _api("POST", "/creatives", json=payload)
+        flash("Creative added. It will serve once approved.", "success")
+    except Exception as exc:
+        flash(f"Failed: {exc}", "error")
+    return redirect(url_for("creatives", campaign_id=campaign_id))
+
+
+@app.route("/campaigns/<int:campaign_id>/creatives/<int:creative_id>/toggle", methods=["POST"])
+@login_required
+def toggle_creative(campaign_id: int, creative_id: int):
+    is_active = request.form.get("is_active") == "true"
+    try:
+        _api("PATCH", f"/creatives/{creative_id}", json={"is_active": not is_active})
+    except Exception as exc:
+        flash(f"Update failed: {exc}", "error")
+    return redirect(url_for("creatives", campaign_id=campaign_id))
+
+
+@app.route("/campaigns/<int:campaign_id>/creatives/<int:creative_id>/review", methods=["POST"])
+@login_required
+def review_creative(campaign_id: int, creative_id: int):
+    decision = request.form.get("decision")
+    body = {"review_status": decision}
+    if decision == "rejected":
+        body["rejection_reason"] = request.form.get("reason", "").strip()
+    try:
+        _api("PATCH", f"/creatives/{creative_id}/review", json=body)
+        flash(f"Creative {decision}.", "success")
+    except Exception as exc:
+        flash(f"Review failed: {exc}", "error")
+    return redirect(url_for("creatives", campaign_id=campaign_id))
+
+
+@app.route("/campaigns/<int:campaign_id>/creatives/<int:creative_id>/delete", methods=["POST"])
+@login_required
+def delete_creative(campaign_id: int, creative_id: int):
+    try:
+        _api("DELETE", f"/creatives/{creative_id}")
+        flash("Creative deleted.", "success")
+    except Exception as exc:
+        flash(f"Delete failed: {exc}", "error")
+    return redirect(url_for("creatives", campaign_id=campaign_id))
 
 
 @app.route("/campaigns/<int:campaign_id>/delete", methods=["POST"])

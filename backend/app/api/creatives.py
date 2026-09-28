@@ -8,9 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import get_db, require_role
 from app.models.campaign import Campaign
-from app.models.creative import Creative
+from app.models.creative import Creative, ReviewStatus
 from app.models.user import User
-from app.schemas.creative import CreativeCreate, CreativeOut
+from app.schemas.creative import CreativeCreate, CreativeOut, CreativeUpdate, CreativeReview
 
 router = APIRouter(prefix="/creatives", tags=["Creatives"])
 
@@ -111,3 +111,46 @@ async def delete_creative(
 
     await db.delete(creative)
     await db.commit()
+
+async def _get_owned_creative(db: AsyncSession, creative_id: int, user: User) -> Creative:
+    creative = await db.get(Creative, creative_id)
+    if creative is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Creative asset not found")
+    campaign = await db.get(Campaign, creative.campaign_id)
+    if user.role == "advertiser" and (campaign is None or campaign.advertiser_id != user.advertiser_id):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Access denied to requested creative asset")
+    return creative
+
+
+@router.patch("/{creative_id}", response_model=CreativeOut, summary="Update a creative")
+async def update_creative(
+    creative_id: int,
+    payload: CreativeUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role("admin", "advertiser")),
+) -> Creative:
+    creative = await _get_owned_creative(db, creative_id, user)
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(creative, field, value)
+    await db.commit()
+    await db.refresh(creative)
+    return creative
+
+
+@router.patch("/{creative_id}/review", response_model=CreativeOut, summary="Approve or reject a creative")
+async def review_creative(
+    creative_id: int,
+    payload: CreativeReview,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role("admin")),
+) -> Creative:
+    creative = await db.get(Creative, creative_id)
+    if creative is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Creative asset not found")
+    creative.review_status = payload.review_status
+    creative.rejection_reason = (
+        payload.rejection_reason if payload.review_status == ReviewStatus.REJECTED else None
+    )
+    await db.commit()
+    await db.refresh(creative)
+    return creative

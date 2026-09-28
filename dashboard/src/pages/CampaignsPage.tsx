@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { Layout } from "../components/Layout";
 import { api } from "../lib/api";
 import type { BiddingStrategy, Campaign, CampaignStatus } from "../types";
+import { CreativesModal } from "../components/CreativesModal";
 
 const STATUS_BADGE: Record<CampaignStatus, string> = {
   draft: "badge-ghost",
@@ -23,6 +24,12 @@ export function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [creativesFor, setCreativesFor] = useState<Campaign | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    api.me().then((u) => setIsAdmin((u as { role: string }).role === "admin")).catch(() => { });
+  }, []);
 
   function refresh() {
     setLoading(true);
@@ -117,6 +124,9 @@ export function CampaignsPage() {
                     {c.end_date ? new Date(c.end_date).toLocaleDateString() : "Ongoing"}
                   </td>
                   <td>
+                    <button onClick={() => setCreativesFor(c)} className="btn btn-ghost btn-xs">
+                      Creatives
+                    </button>
                     <button
                       onClick={() => handleDelete(c.id)}
                       className="btn btn-ghost btn-xs text-error"
@@ -140,6 +150,15 @@ export function CampaignsPage() {
           }}
         />
       )}
+
+      {creativesFor && (
+        <CreativesModal
+          campaign={creativesFor}
+          isAdmin={isAdmin}
+          onClose={() => setCreativesFor(null)}
+        />
+      )}
+
     </Layout>
   );
 }

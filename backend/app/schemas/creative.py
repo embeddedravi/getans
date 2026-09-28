@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Any, Dict, List, Generic, TypeVar, Optional
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, PositiveInt
+from pydantic import BaseModel, ConfigDict, model_validator, EmailStr, Field, HttpUrl, PositiveInt
 
 # ============================================================================
 # Generic / Shared Schemas
@@ -71,3 +71,18 @@ class CreativeOut(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class CreativeUpdate(BaseModel):
+    name: Optional[str] = Field(None, max_length=200)
+    is_active: Optional[bool] = None
+
+
+class CreativeReview(BaseModel):
+    review_status: ReviewStatus
+    rejection_reason: Optional[str] = Field(None, max_length=500)
+
+    @model_validator(mode="after")
+    def _reason_required_on_reject(self):
+        if self.review_status == ReviewStatus.REJECTED and not self.rejection_reason:
+            raise ValueError("rejection_reason is required when rejecting a creative")
+        return self

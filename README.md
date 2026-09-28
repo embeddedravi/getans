@@ -468,7 +468,7 @@ database.
 - [x] Live dashboard metrics relay (Socket.IO)
 - [x] Dashboard frontend (React SPA + Flask alternative) for publishers, ad units, campaigns, analytics
 - [x] Backend test suite
-- [ ] Creatives management UI in either dashboard
+- [x] Creatives management UI in either dashboard
 - [ ] Dashboard authentication for the `/dashboard` Socket.IO namespace
 - [ ] Production-hardened secrets management (no hardcoded defaults)
 - [ ] Dashboard test coverage

@@ -70,6 +70,13 @@ export const api = {
   createCreative: (payload: unknown) =>
     request("/creatives", { method: "POST", body: JSON.stringify(payload) }),
   deleteCreative: (id: number) => request(`/creatives/${id}`, { method: "DELETE" }),
+  updateCreative: (id: number, payload: unknown) =>
+    request(`/creatives/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  reviewCreative: (id: number, review_status: string, rejection_reason?: string) =>
+    request(`/creatives/${id}/review`, {
+      method: "PATCH",
+      body: JSON.stringify({ review_status, rejection_reason }),
+    }),
 
   listPublishers: () => request("/publishers"),
   createPublisher: (payload: unknown) =>

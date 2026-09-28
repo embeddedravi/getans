@@ -11,6 +11,7 @@ from app.deps import get_current_user, get_db, require_role
 from app.models.user import User
 from app.models.user import UserRole as UserRoleModel
 from app.schemas.user import LoginRequest, TokenResponse, UserCreate, UserOut, UserRole
+from app.config import settings
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 

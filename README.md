@@ -383,10 +383,12 @@ and ad-unit endpoints.
 |-------------------|------------------|-------------------------------------------------------------|
 | server → client   | `metric_update`  | `{ type, campaign_id, ad_unit_id, timestamp }`               |
 
-Dashboard connections currently accept any client (see the `TODO` in
-`app/sockets/dashboard_ns.py`) — before exposing this beyond local
-development, add JWT authentication and scope clients to a room per
-publisher/advertiser account.
+The `/dashboard` namespace requires a dashboard JWT, sent in the Socket.IO
+handshake: `io("/dashboard", { auth: { token } })`. Invalid, expired, or
+deactivated-user tokens are refused with `unauthorized`. Each connection is
+placed in a room scoped to its account (`admin`, `advertiser:{id}`, or
+`publisher:{id}`), and `metric_update` events are only sent to the rooms that
+own the event. Sockets are closed when their token expires.
 
 ## Authentication & authorization
 
@@ -469,7 +471,7 @@ database.
 - [x] Dashboard frontend (React SPA + Flask alternative) for publishers, ad units, campaigns, analytics
 - [x] Backend test suite
 - [x] Creatives management UI in either dashboard
-- [ ] Dashboard authentication for the `/dashboard` Socket.IO namespace
+- [x] Dashboard authentication for the `/dashboard` Socket.IO namespace
 - [ ] Production-hardened secrets management (no hardcoded defaults)
 - [ ] Dashboard test coverage
 - [ ] Reconcile database driver/dependency lists (`pyproject.toml` vs `requirements.txt` vs `docker-compose.yml`)

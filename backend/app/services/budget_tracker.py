@@ -6,7 +6,11 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Dict, Optional
 
+from sqlalchemy import select
+
 from app.db.session import async_session_factory
+from app.models.ad_unit import AdUnit
+from app.models.campaign import Campaign
 from app.models.creative import Creative
 from app.models.event import Event, EventType
 from app.services.ad_selector import record_spend
@@ -41,7 +45,8 @@ async def record_event(
     cost = _COST_PER_EVENT[enum_event_type]
 
     async with async_session_factory() as db:
-        campaign_id = await _campaign_id_for_creative(db, creative_id)
+        campaign_id, advertiser_id = await _campaign_for_creative(db, creative_id)
+        publisher_id = await db.scalar(select(AdUnit.publisher_id).where(AdUnit.id == ad_unit_id))
 
         event = Event(
             event_id=event_id,
@@ -59,18 +64,34 @@ async def record_event(
         await db.commit()
 
     record_spend(campaign_id, cost)
-    await _emit_dashboard_update(enum_event_type.value, campaign_id, ad_unit_id)
+    await _emit_dashboard_update(
+        enum_event_type.value, campaign_id, ad_unit_id, advertiser_id, publisher_id
+    )
 
 
-async def _campaign_id_for_creative(db, creative_id: int) -> int:
-    creative = await db.get(Creative, creative_id)
-    if creative is None:
+async def _campaign_for_creative(db, creative_id: int) -> tuple[int, int]:
+    """Returns (campaign_id, advertiser_id) for a creative."""
+    row = (
+        await db.execute(
+            select(Campaign.id, Campaign.advertiser_id)
+            .join(Creative, Creative.campaign_id == Campaign.id)
+            .where(Creative.id == creative_id)
+        )
+    ).first()
+    if row is None:
         raise ValueError(f"Unknown creative_id: {creative_id}")
-    return creative.campaign_id
+    campaign_id, advertiser_id = row
+    return campaign_id, advertiser_id
 
 
-async def _emit_dashboard_update(event_type: str, campaign_id: int, ad_unit_id: int) -> None:
-    """Emits real-time dashboard updates to connected Socket.IO sockets."""
+async def _emit_dashboard_update(
+    event_type: str,
+    campaign_id: int,
+    ad_unit_id: int,
+    advertiser_id: int,
+    publisher_id: Optional[int],
+) -> None:
+    """Pushes a metric to the dashboard rooms that are allowed to see it."""
     from app.sockets.dashboard_ns import emit_metric_update
 
     payload = {
@@ -79,4 +100,4 @@ async def _emit_dashboard_update(event_type: str, campaign_id: int, ad_unit_id: 
         "ad_unit_id": ad_unit_id,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
-    await emit_metric_update(payload)
+    await emit_metric_update(payload, advertiser_id=advertiser_id, publisher_id=publisher_id)

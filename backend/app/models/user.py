@@ -38,7 +38,12 @@ class User(TimestampMixin, Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
 
     # Core Identity & Authentication
-    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    mobile: Mapped[Optional[str]] = mapped_column(
+        String(15), unique=True, index=True, nullable=True  # stored as +91XXXXXXXXXX
+    )
+    email: Mapped[Optional[str]] = mapped_column(
+        String(191), unique=True, index=True, nullable=True
+    )
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     first_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     last_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
@@ -89,7 +94,6 @@ class User(TimestampMixin, Base):
 
     # Constraints & Indexes
     __table_args__ = (
-        # Ensures publisher users only tie to publishers, advertiser users to advertisers, etc.
         CheckConstraint(
             """
             (role = 'admin') OR
@@ -98,6 +102,10 @@ class User(TimestampMixin, Base):
             """,
             name="check_user_role_tenant_integrity",
         ),
+        CheckConstraint(
+            "mobile IS NOT NULL OR email IS NOT NULL",
+            name="check_user_has_contact",
+        ),
         Index("ix_users_role_active", "role", "is_active"),
     )
 
@@ -105,7 +113,7 @@ class User(TimestampMixin, Base):
     def full_name(self) -> str:
         if self.first_name and self.last_name:
             return f"{self.first_name} {self.last_name}"
-        return self.first_name or self.last_name or self.email
+        return self.first_name or self.last_name or self.mobile or self.email or ""
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email='{self.email}', role='{self.role.value}')>"

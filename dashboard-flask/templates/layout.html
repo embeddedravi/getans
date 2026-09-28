@@ -46,13 +46,13 @@
         <div class="avatar placeholder">
           <div class="bg-primary/20 text-primary rounded-full w-8 h-8 flex items-center justify-center">
             <span class="text-xs font-semibold">
-              {{ (session.get('user_email', 'A')[0] | upper) if session is defined and session.get('user_email') else 'A' }}
+              {{ session.get('user_mobile', 'A')[-1] }}
             </span>
           </div>
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-xs font-medium text-base-content truncate">
-            {{ session.get('user_email', 'Admin') if session is defined and session.get('user_email') else 'Administrator' }}
+            {{ session.get('user_mobile') or 'Administrator' }}
           </p>
           <p class="text-xs text-neutral-content">Administrator</p>
         </div>

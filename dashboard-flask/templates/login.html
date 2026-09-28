@@ -26,15 +26,17 @@
 
       <form method="POST" action="/login" class="space-y-4" id="login-form">
         <div>
-          <label class="block text-sm font-medium mb-1.5" for="email">Email address</label>
+          <label class="block text-sm font-medium mb-1.5" for="mobile">Mobile number</label>
           <input
-            id="email"
-            name="email"
-            type="email"
+            id="mobile"
+            name="mobile"
+            type="tel"
+            inputmode="numeric"
             required
-            autocomplete="email"
+            autocomplete="tel"
+            maxlength="17"
             class="input input-bordered w-full bg-base-100 focus:border-primary transition-colors"
-            placeholder="admin@example.com"
+            placeholder="98765 43210"
           />
         </div>
 

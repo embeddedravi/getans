@@ -91,16 +91,18 @@ def login():
 
     error = None
     if request.method == "POST":
-        email = request.form.get("email", "")
+        mobile = request.form.get("mobile", "")
         password = request.form.get("password", "")
         try:
-            data = _api("POST", "/auth/login", json={"email": email, "password": password})
+            data = _api("POST", "/auth/login", json={"mobile": mobile, "password": password})
             session["access_token"] = data["access_token"]
-            session["user_email"] = email
+            session["user_mobile"] = mobile
             return redirect(url_for("analytics"))
         except requests.HTTPError as exc:
             try:
                 detail = exc.response.json().get("detail", "Login failed")
+                if isinstance(detail, list):  # 422 validation error from FastAPI
+                    detail = detail[0].get("msg", "Invalid mobile number").replace("Value error, ", "")
             except Exception:
                 detail = "Login failed"
             error = detail

@@ -4,8 +4,8 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Any, Dict, List, Generic, TypeVar, Optional
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, PositiveInt
-
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, HttpUrl, PositiveInt
+from app.core.phone import normalize_indian_mobile
 # ============================================================================
 # Generic / Shared Schemas
 # ============================================================================
@@ -41,8 +41,13 @@ class UserRole(str, Enum):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    mobile: str = Field(..., description="Indian mobile number")
     password: str = Field(..., min_length=8, description="User cleartext password")
+
+    @field_validator("mobile")
+    @classmethod
+    def _normalize_mobile(cls, v: str) -> str:
+        return normalize_indian_mobile(v)
 
 
 class TokenResponse(BaseModel):
@@ -52,13 +57,25 @@ class TokenResponse(BaseModel):
 
 
 class UserCreate(BaseModel):
-    email: EmailStr
+    mobile: str = Field(..., description="Indian mobile number")
+    email: Optional[EmailStr] = None
     password: str = Field(..., min_length=8)
     first_name: Optional[str] = Field(None, max_length=100)
     last_name: Optional[str] = Field(None, max_length=100)
     role: UserRole
     publisher_id: Optional[int] = None
     advertiser_id: Optional[int] = None
+
+    @field_validator("mobile")
+    @classmethod
+    def _normalize_mobile(cls, v: str) -> str:
+        return normalize_indian_mobile(v)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _blank_email_to_none(cls, v):
+        # HTML forms send "" for an empty optional field
+        return v or None
 
 
 class UserUpdate(BaseModel):
@@ -70,7 +87,8 @@ class UserUpdate(BaseModel):
 
 class UserOut(BaseModel):
     id: int
-    email: EmailStr
+    mobile: Optional[str] = None
+    email: Optional[EmailStr] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     role: UserRole

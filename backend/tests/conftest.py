@@ -96,6 +96,7 @@ async def publisher(db) -> Publisher:
 @pytest_asyncio.fixture
 async def admin_user(db) -> User:
     user = User(
+        mobile="+919876543210",
         email="admin@platform.example",
         hashed_password=hash_password("adminpass123"),
         role="admin",
@@ -110,6 +111,7 @@ async def admin_user(db) -> User:
 @pytest_asyncio.fixture
 async def advertiser_user(db, advertiser) -> User:
     user = User(
+        mobile="+919876543210",
         email="advertiser@acme.example",
         hashed_password=hash_password("advertiserpass123"),
         role="advertiser",
@@ -122,8 +124,8 @@ async def advertiser_user(db, advertiser) -> User:
     return user
 
 
-async def auth_headers(client: AsyncClient, email: str, password: str) -> dict[str, str]:
-    res = await client.post("/api/auth/login", json={"email": email, "password": password})
+async def auth_headers(client: AsyncClient, mobile: str, password: str) -> dict[str, str]:
+    res = await client.post("/api/auth/login", json={"mobile": mobile, "password": password})
     assert res.status_code == 200, res.text
     token = res.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}

@@ -17,7 +17,7 @@ from sqlalchemy import (
     String,
     JSON
 )
-from sqlalchemy.dialects.postgresql import INET, JSONB, UUID
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -45,7 +45,7 @@ class Event(Base):
 
     # Unique Event Identifier for Deduplication (e.g., UUIDv4)
     event_id: Mapped[Optional[str]] = mapped_column(
-        UUID(as_uuid=False),
+        String(36),
         unique=True,
         nullable=True,
         index=True,
@@ -100,7 +100,7 @@ class Event(Base):
     )  # False if flagged by anti-fraud filter (bot traffic, click farming)
 
     # Contextual Client Info (Useful for fast OLAP/attribution queries)
-    user_ip: Mapped[Optional[str]] = mapped_column(INET, nullable=True)
+    user_ip: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
     user_agent: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     country_code: Mapped[Optional[str]] = mapped_column(String(2), nullable=True, index=True)
 

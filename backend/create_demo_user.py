@@ -16,14 +16,15 @@ import sys
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from app.core.phone import normalize_indian_mobile
 
 # ── Parse CLI args ────────────────────────────────────────────────────────────
 
 parser = argparse.ArgumentParser(description="Seed a demo admin user into the database.")
-parser.add_argument("--email",    default="adv@demo.com", help="User email (default: admin@demo.com)")
-parser.add_argument("--password", default="demo1234",       help="User password (default: demo1234)")
-parser.add_argument("--role",     default="advertiser",          choices=["admin", "advertiser", "publisher"],
-                    help="User role (default: admin)")
+parser.add_argument("--mobile",   default="9876543210",   help="Indian mobile number (default: 9876543210)")
+parser.add_argument("--email",    default=None,           help="Optional email")
+parser.add_argument("--password", default="demo1234")
+parser.add_argument("--role",     default="admin", choices=["admin", "advertiser", "publisher"])
 args = parser.parse_args()
 
 # ── Import app modules (must be run from backend/) ────────────────────────────
@@ -48,16 +49,16 @@ async def main() -> None:
 
     async with Session() as db:
         # Check if the user already exists
-        result = await db.execute(select(User).where(User.email == args.email))
+        result = await db.execute(select(User).where(User.mobile == args.mobile))
         existing = result.scalar_one_or_none()
-
         if existing:
-            print(f"\n⚠️  User '{args.email}' already exists (id={existing.id}, role={existing.role}).")
+            print(f"\n⚠️  User '{args.mobile}' already exists (id={existing.id}, role={existing.role}).")
             print("    Use --email to specify a different address, or delete the existing user first.\n")
             await engine.dispose()
             return
 
         user = User(
+            mobile=args.mobile,
             email=args.email,
             hashed_password=hash_password(args.password),
             role=args.role,

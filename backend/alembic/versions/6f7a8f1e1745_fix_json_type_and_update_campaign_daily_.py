@@ -26,7 +26,7 @@ def upgrade() -> None:
     op.add_column('ad_units', sa.Column('reserve_price', sa.Numeric(precision=10, scale=4), nullable=False))
     op.add_column('ad_units', sa.Column('is_active', sa.Boolean(), nullable=False))
     op.add_column('ad_units', sa.Column('allow_house_ads', sa.Boolean(), nullable=False))
-    op.add_column('ad_units', sa.Column('settings', sa.JSON().with_variant(postgresql.JSONB(astext_type=Text()), 'postgresql'), nullable=True))
+    op.add_column('ad_units', sa.Column('settings', sa.JSON().with_variant(postgresql.JSONB(astext_type=sa.Text()), 'postgresql'), nullable=True))
     op.alter_column('ad_units', 'id',
                existing_type=mysql.INTEGER(),
                type_=sa.BigInteger(),
@@ -94,7 +94,7 @@ def upgrade() -> None:
     op.add_column('creatives', sa.Column('name', sa.String(length=200), nullable=True))
     op.add_column('creatives', sa.Column('impression_tracker_url', sa.String(length=2048), nullable=True))
     op.add_column('creatives', sa.Column('html_snippet', sa.Text(), nullable=True))
-    op.add_column('creatives', sa.Column('custom_attributes', sa.JSON().with_variant(postgresql.JSONB(astext_type=Text()), 'postgresql'), nullable=True))
+    op.add_column('creatives', sa.Column('custom_attributes', sa.JSON().with_variant(postgresql.JSONB(astext_type=sa.Text()), 'postgresql'), nullable=True))
     op.add_column('creatives', sa.Column('is_active', sa.Boolean(), nullable=False))
     op.add_column('creatives', sa.Column('review_status', sa.Enum('PENDING', 'APPROVED', 'REJECTED', name='reviewstatus', native_enum=False), nullable=False))
     op.add_column('creatives', sa.Column('rejection_reason', sa.String(length=500), nullable=True))
@@ -126,10 +126,10 @@ def upgrade() -> None:
     op.create_index(op.f('ix_creatives_format'), 'creatives', ['format'], unique=False)
     op.create_index(op.f('ix_creatives_review_status'), 'creatives', ['review_status'], unique=False)
     op.create_foreign_key(None, 'creatives', 'campaigns', ['campaign_id'], ['id'], ondelete='CASCADE')
-    op.add_column('events', sa.Column('event_id', sa.UUID(as_uuid=False), nullable=True))
+    op.add_column('events', sa.Column('event_id', sa.String(length=36), nullable=True))
     op.add_column('events', sa.Column('cost', sa.Numeric(precision=10, scale=6), nullable=False))
     op.add_column('events', sa.Column('is_valid', sa.Boolean(), nullable=False))
-    op.add_column('events', sa.Column('user_ip', postgresql.INET(), nullable=True))
+    op.add_column('events', sa.Column('user_ip', sa.String(length=45), nullable=True))
     op.add_column('events', sa.Column('user_agent', sa.String(length=512), nullable=True))
     op.add_column('events', sa.Column('country_code', sa.String(length=2), nullable=True))
     op.alter_column('events', 'id',
@@ -205,7 +205,7 @@ def upgrade() -> None:
                autoincrement=True)
     op.alter_column('users', 'email',
                existing_type=mysql.VARCHAR(collation='utf8mb4_unicode_ci', length=150),
-               type_=sa.String(length=255),
+               type_=sa.String(length=191),
                existing_nullable=False)
     op.alter_column('users', 'role',
                existing_type=mysql.VARCHAR(collation='utf8mb4_unicode_ci', length=20),
@@ -261,7 +261,7 @@ def downgrade() -> None:
                type_=mysql.VARCHAR(collation='utf8mb4_unicode_ci', length=20),
                existing_nullable=False)
     op.alter_column('users', 'email',
-               existing_type=sa.String(length=255),
+               existing_type=sa.String(length=191),
                type_=mysql.VARCHAR(collation='utf8mb4_unicode_ci', length=150),
                existing_nullable=False)
     op.alter_column('users', 'id',

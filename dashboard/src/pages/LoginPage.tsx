@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 
 export function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -14,7 +14,7 @@ export function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const { access_token } = await api.login(email, password);
+      const { access_token } = await api.login(mobile, password);
       localStorage.setItem("access_token", access_token);
       navigate("/");
     } catch (err) {
@@ -32,15 +32,19 @@ export function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm mb-1" htmlFor="email">
-              Email
+            <label className="block text-sm mb-1" htmlFor="mobile">
+              Mobile number
             </label>
             <input
-              id="email"
-              type="email"
+              id="mobile"
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              maxLength={17}
+              placeholder="98765 43210"
+              value={mobile}
+              onChange={(e) => setMobile(e.target.value)}
               className="input input-bordered w-full bg-base-100"
             />
           </div>

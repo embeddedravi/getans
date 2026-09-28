@@ -40,6 +40,9 @@ async def login(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account suspended or disabled",
         )
+        
+    if settings.require_verified_mobile and not user.is_verified:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Mobile number not verified")
 
     user.last_login_at = datetime.now(timezone.utc)
     if request.client:

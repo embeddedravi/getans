@@ -22,6 +22,14 @@ class Settings(BaseSettings):
     # Socket.IO
     socketio_async_mode: str = "asgi"
     socketio_cors_allowed_origins: str = "*"  # publisher sites vary; tighten via api_key auth instead
-
+    
+    # OTP / SMS
+    otp_length: int = 6
+    otp_ttl_seconds: int = 300
+    otp_max_attempts: int = 5
+    otp_resend_cooldown_seconds: int = 60
+    otp_max_per_hour: int = 5
+    sms_backend: str = "console"          # dev only; logs the OTP
+    require_verified_mobile: bool = False  # set True to block login until verified
 
 settings = Settings()

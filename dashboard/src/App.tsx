@@ -3,6 +3,7 @@ import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { CampaignsPage } from "./pages/CampaignsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { PublishersPage } from "./pages/PublishersPage";
+import { VerifyMobilePage } from "./pages/VerifyMobilePage";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const token = localStorage.getItem("access_token");
@@ -14,6 +15,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/verify" element={<VerifyMobilePage />} />
         <Route
           path="/"
           element={

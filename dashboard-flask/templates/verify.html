@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Verify mobile{% endblock %}
+{% block description %}Verify your mobile number{% endblock %}
+
+{% block body %}
+<div class="min-h-screen flex items-center justify-center bg-base-100 p-4">
+  <div class="w-full max-w-sm border border-base-300 bg-base-200 rounded-lg p-8 shadow-xl">
+    <h1 class="font-display text-xl font-semibold mb-1">Verify your mobile number</h1>
+
+    {% if step == 'mobile' %}
+      <p class="text-sm text-neutral-content mb-6">We'll text a 6-digit code to the number on your account.</p>
+
+      <form method="POST" action="{{ url_for('verify.verify_page') }}" class="space-y-4">
+        <input type="hidden" name="action" value="request" />
+        <div>
+          <label class="block text-sm font-medium mb-1.5" for="mobile">Mobile number</label>
+          <input id="mobile" name="mobile" type="tel" inputmode="numeric" autocomplete="tel"
+                 required maxlength="17" value="{{ mobile or '' }}" placeholder="98765 43210"
+                 class="input input-bordered w-full bg-base-100 focus:border-primary transition-colors" />
+        </div>
+        {% if error %}
+          <div role="alert" class="alert alert-error py-2.5 text-sm"><span>{{ error }}</span></div>
+        {% endif %}
+        <button type="submit" class="btn btn-primary w-full">Send code</button>
+      </form>
+
+    {% else %}
+      <p class="text-sm text-neutral-content mb-6">
+        If {{ mobile }} has an account, a code is on its way. It expires in 5 minutes.
+      </p>
+
+      <form method="POST" action="{{ url_for('verify.verify_page') }}" class="space-y-4">
+        <input type="hidden" name="action" value="verify" />
+        <input type="hidden" name="mobile" value="{{ mobile }}" />
+        <div>
+          <label class="block text-sm font-medium mb-1.5" for="code">Verification code</label>
+          <input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" autofocus
+                 required maxlength="6" pattern="\d{6}" placeholder="123456"
+                 class="input input-bordered w-full bg-base-100 focus:border-primary transition-colors tabular tracking-widest text-lg" />
+        </div>
+        {% if error %}
+          <div role="alert" class="alert alert-error py-2.5 text-sm"><span>{{ error }}</span></div>
+        {% endif %}
+        <button type="submit" class="btn btn-primary w-full">Verify number</button>
+      </form>
+
+      <div class="flex justify-between items-center mt-4 text-sm">
+        <a href="{{ url_for('verify.verify_page') }}" class="link text-neutral-content">Use a different number</a>
+
+        <form method="POST" action="{{ url_for('verify.verify_page') }}">
+          <input type="hidden" name="action" value="request" />
+          <input type="hidden" name="resend" value="1" />
+          <input type="hidden" name="mobile" value="{{ mobile }}" />
+          <button type="submit" id="resend-btn" class="link" {% if resend_after %}disabled{% endif %}>
+            Resend code
+          </button>
+        </form>
+      </div>
+
+      {% if resend_after %}
+      <script>
+        (function () {
+          var left = {{ resend_after | int }};
+          var btn = document.getElementById('resend-btn');
+          function tick() {
+            if (left <= 0) { btn.disabled = false; btn.textContent = 'Resend code'; return; }
+            btn.textContent = 'Resend in ' + left + 's';
+            left -= 1;
+            setTimeout(tick, 1000);
+          }
+          tick();
+        })();
+      </script>
+      {% endif %}
+    {% endif %}
+
+    <p class="text-sm text-neutral-content mt-6">
+      <a href="{{ url_for('login') }}" class="link">Back to sign in</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

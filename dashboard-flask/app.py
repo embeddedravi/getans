@@ -25,12 +25,15 @@ from flask import (
     request as flask_request
 )
 from dotenv import load_dotenv
+from verify_routes import verify_bp
+
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "change-me-in-production")
 
+app.register_blueprint(verify_bp)
 
 @app.template_filter("format_num")
 def format_num(value):

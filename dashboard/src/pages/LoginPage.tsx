@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 
 export function LoginPage() {
@@ -8,6 +8,8 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const needsVerification = error?.toLowerCase().includes("not verified") ?? false;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -73,6 +75,13 @@ export function LoginPage() {
             {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
+
+        <p className="text-sm text-neutral-content mt-5">
+          {needsVerification ? "Your number isn't verified yet. " : "First time signing in? "}
+          <Link to="/verify" className="link text-primary">
+            Verify your mobile number
+          </Link>
+        </p>
       </div>
     </div>
   );

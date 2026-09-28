@@ -4,6 +4,19 @@ function getToken(): string | null {
   return localStorage.getItem("access_token");
 }
 
+// FastAPI returns `detail` as a string for most errors, but as a list of
+// {msg} objects for 422 validation errors.
+function errorMessage(body: { detail?: unknown }, status: number): string {
+  const { detail } = body;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((d) => String((d as { msg?: string }).msg ?? "Invalid input").replace(/^Value error, /, ""))
+      .join(", ");
+  }
+  return `Request failed: ${status}`;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
 
@@ -18,7 +31,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || `Request failed: ${res.status}`);
+    throw new Error(errorMessage(body, res.status));
   }
 
   if (res.status === 204) return undefined as T;
@@ -33,6 +46,17 @@ export const api = {
     }),
 
   me: () => request("/auth/me"),
+
+  requestOtp: (mobile: string) =>
+    request<{ message: string; expires_in: number; resend_after: number }>("/auth/otp/request", {
+      method: "POST",
+      body: JSON.stringify({ mobile }),
+    }),
+  verifyOtp: (mobile: string, code: string) =>
+    request<{ message: string }>("/auth/otp/verify", {
+      method: "POST",
+      body: JSON.stringify({ mobile, code }),
+    }),
 
   listCampaigns: () => request("/campaigns"),
   createCampaign: (payload: unknown) =>

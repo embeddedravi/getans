@@ -23,9 +23,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def create_access_token(subject: str, extra_claims: dict | None = None) -> str:
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_expires_minutes)
     payload = {"sub": subject, "exp": expire, **(extra_claims or {})}
-    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
-
+    return jwt.encode(payload, settings.jwt_secret.get_secret_value(), algorithm=settings.jwt_algorithm)
 
 def decode_access_token(token: str) -> dict:
     """Raises jwt.PyJWTError (or subclasses) on invalid/expired tokens."""
-    return jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+    return jwt.decode(token, settings.jwt_secret.get_secret_value(), algorithms=[settings.jwt_algorithm])

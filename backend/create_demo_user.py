@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import sys
+import secrets
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -23,10 +24,14 @@ from app.core.phone import normalize_indian_mobile
 parser = argparse.ArgumentParser(description="Seed a demo admin user into the database.")
 parser.add_argument("--mobile",   default="9876543210",   help="Indian mobile number (default: 9876543210)")
 parser.add_argument("--email",    default=None,           help="Optional email")
-parser.add_argument("--password", default="demo1234")
+#parser.add_argument("--password", default="demo1234")
+parser.add_argument("--password", default=None, help="Omit to generate a random one")
+parser.add_argument("--allow-production", action="store_true")
 parser.add_argument("--role",     default="admin", choices=["admin", "advertiser", "publisher"])
 args = parser.parse_args()
-
+generated = args.password is None
+if generated:
+    args.password = secrets.token_urlsafe(12)
 # ── Import app modules (must be run from backend/) ────────────────────────────
 
 try:
@@ -40,7 +45,8 @@ except ModuleNotFoundError as exc:
     print("    Make sure you run this script from the 'backend/' directory.\n")
     sys.exit(1)
 
-
+if settings.environment == "production" and not args.allow_production:
+    sys.exit("Refusing to seed a demo user in production (use --allow-production).")
 # ── Async main ────────────────────────────────────────────────────────────────
 
 async def main() -> None:

@@ -30,7 +30,7 @@ def _aware(dt: datetime) -> datetime:
 
 
 def _hash(mobile: str, code: str) -> str:
-    key = settings.jwt_secret.encode()
+    key = settings.jwt_secret.get_secret_value().encode()
     return hmac.new(key, f"{mobile}:{code}".encode(), hashlib.sha256).hexdigest()
 
 

@@ -29,9 +29,17 @@ from verify_routes import verify_bp
 
 
 load_dotenv()
+def _require_env(name: str, min_len: int = 32) -> str:
+    value = os.environ.get(name, "")
+    if len(value) < min_len or "change" in value.lower():
+        raise RuntimeError(
+            f'{name} must be a random value of >= {min_len} chars. '
+            'Generate: python -c "import secrets; print(secrets.token_urlsafe(48))"'
+        )
+    return value
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "change-me-in-production")
+app.secret_key = _require_env("FLASK_SECRET_KEY")
 
 app.register_blueprint(verify_bp)
 
@@ -369,6 +377,11 @@ def proxy_analytics():
 def unauthorized(e):
     return redirect(url_for("login"))
 
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.environ.get("FLASK_INSECURE_COOKIES") != "1",
+)
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=os.environ.get("FLASK_DEBUG") == "1", port=5000)

@@ -9,6 +9,7 @@ from app.models.creative import Creative  # noqa: F401
 from app.models.event import Event  # noqa: F401
 from app.models.publisher import Publisher  # noqa: F401
 from app.models.user import User  # noqa: F401
+from app.models.payment import Payout  # noqa: F401
 
 __all__ = [
     "AdUnit",
@@ -18,4 +19,5 @@ __all__ = [
     "Event",
     "Publisher",
     "User",
+    "Payout",
 ]

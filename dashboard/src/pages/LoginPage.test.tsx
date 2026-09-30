@@ -91,4 +91,11 @@ describe("LoginPage", () => {
             "/verify"
         );
     });
+    it("links to the signup page", () => {
+        renderPage();
+        expect(screen.getByRole("link", { name: /create an account/i })).toHaveAttribute(
+            "href",
+            "/signup"
+        );
+    });
 });

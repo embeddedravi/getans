@@ -67,6 +67,7 @@ class Settings(BaseSettings):
     otp_max_per_hour: int = 5
     sms_backend: str = "console"  # dev only; logs the OTP
     require_verified_mobile: bool = False
+    allow_self_signup: bool = True
 
     @field_validator("jwt_secret")
     @classmethod

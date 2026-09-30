@@ -82,6 +82,12 @@ export function LoginPage() {
             Verify your mobile number
           </Link>
         </p>
+        <p className="text-sm text-neutral-content mt-5">
+          Don't have an account?{" "}
+          <Link to="/signup" className="link text-primary">
+            Create an account
+          </Link>
+        </p>
       </div>
     </div>
   );

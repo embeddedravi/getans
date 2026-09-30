@@ -100,3 +100,42 @@ class UserOut(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class SignupRole(str, Enum):
+    ADVERTISER = "advertiser"
+    PUBLISHER = "publisher"
+
+
+class SignupRequest(BaseModel):
+    mobile: str = Field(..., description="Indian mobile number")
+    # bcrypt only uses the first 72 bytes; reject longer input rather than truncate silently
+    password: str = Field(..., min_length=8, max_length=72)
+    email: Optional[EmailStr] = None
+    first_name: Optional[str] = Field(None, max_length=100)
+    last_name: Optional[str] = Field(None, max_length=100)
+    role: SignupRole
+    organization_name: str = Field(..., min_length=2, max_length=200)
+    # publisher only
+    site_url: Optional[HttpUrl] = None
+    payout_email: Optional[EmailStr] = None
+    # advertiser only (falls back to `email`)
+    billing_email: Optional[EmailStr] = None
+
+    @field_validator("mobile")
+    @classmethod
+    def _normalize_mobile(cls, v: str) -> str:
+        return normalize_indian_mobile(v)
+
+    @field_validator("email", "billing_email", "payout_email", "site_url", mode="before")
+    @classmethod
+    def _blank_to_none(cls, v):
+        return v or None  # HTML forms send "" for empty optional fields
+
+    @model_validator(mode="after")
+    def _role_requirements(self):
+        if self.role == SignupRole.PUBLISHER:
+            if not self.site_url or not self.payout_email:
+                raise ValueError("Publishers must provide site_url and payout_email")
+        elif not (self.billing_email or self.email):
+            raise ValueError("Advertisers must provide billing_email or email")
+        return self

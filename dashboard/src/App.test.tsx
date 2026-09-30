@@ -6,6 +6,7 @@ import App from "./App";
 vi.mock("./pages/AnalyticsPage", () => ({ AnalyticsPage: () => <div>analytics page</div> }));
 vi.mock("./pages/CampaignsPage", () => ({ CampaignsPage: () => <div>campaigns page</div> }));
 vi.mock("./pages/PublishersPage", () => ({ PublishersPage: () => <div>publishers page</div> }));
+vi.mock("./pages/SignupPage", () => ({ SignupPage: () => <div>signup page</div> }));
 vi.mock("./pages/LoginPage", () => ({ LoginPage: () => <div>login page</div> }));
 vi.mock("./pages/VerifyMobilePage", () => ({ VerifyMobilePage: () => <div>verify page</div> }));
 
@@ -45,5 +46,10 @@ describe("routing and auth guard", () => {
         visit("/verify");
 
         expect(screen.getByText("verify page")).toBeInTheDocument();
+    });
+    it("serves /signup without a token", () => {
+        visit("/signup");
+
+        expect(screen.getByText("signup page")).toBeInTheDocument();
     });
 });

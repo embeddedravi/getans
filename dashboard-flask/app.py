@@ -127,6 +127,41 @@ def login():
 
     return render_template("login.html", error=error)
 
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "GET":
+        return render_template("signup.html", form={}, error=None)
+
+    form = request.form
+    role = form.get("role", "advertiser")
+    payload = {
+        "role": role,
+        "organization_name": form.get("organization_name", ""),
+        "mobile": form.get("mobile", ""),
+        "password": form.get("password", ""),
+        "email": form.get("email", ""),
+    }
+    if role == "publisher":
+        payload["site_url"] = form.get("site_url", "")
+        payload["payout_email"] = form.get("payout_email", "")
+    else:
+        payload["billing_email"] = form.get("email", "")
+
+    try:
+        _api("POST", "/auth/signup", json=payload)
+    except requests.HTTPError as exc:
+        try:
+            detail = exc.response.json().get("detail", "Signup failed")
+            if isinstance(detail, list):
+                detail = ", ".join(str(d.get("msg", "Invalid input")).replace("Value error, ", "") for d in detail)
+        except Exception:
+            detail = "Signup failed"
+        return render_template("signup.html", form=form, error=detail)
+    except requests.RequestException:
+        return render_template("signup.html", form=form, error="Could not reach the backend. Is it running?")
+
+    flash("Account created. Verify your mobile number to sign in.", "success")
+    return redirect(url_for("verify.verify_page"))
 
 @app.route("/logout")
 def logout():

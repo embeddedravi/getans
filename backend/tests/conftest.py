@@ -86,7 +86,7 @@ async def advertiser(db) -> Advertiser:
 
 @pytest_asyncio.fixture
 async def publisher(db) -> Publisher:
-    pub = Publisher(name="Example News", site_url="https://news.example.com")
+    pub = Publisher(name="Example News", site_url="https://news.example.com", payout_email="pay@news.example.com")
     db.add(pub)
     await db.commit()
     await db.refresh(pub)

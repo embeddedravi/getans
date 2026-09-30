@@ -13,6 +13,11 @@ from app.models.user import UserRole as UserRoleModel
 from app.schemas.user import LoginRequest, TokenResponse, UserCreate, UserOut, UserRole
 from app.config import settings
 
+from sqlalchemy.exc import IntegrityError
+from app.models.advertiser import Advertiser
+from app.models.publisher import Publisher
+from app.schemas.user import SignupRequest, SignupRole
+
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
@@ -116,3 +121,57 @@ async def register(
 async def me(current_user: User = Depends(get_current_user)) -> User:
     """Retrieves profile details for the currently authenticated identity."""
     return current_user
+
+@router.post(
+    "/signup",
+    response_model=UserOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Self-service signup for advertisers and publishers",
+)
+async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)) -> User:
+    if not settings.allow_self_signup:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Not found")
+
+    conditions = [User.mobile == payload.mobile]
+    if payload.email:
+        conditions.append(User.email == payload.email)
+    if (await db.execute(select(User).where(or_(*conditions)))).scalars().first():
+        raise HTTPException(status.HTTP_409_CONFLICT, "An account with these details already exists")
+
+    if payload.role == SignupRole.PUBLISHER:
+        tenant = Publisher(
+            name=payload.organization_name,
+            site_url=str(payload.site_url),
+            payout_email=payload.payout_email,
+        )
+        role = UserRoleModel.PUBLISHER
+    else:
+        tenant = Advertiser(
+            name=payload.organization_name,
+            billing_email=payload.billing_email or payload.email,
+        )
+        role = UserRoleModel.ADVERTISER
+
+    db.add(tenant)
+    await db.flush()  # assigns tenant.id
+
+    user = User(
+        mobile=payload.mobile,
+        email=payload.email,
+        hashed_password=hash_password(payload.password),
+        first_name=payload.first_name,
+        last_name=payload.last_name,
+        role=role,
+        publisher_id=tenant.id if role == UserRoleModel.PUBLISHER else None,
+        advertiser_id=tenant.id if role == UserRoleModel.ADVERTISER else None,
+        is_active=True,
+        is_verified=False,
+    )
+    db.add(user)
+    try:
+        await db.commit()
+    except IntegrityError:  # lost a race on the unique mobile/email; tenant rolls back too
+        await db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "An account with these details already exists")
+    await db.refresh(user)
+    return user

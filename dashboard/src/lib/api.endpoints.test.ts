@@ -25,6 +25,13 @@ const cases: Case[] = [
         "POST",
         { mobile: "98765 43210", code: "123456" },
     ],
+    [
+        "signup",
+        () => api.signup({ role: "advertiser", mobile: "98765 43210" }),
+        "/api/auth/signup",
+        "POST",
+        { role: "advertiser", mobile: "98765 43210" },
+    ],
     ["listCampaigns", () => api.listCampaigns(), "/api/campaigns", undefined],
     ["createCampaign", () => api.createCampaign({ name: "x" }), "/api/campaigns", "POST", { name: "x" }],
     [

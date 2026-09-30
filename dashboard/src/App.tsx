@@ -2,6 +2,7 @@ import { Navigate, Route, BrowserRouter, Routes } from "react-router-dom";
 import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { CampaignsPage } from "./pages/CampaignsPage";
 import { LoginPage } from "./pages/LoginPage";
+import { SignupPage } from "./pages/SignupPage";
 import { PublishersPage } from "./pages/PublishersPage";
 import { VerifyMobilePage } from "./pages/VerifyMobilePage";
 
@@ -16,6 +17,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/verify" element={<VerifyMobilePage />} />
+        <Route path="/signup" element={<SignupPage />} />
         <Route
           path="/"
           element={

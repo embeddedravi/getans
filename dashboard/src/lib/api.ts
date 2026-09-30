@@ -46,7 +46,8 @@ export const api = {
     }),
 
   me: () => request("/auth/me"),
-
+  signup: (payload: unknown) =>
+    request("/auth/signup", { method: "POST", body: JSON.stringify(payload) }),
   requestOtp: (mobile: string) =>
     request<{ message: string; expires_in: number; resend_after: number }>("/auth/otp/request", {
       method: "POST",

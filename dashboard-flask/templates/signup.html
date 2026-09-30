@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Create account{% endblock %}
+
+{% block body %}
+<div class="min-h-screen flex items-center justify-center bg-base-100 p-4">
+  <div class="w-full max-w-sm border border-base-300 bg-base-200 rounded-lg p-8 shadow-xl">
+    <h1 class="font-display text-xl font-semibold mb-1">Create an account</h1>
+    <p class="text-sm text-neutral-content mb-6">Advertise or monetise your site.</p>
+
+    <form method="POST" action="/signup" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1.5" for="role">I am a</label>
+        <select id="role" name="role" class="select select-bordered w-full bg-base-100">
+          <option value="advertiser" {{ 'selected' if form.get('role') != 'publisher' }}>Advertiser</option>
+          <option value="publisher" {{ 'selected' if form.get('role') == 'publisher' }}>Publisher</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1.5" for="organization_name">Company / site name</label>
+        <input id="organization_name" name="organization_name" required minlength="2"
+               value="{{ form.get('organization_name', '') }}"
+               class="input input-bordered w-full bg-base-100" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1.5" for="mobile">Mobile number</label>
+        <input id="mobile" name="mobile" type="tel" inputmode="numeric" required maxlength="17"
+               placeholder="98765 43210" value="{{ form.get('mobile', '') }}"
+               class="input input-bordered w-full bg-base-100" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1.5" for="email">
+          <span id="email-label">Billing email</span>
+        </label>
+        <input id="email" name="email" type="email" value="{{ form.get('email', '') }}"
+               class="input input-bordered w-full bg-base-100" />
+      </div>
+      <div id="publisher-fields" class="space-y-4 hidden">
+        <div>
+          <label class="block text-sm font-medium mb-1.5" for="site_url">Site URL</label>
+          <input id="site_url" name="site_url" type="url" placeholder="https://example.com"
+                 value="{{ form.get('site_url', '') }}"
+                 class="input input-bordered w-full bg-base-100" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1.5" for="payout_email">Payout email</label>
+          <input id="payout_email" name="payout_email" type="email"
+                 value="{{ form.get('payout_email', '') }}"
+                 class="input input-bordered w-full bg-base-100" />
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1.5" for="password">Password</label>
+        <input id="password" name="password" type="password" required minlength="8" maxlength="72"
+               class="input input-bordered w-full bg-base-100" />
+      </div>
+
+      {% if error %}
+        <div role="alert" class="alert alert-error py-2.5 text-sm"><span>{{ error }}</span></div>
+      {% endif %}
+      <button type="submit" class="btn btn-primary w-full">Create account</button>
+    </form>
+
+    <p class="text-sm text-neutral-content mt-5">
+      Already registered? <a href="{{ url_for('login') }}" class="link text-primary">Sign in</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const role = document.getElementById('role');
+  function sync() {
+    const pub = role.value === 'publisher';
+    document.getElementById('publisher-fields').classList.toggle('hidden', !pub);
+    ['site_url', 'payout_email'].forEach(id => document.getElementById(id).required = pub);
+    document.getElementById('email').required = !pub;
+    document.getElementById('email-label').textContent = pub ? 'Email (optional)' : 'Billing email';
+  }
+  role.addEventListener('change', sync);
+  sync();
+</script>
+{% endblock %}

@@ -472,6 +472,6 @@ database.
 - [x] Backend test suite
 - [x] Creatives management UI in either dashboard
 - [x] Dashboard authentication for the `/dashboard` Socket.IO namespace
-- [ ] Production-hardened secrets management (no hardcoded defaults)
-- [ ] Dashboard test coverage
+- [x] Production-hardened secrets management (no hardcoded defaults)
+- [x] Dashboard test coverage
 - [ ] Reconcile database driver/dependency lists (`pyproject.toml` vs `requirements.txt` vs `docker-compose.yml`)

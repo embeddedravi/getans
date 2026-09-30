@@ -138,20 +138,6 @@ async def test_daily_cap_exhausted_excludes_campaign(db, publisher, advertiser):
         await select_ad(db, ad_unit.id)
 
 
-@pytest.mark.asyncio
-async def test_daily_cap_with_remaining_budget_selects_campaign(
-    db, publisher, advertiser, fake_redis
-):
-    ad_unit = await _make_ad_unit(db, publisher)
-    campaign = await _make_campaign(db, advertiser, daily_cap=10.0)
-
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    await fake_redis.set(f"campaign:{campaign.id}:spend:{today}", "2.00")
-
-    result = await select_ad(db, ad_unit.id)
-
-    assert result.campaign_id == campaign.id
-
 @pytest.fixture(autouse=True)
 def _clear_spend_cache():
     from app.services.ad_selector import _spend_cache

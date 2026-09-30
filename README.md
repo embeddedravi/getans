@@ -60,15 +60,8 @@ evaluation. Both currently cover publishers, ad units, campaigns, and
 analytics; neither has a UI for the creatives API yet (see
 [Dashboard coverage](#dashboard-coverage)).
 
-> **Note on the database:** `app/config.py` defaults `database_url` to a
-> local MySQL connection string and `backend/requirements.txt` lists
-> `aiomysql`, while `backend/pyproject.toml` lists `asyncpg` and
-> `docker-compose.yml` provisions Postgres. Either async driver works with
-> the SQLAlchemy models as written — just make sure `ADPLATFORM_DATABASE_URL`
-> and the installed driver package agree with whichever database you
-> actually run. There is currently no Redis dependency in the code path
-> (dashboard metrics are relayed in-process via `emit_metric_update`), even
-> though `redis` appears in some dependency lists as a holdover.
+ **Note on the database:**
+  The project targets MySQL 8 via aiomysql. ADPLATFORM_DATABASE_URL must be a mysql+aiomysql:// URL; there is no default. pyproject.toml is the single dependency source, and requirements.txt just installs it.
 
 ## Project structure
 
@@ -171,8 +164,7 @@ used by the current models).
 
 - Python 3.11+
 - Node.js (for either dashboard's build tooling)
-- A relational database reachable via an async driver — Postgres
-  (`asyncpg`) or MySQL (`aiomysql`)
+- A relational database reachable via an async driver — MySQL 8 (aiomysql)
 - Docker + Docker Compose, if you want the quickstart path
 
 ### Quickstart with Docker
@@ -458,7 +450,7 @@ database.
 | Ads never render, `no_fill` always fires | No active campaign matches the ad unit's dimensions, targeting, budget, or reserve price | Check campaign `is_active`/`status`, `start_date`/`end_date`, that it has a creative with `is_active=true` and `review_status=approved` matching the ad unit's dimensions, that `bid_amount >= reserve_price`, and remaining daily/total budget |
 | Dashboard shows `Disconnected` and no live metrics | `/dashboard` Socket.IO namespace not reachable | Confirm the backend is running and reachable at the configured server URL, and that `/socket.io` is proxied (see `vite.config.ts` for the React dashboard) |
 | `401` right after logging in, on every subsequent request | Token not attached, or `ADPLATFORM_JWT_SECRET` changed between issuing and validating the token | Confirm `Authorization: Bearer <token>` is sent, and that the backend hasn't restarted with a new secret since login |
-| Database driver import errors on startup | `ADPLATFORM_DATABASE_URL` scheme doesn't match the installed async driver | Use `asyncpg` for `postgresql+asyncpg://...` or `aiomysql` for `mysql+aiomysql://...`, and install the matching package |
+| Database driver import errors on startup | `ADPLATFORM_DATABASE_URL` scheme doesn't match the installed async driver | use mysql+aiomysql://… and make sure aiomysql and cryptography are installed |
 
 ## Project status
 
@@ -474,4 +466,4 @@ database.
 - [x] Dashboard authentication for the `/dashboard` Socket.IO namespace
 - [x] Production-hardened secrets management (no hardcoded defaults)
 - [x] Dashboard test coverage
-- [ ] Reconcile database driver/dependency lists (`pyproject.toml` vs `requirements.txt` vs `docker-compose.yml`)
+- [x] Reconcile database driver/dependency lists (`pyproject.toml` vs `requirements.txt` vs `docker-compose.yml`)

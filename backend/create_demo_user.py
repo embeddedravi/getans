@@ -50,7 +50,7 @@ if settings.environment == "production" and not args.allow_production:
 # ── Async main ────────────────────────────────────────────────────────────────
 
 async def main() -> None:
-    engine = create_async_engine(settings.database_url, echo=False)
+    engine = create_async_engine(settings.database_url.get_secret_value(), echo=False)
     Session = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
     async with Session() as db:

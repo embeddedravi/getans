@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Any, Dict, List, Generic, TypeVar, Optional
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, HttpUrl, PositiveInt
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator, HttpUrl, PositiveInt
 from app.core.phone import normalize_indian_mobile
 # ============================================================================
 # Generic / Shared Schemas

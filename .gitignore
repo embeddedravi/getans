@@ -9,3 +9,5 @@ backend/alembic.ini
 *.py[cod]
 *$py.class
 backend/*.egg-info/
+dashboard/dist
+dashboard/*.tsbuildinfo

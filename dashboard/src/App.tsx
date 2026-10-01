@@ -5,6 +5,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
 import { PublishersPage } from "./pages/PublishersPage";
 import { VerifyMobilePage } from "./pages/VerifyMobilePage";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const token = localStorage.getItem("access_token");
@@ -17,6 +18,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/verify" element={<VerifyMobilePage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route
           path="/"

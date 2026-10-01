@@ -139,3 +139,13 @@ class SignupRequest(BaseModel):
         elif not (self.billing_email or self.email):
             raise ValueError("Advertisers must provide billing_email or email")
         return self
+
+class ForgotPasswordReset(BaseModel):
+    mobile: str = Field(..., description="Indian mobile number")
+    code: str = Field(..., pattern=r"^\d{6}$", description="6-digit code sent by SMS")
+    password: str = Field(..., min_length=8, max_length=72, description="New password")
+
+    @field_validator("mobile")
+    @classmethod
+    def _normalize_mobile(cls, v: str) -> str:
+        return normalize_indian_mobile(v)

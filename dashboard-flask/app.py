@@ -163,6 +163,48 @@ def signup():
     flash("Account created. Verify your mobile number to sign in.", "success")
     return redirect(url_for("verify.verify_page"))
 
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "GET":
+        return render_template("forgot_password.html", error=None)
+
+    mobile = request.form.get("mobile", "")
+    try:
+        _api("POST", "/auth/otp/request", json={"mobile": mobile})
+    except Exception:
+        return render_template("forgot_password.html", error="Could not reach backend. Is it running?")
+
+    session["reset_mobile"] = mobile
+    flash("If this number is registered, an OTP has been sent.", "success")
+    return redirect(url_for("forgot_password_reset"))
+
+@app.route("/forgot-password/reset", methods=["GET", "POST"])
+def forgot_password_reset():
+    if "reset_mobile" not in session:
+        return redirect(url_for("forgot_password"))
+
+    if request.method == "GET":
+        return render_template("forgot_password_reset.html", error=None)
+
+    mobile = session["reset_mobile"]
+    code = request.form.get("code", "")
+    password = request.form.get("password", "")
+    try:
+        _api("POST", "/auth/forgot-password/reset", json={"mobile": mobile, "code": code, "password": password})
+        session.pop("reset_mobile", None)
+        flash("Password reset successfully. Please log in.", "success")
+        return redirect(url_for("login"))
+    except requests.HTTPError as exc:
+        try:
+            detail = exc.response.json().get("detail", "Failed to reset password")
+            if isinstance(detail, list):
+                detail = detail[0].get("msg", "Invalid input").replace("Value error, ", "")
+        except Exception:
+            detail = "Failed to reset password"
+        return render_template("forgot_password_reset.html", error=detail)
+    except Exception:
+        return render_template("forgot_password_reset.html", error="Could not reach backend")
+
 @app.route("/logout")
 def logout():
     session.clear()

@@ -58,6 +58,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ mobile, code }),
     }),
+  resetPassword: (payload: unknown) =>
+    request<{ message: string }>("/auth/forgot-password/reset", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 
   listCampaigns: () => request("/campaigns"),
   createCampaign: (payload: unknown) =>

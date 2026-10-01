@@ -16,7 +16,8 @@ from app.config import settings
 from sqlalchemy.exc import IntegrityError
 from app.models.advertiser import Advertiser
 from app.models.publisher import Publisher
-from app.schemas.user import SignupRequest, SignupRole
+from app.schemas.user import SignupRequest, SignupRole, ForgotPasswordReset, MessageResponse
+from app.services.otp import verify_otp
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -175,3 +176,23 @@ async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)) -> 
         raise HTTPException(status.HTTP_409_CONFLICT, "An account with these details already exists")
     await db.refresh(user)
     return user
+
+
+@router.post(
+    "/forgot-password/reset",
+    response_model=MessageResponse,
+    summary="Reset password using OTP",
+)
+async def reset_password(
+    payload: ForgotPasswordReset,
+    db: AsyncSession = Depends(get_db),
+) -> MessageResponse:
+    user = (await db.execute(select(User).where(User.mobile == payload.mobile))).scalar_one_or_none()
+    
+    if user is None or not await verify_otp(db, payload.mobile, payload.code):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid or expired code")
+        
+    user.hashed_password = hash_password(payload.password)
+    user.is_verified = True
+    await db.commit()
+    return MessageResponse(message="Password reset successfully")

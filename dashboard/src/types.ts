@@ -2,6 +2,23 @@
 
 export type PublisherStatus = "pending_approval" | "active" | "suspended" | "rejected";
 
+export type UserRole = "admin" | "staff" | "publisher" | "advertiser";
+export interface AdminUser {
+  id: number;
+  mobile: string | null;
+  email: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  role: UserRole;
+  is_active: boolean;
+  is_verified: boolean;
+  is_superuser: boolean;
+  publisher_id: number | null;
+  advertiser_id: number | null;
+  last_login_at: string | null;
+  created_at: string;
+}
+
 export interface Publisher {
   id: number;
   name: string;

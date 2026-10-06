@@ -7,7 +7,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import get_db, require_role
@@ -15,12 +15,66 @@ from app.models.ad_unit import AdUnit, AdUnitStatus
 from app.models.ad_report import AdReport
 from app.models.advertiser import Advertiser, AccountStatus
 from app.models.publisher import Publisher, PublisherStatus
-from app.models.user import User
+from app.models.user import User, UserRole as UserRoleModel
 from app.schemas.add_unit import AdUnitOut, AdUnitReview
 from app.schemas.advertiser import AdvertiserOut, AdvertiserReview
 from app.schemas.publisher import PublisherOut, PublisherReview
+from app.schemas.user import AdminUserOut, AdminUserUpdate
 
 router = APIRouter(prefix="/admin", tags=["Admin Approvals"])
+
+
+@router.get("/users", response_model=list[AdminUserOut], summary="List dashboard users")
+async def list_users(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role("admin")),
+) -> list[User]:
+    result = await db.execute(select(User).order_by(User.created_at.desc()))
+    return list(result.scalars().all())
+
+
+@router.patch("/users/{user_id}", response_model=AdminUserOut, summary="Update a dashboard user")
+async def update_user(
+    user_id: int,
+    payload: AdminUserUpdate,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_role("admin")),
+) -> User:
+    user = await db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+    if user.is_superuser:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Superuser accounts cannot be changed here")
+    if user.id == admin.id and (payload.role != UserRoleModel.ADMIN or not payload.is_active):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "You cannot deactivate or demote your own account")
+
+    removing_active_admin = (
+        user.role == UserRoleModel.ADMIN
+        and user.is_active
+        and (payload.role != UserRoleModel.ADMIN or not payload.is_active)
+    )
+    if removing_active_admin:
+        active_admins = await db.scalar(
+            select(func.count(User.id)).where(
+                User.role == UserRoleModel.ADMIN,
+                User.is_active.is_(True),
+            )
+        )
+        if active_admins <= 1:
+            raise HTTPException(status.HTTP_409_CONFLICT, "At least one active admin account must remain")
+
+    if payload.publisher_id is not None and await db.get(Publisher, payload.publisher_id) is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Publisher not found")
+    if payload.advertiser_id is not None and await db.get(Advertiser, payload.advertiser_id) is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Advertiser not found")
+
+    user.role = UserRoleModel(payload.role.value)
+    user.is_active = payload.is_active
+    user.publisher_id = payload.publisher_id
+    user.advertiser_id = payload.advertiser_id
+    await db.commit()
+    await db.refresh(user)
+    return user
 
 
 @router.get("/ad-units/{ad_unit_id}/reports", summary="List visitor reports for an ad unit")

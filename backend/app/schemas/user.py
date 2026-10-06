@@ -86,6 +86,25 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
+class AdminUserUpdate(BaseModel):
+    role: UserRole
+    is_active: bool
+    publisher_id: Optional[int] = None
+    advertiser_id: Optional[int] = None
+
+    @model_validator(mode="after")
+    def _role_tenant_requirements(self):
+        if self.role == UserRole.PUBLISHER:
+            if self.publisher_id is None or self.advertiser_id is not None:
+                raise ValueError("Publisher users need publisher_id only")
+        elif self.role == UserRole.ADVERTISER:
+            if self.advertiser_id is None or self.publisher_id is not None:
+                raise ValueError("Advertiser users need advertiser_id only")
+        elif self.publisher_id is not None or self.advertiser_id is not None:
+            raise ValueError("Admin and staff users cannot be assigned to a tenant")
+        return self
+
+
 class UserOut(BaseModel):
     id: int
     mobile: Optional[str] = None
@@ -101,6 +120,10 @@ class UserOut(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AdminUserOut(UserOut):
+    is_superuser: bool
 
 class SignupRole(str, Enum):
     ADVERTISER = "advertiser"

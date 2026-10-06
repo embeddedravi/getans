@@ -13,6 +13,7 @@ import { AdvertiserPaymentsPage } from "./pages/AdvertiserPaymentsPage";
 import { AdminAdvertisersPage } from "./pages/AdminAdvertisersPage";
 import { AdminPublishersPage } from "./pages/AdminPublishersPage";
 import { AdminSlotsPage } from "./pages/AdminSlotsPage";
+import { AdminUsersPage } from "./pages/AdminUsersPage";
 import { api } from "./lib/api";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -68,6 +69,7 @@ export default function App() {
         <Route path="/manage-publisher" element={<RequireAuth><RequireAdmin><AdminPublishersPage /></RequireAdmin></RequireAuth>} />
         <Route path="/manage-campaign" element={<RequireAuth><RequireAdmin><CampaignsPage /></RequireAdmin></RequireAuth>} />
         <Route path="/manage-slots" element={<RequireAuth><RequireAdmin><AdminSlotsPage /></RequireAdmin></RequireAuth>} />
+        <Route path="/manage-users" element={<RequireAuth><RequireAdmin><AdminUsersPage /></RequireAdmin></RequireAuth>} />
       </Routes>
     </BrowserRouter>
   );

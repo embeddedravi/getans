@@ -47,6 +47,13 @@ export const api = {
 
   me: () => request("/auth/me"),
   listAdminAdvertisers: () => request<import("../types").Advertiser[]>("/admin/advertisers"),
+  listAdminUsers: () => request<import("../types").AdminUser[]>("/admin/users"),
+  updateAdminUser: (id: number, payload: {
+    role: import("../types").UserRole;
+    is_active: boolean;
+    publisher_id: number | null;
+    advertiser_id: number | null;
+  }) => request<import("../types").AdminUser>(`/admin/users/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   listPendingApprovals: () => request<import("../types").PendingApprovals>("/admin/approvals/pending"),
   listPayouts: (status?: string) => request<import("../types").Payout[]>(`/payouts${status ? `?status=${encodeURIComponent(status)}` : ""}`),
   listAdvertiserTopUps: () => request<import("../types").AdvertiserTopUp[]>("/payments/topups"),

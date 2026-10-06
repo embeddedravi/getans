@@ -18,6 +18,7 @@ const roleLinks: Record<Role, { to: string; label: string; end?: boolean }[]> = 
     { to: "/manage-publisher", label: "Publishers" },
     { to: "/manage-campaign", label: "Campaigns" },
     { to: "/manage-slots", label: "Ad slots" },
+    { to: "/manage-users", label: "Users" },
     { to: "/approvals", label: "Approvals" },
     { to: "/payments", label: "Payments" },
     { to: "/payouts", label: "Payouts" },

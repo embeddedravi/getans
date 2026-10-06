@@ -136,9 +136,12 @@ def login():
             session["access_token"] = data["access_token"]
             session["user_mobile"] = mobile
             try:
-                session["role"] = _api("GET", "/auth/me")["role"]
+                current_user = _api("GET", "/auth/me")
+                session["role"] = current_user["role"]
+                session["user_id"] = current_user["id"]
             except Exception:
                 session["role"] = None
+                session.pop("user_id", None)
 
             return redirect(url_for("analytics"))
         except requests.HTTPError as exc:
@@ -458,6 +461,48 @@ def manage_publishers():
         publishers_list = []
         flash(f"Could not load publishers: {exc}", "error")
     return render_template("manage_publishers.html", publishers=publishers_list)
+
+
+@app.route("/manage-users")
+@admin_required
+def manage_users():
+    try:
+        current_user = _api("GET", "/auth/me")
+        session["user_id"] = current_user["id"]
+        users = _api("GET", "/admin/users")
+        publishers_list = _api("GET", "/publishers")
+        advertisers_list = _api("GET", "/admin/advertisers")
+    except Exception as exc:
+        users, publishers_list, advertisers_list = [], [], []
+        flash(f"Could not load users: {exc}", "error")
+    return render_template(
+        "manage_users.html",
+        users=users,
+        publishers=publishers_list,
+        advertisers=advertisers_list,
+    )
+
+
+@app.route("/manage-users/<int:user_id>", methods=["POST"])
+@admin_required
+def update_managed_user(user_id: int):
+    role = request.form.get("role", "")
+    if role not in {"admin", "staff", "publisher", "advertiser"}:
+        flash("Choose a valid user role.", "error")
+        return redirect(url_for("manage_users"))
+
+    try:
+        payload = {
+            "role": role,
+            "is_active": request.form.get("is_active") == "true",
+            "publisher_id": int(request.form["publisher_id"]) if role == "publisher" and request.form.get("publisher_id") else None,
+            "advertiser_id": int(request.form["advertiser_id"]) if role == "advertiser" and request.form.get("advertiser_id") else None,
+        }
+        _api("PATCH", f"/admin/users/{user_id}", json=payload)
+        flash("User updated.", "success")
+    except Exception as exc:
+        flash(f"Could not update user: {exc}", "error")
+    return redirect(url_for("manage_users"))
 
 
 @app.route("/manage/<kind>/<int:item_id>/status", methods=["POST"])

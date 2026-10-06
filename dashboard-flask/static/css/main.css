@@ -797,6 +797,14 @@ html {
     color: var(--fallback-bc,oklch(var(--bc)/var(--tw-text-opacity)));
   }
 
+
+.menu li > *:not(ul, .menu-title, details, .btn).\!active {
+    --tw-bg-opacity: 1 !important;
+    background-color: var(--fallback-n,oklch(var(--n)/var(--tw-bg-opacity))) !important;
+    --tw-text-opacity: 1 !important;
+    color: var(--fallback-nc,oklch(var(--nc)/var(--tw-text-opacity))) !important;
+  }
+
   .menu li > *:not(ul, .menu-title, details, .btn):active,
 .menu li > *:not(ul, .menu-title, details, .btn).active,
 .menu li > details > summary:active {
@@ -1738,6 +1746,12 @@ input.tab:checked + .tab-content,
   color: var(--fallback-er,oklch(var(--er)/var(--tw-text-opacity)));
 }
 
+.btm-nav > *:where(.\!active) {
+  border-top-width: 2px !important;
+  --tw-bg-opacity: 1 !important;
+  background-color: var(--fallback-b1,oklch(var(--b1)/var(--tw-bg-opacity))) !important;
+}
+
 .btm-nav > *:where(.active) {
   border-top-width: 2px;
   --tw-bg-opacity: 1;
@@ -2227,6 +2241,14 @@ input.tab:checked + .tab-content,
   width: 1.25rem;
 }
 
+
+.menu li > *:not(ul, .menu-title, details, .btn).\!active {
+  --tw-bg-opacity: 1 !important;
+  background-color: var(--fallback-n,oklch(var(--n)/var(--tw-bg-opacity))) !important;
+  --tw-text-opacity: 1 !important;
+  color: var(--fallback-nc,oklch(var(--nc)/var(--tw-text-opacity))) !important;
+}
+
 .menu li > *:not(ul, .menu-title, details, .btn):active,
 .menu li > *:not(ul, .menu-title, details, .btn).active,
 .menu li > details > summary:active {
@@ -2616,11 +2638,29 @@ input.tab:checked + .tab-content,
   background-color: var(--fallback-b2,oklch(var(--b2)/var(--tw-bg-opacity)));
 }
 
+.table tr.\!active,
+  .table tr.\!active:nth-child(even) {
+  --tw-bg-opacity: 1 !important;
+  background-color: var(--fallback-b2,oklch(var(--b2)/var(--tw-bg-opacity))) !important;
+}
+
+.table-zebra tr.\!active,
+    .table-zebra tr.\!active:nth-child(even) {
+  --tw-bg-opacity: 1 !important;
+  background-color: var(--fallback-b3,oklch(var(--b3)/var(--tw-bg-opacity))) !important;
+}
+
 .table-zebra tr.active,
     .table-zebra tr.active:nth-child(even),
     .table-zebra-zebra tbody tr:nth-child(even) {
   --tw-bg-opacity: 1;
   background-color: var(--fallback-b3,oklch(var(--b3)/var(--tw-bg-opacity)));
+}
+
+.table-zebra tr.\!active,
+    .table-zebra tr.\!active:nth-child(even) {
+  --tw-bg-opacity: 1 !important;
+  background-color: var(--fallback-b3,oklch(var(--b3)/var(--tw-bg-opacity))) !important;
 }
 
 .table :where(thead tr, tbody tr:not(:last-child), tbody tr:first-child:last-child) {
@@ -2696,6 +2736,20 @@ input.tab:checked + .tab-content,
         0 0 0 2px var(--tglbg) inset;
 }
 
+.toggle-success:focus-visible {
+  outline-color: var(--fallback-su,oklch(var(--su)/1));
+}
+
+.toggle-success:checked,
+    .toggle-success[aria-checked="true"] {
+  border-color: var(--fallback-su,oklch(var(--su)/var(--tw-border-opacity)));
+  --tw-border-opacity: 0.1;
+  --tw-bg-opacity: 1;
+  background-color: var(--fallback-su,oklch(var(--su)/var(--tw-bg-opacity)));
+  --tw-text-opacity: 1;
+  color: var(--fallback-suc,oklch(var(--suc)/var(--tw-text-opacity)));
+}
+
 .toggle:disabled {
   cursor: not-allowed;
   --tw-border-opacity: 1;
@@ -2722,16 +2776,32 @@ input.tab:checked + .tab-content,
   padding-right: 0.438rem;
 }
 
+.btm-nav-xs > *:where(.\!active) {
+  border-top-width: 1px !important;
+}
+
 .btm-nav-xs > *:where(.active) {
   border-top-width: 1px;
+}
+
+.btm-nav-sm > *:where(.\!active) {
+  border-top-width: 2px !important;
 }
 
 .btm-nav-sm > *:where(.active) {
   border-top-width: 2px;
 }
 
+.btm-nav-md > *:where(.\!active) {
+  border-top-width: 2px !important;
+}
+
 .btm-nav-md > *:where(.active) {
   border-top-width: 2px;
+}
+
+.btm-nav-lg > *:where(.\!active) {
+  border-top-width: 4px !important;
 }
 
 .btm-nav-lg > *:where(.active) {
@@ -2912,6 +2982,21 @@ html:has(.drawer-toggle:checked) {
   padding-right: 0.75rem;
 }
 
+.select-xs {
+  height: 1.5rem;
+  min-height: 1.5rem;
+  padding-left: 0.5rem;
+  padding-right: 2rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  line-height: 1.625;
+}
+
+[dir="rtl"] .select-xs {
+  padding-left: 2rem;
+  padding-right: 0.5rem;
+}
+
 .steps-horizontal .step {
   display: grid;
   grid-template-columns: repeat(1, minmax(0, 1fr));
@@ -2954,6 +3039,12 @@ html:has(.drawer-toggle:checked) {
   font-size: 0.75rem;
   line-height: .75rem;
   --tab-padding: 0.5rem;
+}
+
+[type="checkbox"].toggle-sm {
+  --handleoffset: 0.75rem;
+  height: 1.25rem;
+  width: 2rem;
 }
 
 .tooltip {
@@ -3554,8 +3645,16 @@ html:has(.drawer-toggle:checked) {
   min-width: 0px;
 }
 
+.min-w-52 {
+  min-width: 13rem;
+}
+
 .min-w-56 {
   min-width: 14rem;
+}
+
+.max-w-48 {
+  max-width: 12rem;
 }
 
 .max-w-4xl {

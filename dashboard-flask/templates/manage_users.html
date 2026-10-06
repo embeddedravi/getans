@@ -1,0 +1,81 @@
+{% extends "layout.html" %}
+{% block title %}Manage users{% endblock %}
+{% block description %}Manage dashboard users, roles, and account access{% endblock %}
+{% block page_title %}Manage users{% endblock %}
+{% block content %}
+<div class="space-y-4">
+  <div>
+    <p class="text-sm text-neutral-content">Manage dashboard roles, tenant access, and account status.</p>
+    <p class="mt-1 text-xs text-neutral-content">Superuser accounts and your own role or status are protected.</p>
+  </div>
+
+  <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-200">
+    <table class="table w-full">
+      <thead>
+        <tr><th>User</th><th>Role</th><th>Tenant</th><th>Status</th><th>Last login</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+          {% set locked = user.is_superuser or user.id == session.get('user_id') %}
+          <tr class="border-b border-base-300 last:border-0 align-top">
+            <td class="min-w-52">
+              <div class="font-medium">{{ [user.first_name, user.last_name] | select | join(' ') or user.mobile or user.email or ('User #' ~ user.id) }}</div>
+              <div class="text-xs text-neutral-content">{{ user.mobile or user.email or ('#' ~ user.id) }}</div>
+              {% if user.is_superuser %}<span class="badge badge-xs badge-warning mt-1">Superuser</span>{% endif %}
+            </td>
+            <td>
+              <select form="user-form-{{ user.id }}" name="role" class="select select-bordered select-xs bg-base-100" {% if locked %}disabled{% endif %} onchange="syncUserRole(this)">
+                {% for role in ['admin', 'staff', 'publisher', 'advertiser'] %}
+                  <option value="{{ role }}" {% if user.role == role %}selected{% endif %}>{{ role|title }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td>
+              <div data-tenant-role="publisher" {% if user.role != 'publisher' %}hidden{% endif %}>
+                <select form="user-form-{{ user.id }}" name="publisher_id" class="select select-bordered select-xs max-w-48 bg-base-100" {% if locked %}disabled{% endif %} {% if user.role == 'publisher' %}required{% endif %}>
+                  <option value="">Choose publisher</option>
+                  {% for publisher in publishers %}<option value="{{ publisher.id }}" {% if user.publisher_id == publisher.id %}selected{% endif %}>{{ publisher.name }}</option>{% endfor %}
+                </select>
+              </div>
+              <div data-tenant-role="advertiser" {% if user.role != 'advertiser' %}hidden{% endif %}>
+                <select form="user-form-{{ user.id }}" name="advertiser_id" class="select select-bordered select-xs max-w-48 bg-base-100" {% if locked %}disabled{% endif %} {% if user.role == 'advertiser' %}required{% endif %}>
+                  <option value="">Choose advertiser</option>
+                  {% for advertiser in advertisers %}<option value="{{ advertiser.id }}" {% if user.advertiser_id == advertiser.id %}selected{% endif %}>{{ advertiser.name }}</option>{% endfor %}
+                </select>
+              </div>
+              {% if user.role in ['admin', 'staff'] %}<span class="text-neutral-content">—</span>{% endif %}
+            </td>
+            <td>
+              <label class="flex items-center gap-2">
+                <input form="user-form-{{ user.id }}" type="checkbox" name="is_active" value="true" class="toggle toggle-success toggle-sm" {% if user.is_active %}checked{% endif %} {% if locked %}disabled{% endif %} />
+                <span class="badge badge-xs {{ 'badge-success' if user.is_active else 'badge-ghost' }}">{{ 'Active' if user.is_active else 'Inactive' }}</span>
+              </label>
+            </td>
+            <td class="text-xs text-neutral-content">{{ user.last_login_at|replace('T', ' ') if user.last_login_at else 'Never' }}</td>
+            <td>
+              <form id="user-form-{{ user.id }}" method="POST" action="{{ url_for('update_managed_user', user_id=user.id) }}"></form>
+              <button form="user-form-{{ user.id }}" type="submit" class="btn btn-primary btn-xs" {% if locked %}disabled{% endif %}>Save</button>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="py-8 text-center text-sm text-neutral-content">No users found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function syncUserRole(select) {
+  const row = select.closest('tr');
+  row.querySelectorAll('[data-tenant-role]').forEach((section) => {
+    const active = section.dataset.tenantRole === select.value;
+    section.hidden = !active;
+    const tenantSelect = section.querySelector('select');
+    tenantSelect.required = active;
+  });
+}
+</script>
+{% endblock %}

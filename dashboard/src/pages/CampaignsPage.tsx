@@ -26,6 +26,7 @@ export function CampaignsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [creativesFor, setCreativesFor] = useState<Campaign | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [publishingId, setPublishingId] = useState<number | null>(null);
 
   useEffect(() => {
     api.me().then((u) => setIsAdmin((u as { role: string }).role === "admin")).catch(() => { });
@@ -46,6 +47,21 @@ export function CampaignsPage() {
     if (!window.confirm(`${nextState ? "Activate" : "Pause"} campaign “${campaign.name}”?`)) return;
     await api.updateCampaign(campaign.id, { is_active: nextState });
     refresh();
+  }
+
+  async function publishCampaign(campaign: Campaign) {
+    if (!window.confirm(`Publish campaign "${campaign.name}"?`)) return;
+
+    setPublishingId(campaign.id);
+    try {
+      const status = new Date(campaign.start_date).getTime() > Date.now() ? "scheduled" : "active";
+      await api.updateCampaign(campaign.id, { status, is_active: true });
+      refresh();
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Could not publish campaign.");
+    } finally {
+      setPublishingId(null);
+    }
   }
 
   async function handleDelete(id: number) {
@@ -122,9 +138,19 @@ export function CampaignsPage() {
                     {c.end_date ? new Date(c.end_date).toLocaleDateString() : "Ongoing"}
                   </td>
                   <td>
-                    <button onClick={() => toggleActive(c)} className={`btn btn-xs ${c.is_active ? "btn-warning" : "btn-success"}`}>
-                      {c.is_active ? "Pause" : "Activate"}
-                    </button>
+                    {c.status === "draft" ? (
+                      <button
+                        onClick={() => publishCampaign(c)}
+                        disabled={publishingId === c.id}
+                        className="btn btn-primary btn-xs"
+                      >
+                        {publishingId === c.id ? "Publishing..." : "Publish"}
+                      </button>
+                    ) : (
+                      <button onClick={() => toggleActive(c)} className={`btn btn-xs ${c.is_active ? "btn-warning" : "btn-success"}`}>
+                        {c.is_active ? "Pause" : "Activate"}
+                      </button>
+                    )}
                     <button onClick={() => setCreativesFor(c)} className="btn btn-ghost btn-xs">
                       Creatives
                     </button>

@@ -52,12 +52,14 @@ export const api = {
   listAdvertiserTopUps: () => request<import("../types").AdvertiserTopUp[]>("/payments/topups"),
   updatePayout: (id: number, payload: { status?: import("../types").PayoutStatus; reference?: string }) =>
     request<import("../types").Payout>(`/payouts/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
-  reviewPublisher: (id: number, status: "active" | "rejected", rejection_reason?: string) =>
+  reviewPublisher: (id: number, status: "active" | "suspended" | "rejected", rejection_reason?: string) =>
     request(`/admin/publishers/${id}/review`, { method: "PATCH", body: JSON.stringify({ status, rejection_reason }) }),
-  reviewAdvertiser: (id: number, status: "active" | "rejected", rejection_reason?: string) =>
+  reviewAdvertiser: (id: number, status: "active" | "suspended" | "rejected", rejection_reason?: string) =>
     request(`/admin/advertisers/${id}/review`, { method: "PATCH", body: JSON.stringify({ status, rejection_reason }) }),
   reviewAdUnit: (id: number, status: "approved" | "rejected", rejection_reason?: string) =>
     request(`/admin/ad-units/${id}/review`, { method: "PATCH", body: JSON.stringify({ status, rejection_reason }) }),
+  setAdUnitActive: (id: number, is_active: boolean) =>
+    request(`/admin/ad-units/${id}/active`, { method: "PATCH", body: JSON.stringify({ is_active }) }),
   signup: (payload: unknown) =>
     request("/auth/signup", { method: "POST", body: JSON.stringify(payload) }),
   requestOtp: (mobile: string) =>

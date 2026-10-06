@@ -26,12 +26,14 @@ export function AdminAdvertisersPage() {
 
   useEffect(() => { void refresh(); }, [refresh]);
 
-  async function review(advertiser: Advertiser, status: "active" | "rejected") {
+  async function review(advertiser: Advertiser, status: "active" | "suspended" | "rejected") {
     let reason: string | undefined;
     if (status === "rejected") {
       reason = window.prompt("Enter a reason for rejecting this advertiser:")?.trim();
       if (!reason) return;
     }
+    const action = status === "active" ? (advertiser.status === "pending_verification" ? "Approve" : "Activate") : status === "suspended" ? "Suspend" : "Reject";
+    if (!window.confirm(`${action} advertiser “${advertiser.name}”?`)) return;
     setBusy(advertiser.id);
     try {
       await api.reviewAdvertiser(advertiser.id, status, reason);
@@ -57,10 +59,14 @@ export function AdminAdvertisersPage() {
               <td><span className={`badge badge-sm ${statusStyle[advertiser.status]}`}>{advertiser.status.replaceAll("_", " ")}</span>{advertiser.rejection_reason && <div className="text-xs text-error mt-1">{advertiser.rejection_reason}</div>}</td>
               <td className="tabular">₹{Number(advertiser.balance).toFixed(2)}</td>
               <td className="tabular">₹{Number(advertiser.credit_limit).toFixed(2)}</td>
-              <td>{advertiser.status === "pending_verification" && <div className="flex gap-2">
-                <button disabled={busy === advertiser.id} className="btn btn-success btn-xs" onClick={() => void review(advertiser, "active")}>Approve</button>
-                <button disabled={busy === advertiser.id} className="btn btn-error btn-outline btn-xs" onClick={() => void review(advertiser, "rejected")}>Reject</button>
-              </div>}</td>
+              <td><div className="flex gap-2">
+                {advertiser.status === "pending_verification" && <>
+                  <button disabled={busy === advertiser.id} className="btn btn-success btn-xs" onClick={() => void review(advertiser, "active")}>Approve</button>
+                  <button disabled={busy === advertiser.id} className="btn btn-error btn-outline btn-xs" onClick={() => void review(advertiser, "rejected")}>Reject</button>
+                </>}
+                {advertiser.status === "active" && <button disabled={busy === advertiser.id} className="btn btn-warning btn-xs" onClick={() => void review(advertiser, "suspended")}>Suspend</button>}
+                {(advertiser.status === "suspended" || advertiser.status === "rejected") && <button disabled={busy === advertiser.id} className="btn btn-success btn-xs" onClick={() => void review(advertiser, "active")}>Activate</button>}
+              </div></td>
             </tr>)}
             {advertisers.length === 0 && <tr><td colSpan={6} className="py-8 text-center text-sm text-neutral-content">No advertisers found.</td></tr>}
           </tbody>

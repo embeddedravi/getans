@@ -11,6 +11,7 @@ import { ApprovalsPage } from "./pages/ApprovalsPage";
 import { PaymentsPage } from "./pages/PaymentsPage";
 import { AdvertiserPaymentsPage } from "./pages/AdvertiserPaymentsPage";
 import { AdminAdvertisersPage } from "./pages/AdminAdvertisersPage";
+import { AdminPublishersPage } from "./pages/AdminPublishersPage";
 import { AdminSlotsPage } from "./pages/AdminSlotsPage";
 import { api } from "./lib/api";
 
@@ -64,7 +65,7 @@ export default function App() {
         <Route path="/payments" element={<RequireAuth><AdvertiserPaymentsPage /></RequireAuth>} />
         <Route path="/payouts" element={<RequireAuth><PaymentsPage /></RequireAuth>} />
         <Route path="/manage-advertiser" element={<RequireAuth><RequireAdmin><AdminAdvertisersPage /></RequireAdmin></RequireAuth>} />
-        <Route path="/manage-publisher" element={<RequireAuth><RequireAdmin><PublishersPage /></RequireAdmin></RequireAuth>} />
+        <Route path="/manage-publisher" element={<RequireAuth><RequireAdmin><AdminPublishersPage /></RequireAdmin></RequireAuth>} />
         <Route path="/manage-campaign" element={<RequireAuth><RequireAdmin><CampaignsPage /></RequireAdmin></RequireAuth>} />
         <Route path="/manage-slots" element={<RequireAuth><RequireAdmin><AdminSlotsPage /></RequireAdmin></RequireAuth>} />
       </Routes>

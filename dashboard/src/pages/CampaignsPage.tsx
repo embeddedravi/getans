@@ -42,7 +42,9 @@ export function CampaignsPage() {
   useEffect(refresh, []);
 
   async function toggleActive(campaign: Campaign) {
-    await api.updateCampaign(campaign.id, { is_active: !campaign.is_active });
+    const nextState = !campaign.is_active;
+    if (!window.confirm(`${nextState ? "Activate" : "Pause"} campaign “${campaign.name}”?`)) return;
+    await api.updateCampaign(campaign.id, { is_active: nextState });
     refresh();
   }
 
@@ -94,13 +96,9 @@ export function CampaignsPage() {
                 <tr key={c.id} className="border-b border-base-300 last:border-0">
                   <td className="font-medium">
                     {c.name}
-                    <button
-                      onClick={() => toggleActive(c)}
-                      className={`badge ${c.is_active ? "badge-success" : "badge-ghost"} ml-2 cursor-pointer`}
-                      title="Toggle active/paused"
-                    >
+                    <span className={`badge ${c.is_active ? "badge-success" : "badge-ghost"} ml-2`}>
                       {c.is_active ? "On" : "Off"}
-                    </button>
+                    </span>
                   </td>
                   <td>
                     <span className={`badge ${STATUS_BADGE[c.status]}`}>{c.status}</span>
@@ -124,6 +122,9 @@ export function CampaignsPage() {
                     {c.end_date ? new Date(c.end_date).toLocaleDateString() : "Ongoing"}
                   </td>
                   <td>
+                    <button onClick={() => toggleActive(c)} className={`btn btn-xs ${c.is_active ? "btn-warning" : "btn-success"}`}>
+                      {c.is_active ? "Pause" : "Activate"}
+                    </button>
                     <button onClick={() => setCreativesFor(c)} className="btn btn-ghost btn-xs">
                       Creatives
                     </button>
@@ -184,6 +185,7 @@ function CreateCampaignModal({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!window.confirm(`Create campaign “${name}”?`)) return;
     setError(null);
     setSubmitting(true);
     try {

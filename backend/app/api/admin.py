@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,6 +20,14 @@ from app.schemas.advertiser import AdvertiserOut, AdvertiserReview
 from app.schemas.publisher import PublisherOut, PublisherReview
 
 router = APIRouter(prefix="/admin", tags=["Admin Approvals"])
+
+
+class AdUnitActivation(BaseModel):
+    is_active: bool
+
+
+class AdUnitActivation(BaseModel):
+    is_active: bool
 
 
 @router.get(
@@ -80,8 +90,8 @@ async def review_publisher(
     publisher = await db.get(Publisher, publisher_id)
     if publisher is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Publisher not found")
-    if payload.status not in (PublisherStatus.ACTIVE, PublisherStatus.REJECTED):
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Review status must be active or rejected")
+    if payload.status not in (PublisherStatus.ACTIVE, PublisherStatus.SUSPENDED, PublisherStatus.REJECTED):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Review status must be active, suspended, or rejected")
     publisher.status = payload.status
     publisher.is_active = payload.status == PublisherStatus.ACTIVE
     publisher.rejection_reason = (
@@ -107,8 +117,8 @@ async def review_advertiser(
     advertiser = await db.get(Advertiser, advertiser_id)
     if advertiser is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Advertiser not found")
-    if payload.status not in (AccountStatus.ACTIVE, AccountStatus.REJECTED):
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Review status must be active or rejected")
+    if payload.status not in (AccountStatus.ACTIVE, AccountStatus.SUSPENDED, AccountStatus.REJECTED):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Review status must be active, suspended, or rejected")
     advertiser.status = payload.status
     advertiser.is_verified = payload.status == AccountStatus.ACTIVE
     advertiser.rejection_reason = (
@@ -141,6 +151,50 @@ async def review_ad_unit(
     ad_unit.rejection_reason = (
         payload.rejection_reason.strip() if payload.status == AdUnitStatus.REJECTED else None
     )
+    await db.commit()
+    await db.refresh(ad_unit)
+    return ad_unit
+
+
+@router.patch(
+    "/ad-units/{ad_unit_id}/active",
+    response_model=AdUnitOut,
+    summary="Activate or deactivate an approved ad unit",
+)
+async def set_ad_unit_active(
+    ad_unit_id: int,
+    payload: AdUnitActivation,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role("admin")),
+) -> AdUnit:
+    ad_unit = await db.get(AdUnit, ad_unit_id)
+    if ad_unit is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Ad unit not found")
+    if ad_unit.status != AdUnitStatus.APPROVED and payload.is_active:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Only approved ad units can be activated")
+    ad_unit.is_active = payload.is_active
+    await db.commit()
+    await db.refresh(ad_unit)
+    return ad_unit
+
+
+@router.patch(
+    "/ad-units/{ad_unit_id}/active",
+    response_model=AdUnitOut,
+    summary="Activate or deactivate an approved ad unit",
+)
+async def set_ad_unit_active(
+    ad_unit_id: int,
+    payload: AdUnitActivation,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role("admin")),
+) -> AdUnit:
+    ad_unit = await db.get(AdUnit, ad_unit_id)
+    if ad_unit is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Ad unit not found")
+    if ad_unit.status != AdUnitStatus.APPROVED and payload.is_active:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Only approved ad units can be activated")
+    ad_unit.is_active = payload.is_active
     await db.commit()
     await db.refresh(ad_unit)
     return ad_unit

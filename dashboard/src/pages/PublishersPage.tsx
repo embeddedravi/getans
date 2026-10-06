@@ -35,13 +35,15 @@ export function PublishersPage() {
     api.me().then((user) => setIsAdmin((user as { role?: string }).role === "admin")).catch(() => setIsAdmin(false));
   }, []);
 
-  async function reviewSelectedPublisher(status: "active" | "rejected") {
+  async function reviewSelectedPublisher(status: "active" | "suspended" | "rejected") {
     if (!selected) return;
     const reason = rejectionReason.trim();
     if (status === "rejected" && !reason) {
       setReviewError("Enter a reason before rejecting this publisher.");
       return;
     }
+    const action = status === "active" ? (selected.status === "pending_approval" ? "Approve" : "Activate") : status === "suspended" ? "Suspend" : "Reject";
+    if (!window.confirm(`${action} publisher “${selected.name}”?`)) return;
     try {
       await api.reviewPublisher(selected.id, status, reason || undefined);
       setRejectionReason("");
@@ -134,6 +136,14 @@ export function PublishersPage() {
                     <input value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} maxLength={500} placeholder="Reason required to reject" aria-label="Publisher rejection reason" className="input input-bordered input-xs" />
                     <button onClick={() => reviewSelectedPublisher("rejected")} className="btn btn-error btn-outline btn-xs">Reject</button>
                     {reviewError && <p role="alert" className="w-full text-xs text-error">{reviewError}</p>}
+                  </div>}
+                  {isAdmin && selected.status !== "pending_approval" && selected.status !== "rejected" && <div className="mt-3 flex gap-2">
+                    <button onClick={() => reviewSelectedPublisher(selected.status === "active" ? "suspended" : "active")} className={`btn btn-xs ${selected.status === "active" ? "btn-warning" : "btn-success"}`}>
+                      {selected.status === "active" ? "Suspend publisher" : "Activate publisher"}
+                    </button>
+                  </div>}
+                  {isAdmin && selected.status === "rejected" && <div className="mt-3">
+                    <button onClick={() => reviewSelectedPublisher("active")} className="btn btn-success btn-xs">Reactivate publisher</button>
                   </div>}
                   <p className="text-xs text-neutral-content mt-1">
                     Payout: {selected.payout_email} · {Number(selected.revenue_share_percentage)}% share
@@ -239,6 +249,7 @@ function CreatePublisherModal({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!window.confirm(`Create publisher “${name}”?`)) return;
     setError(null);
     setSubmitting(true);
     try {
@@ -352,6 +363,7 @@ function CreateAdUnitModal({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!window.confirm(`Create ad slot “${slotName}”?`)) return;
     setError(null);
     setSubmitting(true);
     try {

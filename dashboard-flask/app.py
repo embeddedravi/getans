@@ -258,7 +258,18 @@ def campaigns():
         campaigns_list = _api("GET", "/campaigns")
     except Exception:
         campaigns_list = []
-    return render_template("campaigns.html", campaigns=campaigns_list)
+    return render_template("campaigns.html", campaigns=campaigns_list, manage_mode=False)
+
+
+@app.route("/manage-campaign")
+@admin_required
+def manage_campaigns():
+    try:
+        campaigns_list = _api("GET", "/campaigns")
+    except Exception as exc:
+        campaigns_list = []
+        flash(f"Could not load campaigns: {exc}", "error")
+    return render_template("campaigns.html", campaigns=campaigns_list, manage_mode=True)
 
 
 @app.route("/campaigns/create", methods=["POST"])
@@ -406,6 +417,96 @@ def publishers():
         selected=selected,
         ad_units=ad_units,
     )
+
+
+@app.route("/manage-advertiser")
+@admin_required
+def manage_advertisers():
+    try:
+        advertisers_list = _api("GET", "/admin/advertisers")
+    except Exception as exc:
+        advertisers_list = []
+        flash(f"Could not load advertisers: {exc}", "error")
+    return render_template("manage_advertisers.html", advertisers=advertisers_list)
+
+
+@app.route("/manage-publisher")
+@admin_required
+def manage_publishers():
+    try:
+        publishers_list = _api("GET", "/publishers")
+    except Exception as exc:
+        publishers_list = []
+        flash(f"Could not load publishers: {exc}", "error")
+    return render_template("manage_publishers.html", publishers=publishers_list)
+
+
+@app.route("/manage/<kind>/<int:item_id>/status", methods=["POST"])
+@admin_required
+def manage_entity_status(kind: str, item_id: int):
+    if kind not in {"advertisers", "publishers"}:
+        abort(404)
+    status_value = request.form.get("status", "")
+    valid_statuses = {"active", "suspended", "rejected"}
+    reason = request.form.get("rejection_reason", "").strip()
+    if status_value not in valid_statuses or (status_value == "rejected" and not reason):
+        flash("Choose a valid action and provide a rejection reason when rejecting.", "error")
+        return redirect(url_for("manage_advertisers" if kind == "advertisers" else "manage_publishers"))
+    payload = {"status": status_value}
+    if reason:
+        payload["rejection_reason"] = reason
+    try:
+        _api("PATCH", f"/admin/{kind}/{item_id}/review", json=payload)
+        flash(f"{kind[:-1].title()} status updated.", "success")
+    except Exception as exc:
+        flash(f"Could not update {kind[:-1]}: {exc}", "error")
+    return redirect(url_for("manage_advertisers" if kind == "advertisers" else "manage_publishers"))
+
+
+@app.route("/manage-slots")
+@admin_required
+def manage_slots():
+    try:
+        publishers_list = _api("GET", "/publishers")
+        slots = []
+        for publisher in publishers_list:
+            for unit in _api("GET", f"/publishers/{publisher['id']}/ad-units"):
+                slots.append({**unit, "publisher_name": publisher["name"]})
+    except Exception as exc:
+        slots = []
+        flash(f"Could not load ad slots: {exc}", "error")
+    return render_template("manage_slots.html", slots=slots)
+
+
+@app.route("/manage-slots/<int:slot_id>/review", methods=["POST"])
+@admin_required
+def manage_slot_review(slot_id: int):
+    decision = request.form.get("decision")
+    reason = request.form.get("rejection_reason", "").strip()
+    if decision not in {"approve", "reject"} or (decision == "reject" and not reason):
+        flash("Choose an action and provide a reason when rejecting.", "error")
+        return redirect(url_for("manage_slots"))
+    payload = {"status": "approved" if decision == "approve" else "rejected"}
+    if reason:
+        payload["rejection_reason"] = reason
+    try:
+        _api("PATCH", f"/admin/ad-units/{slot_id}/review", json=payload)
+        flash(f"Ad slot {decision}d.", "success")
+    except Exception as exc:
+        flash(f"Could not update ad slot: {exc}", "error")
+    return redirect(url_for("manage_slots"))
+
+
+@app.route("/manage-slots/<int:slot_id>/active", methods=["POST"])
+@admin_required
+def manage_slot_active(slot_id: int):
+    is_active = request.form.get("is_active") == "true"
+    try:
+        _api("PATCH", f"/admin/ad-units/{slot_id}/active", json={"is_active": is_active})
+        flash("Ad slot status updated.", "success")
+    except Exception as exc:
+        flash(f"Could not update ad slot: {exc}", "error")
+    return redirect(url_for("manage_slots"))
 
 
 @app.route("/approvals")

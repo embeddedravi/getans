@@ -81,6 +81,22 @@
               <span class="badge badge-sm badge-outline badge-success">ads.txt verified</span>
             {% endif %}
           </div>
+          {% if selected.status == 'rejected' and selected.rejection_reason %}
+            <p class="text-xs text-error mt-1">Rejection reason: {{ selected.rejection_reason }}</p>
+          {% endif %}
+          {% if session.get('role') == 'admin' and selected.status == 'pending_approval' %}
+            <div class="flex gap-2 mt-2">
+              <form method="POST" action="{{ url_for('review_approval', kind='publishers', item_id=selected.id) }}">
+                <input type="hidden" name="decision" value="approve" />
+                <button class="btn btn-success btn-xs">Approve publisher</button>
+              </form>
+              <form method="POST" action="{{ url_for('review_approval', kind='publishers', item_id=selected.id) }}" class="flex gap-1">
+                <input type="hidden" name="decision" value="reject" />
+                <input name="rejection_reason" required maxlength="500" placeholder="Rejection reason" class="input input-bordered input-xs" />
+                <button class="btn btn-error btn-outline btn-xs">Reject</button>
+              </form>
+            </div>
+          {% endif %}
           <a href="{{ selected.site_url }}" target="_blank" rel="noopener noreferrer"
              class="text-xs text-neutral-content hover:text-secondary transition-colors inline-flex items-center gap-1">
             {{ selected.site_url }}
@@ -132,13 +148,14 @@
               <th>Format</th>
               <th class="tabular-nums">Dimensions</th>
               <th class="tabular-nums">Reserve</th>
+              <th>Status</th>
               <th class="tabular-nums">Unit ID</th>
             </tr>
           </thead>
           <tbody>
             {% if not ad_units %}
               <tr>
-                <td colspan="5" class="py-8 text-center text-sm text-neutral-content">
+                <td colspan="6" class="py-8 text-center text-sm text-neutral-content">
                   No ad slots registered for this publisher.
                 </td>
               </tr>
@@ -151,6 +168,7 @@
                   <td class="tabular-nums text-sm">
                     {{ '$%.4f'|format(unit.reserve_price) if unit.reserve_price and unit.reserve_price > 0 else '—' }}
                   </td>
+                  <td><span class="badge badge-xs {{ 'badge-success' if unit.status == 'approved' else 'badge-error' if unit.status == 'rejected' else 'badge-warning' }}">{{ unit.status | replace('_', ' ') }}</span></td>
                   <td class="tabular-nums text-neutral-content text-sm">#{{ unit.id }}</td>
                 </tr>
               {% endfor %}

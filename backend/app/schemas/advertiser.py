@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Any, Dict, List, Generic, TypeVar, Optional
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, PositiveInt
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, PositiveInt, model_validator
 
 # ============================================================================
 # Generic / Shared Schemas
@@ -32,6 +32,7 @@ class AccountStatus(str, Enum):
     PENDING_VERIFICATION = "pending_verification"
     ACTIVE = "active"
     SUSPENDED = "suspended"
+    REJECTED = "rejected"
     ARCHIVED = "archived"
 
 
@@ -74,7 +75,19 @@ class AdvertiserOut(BaseModel):
     currency: Currency
     balance: Decimal
     credit_limit: Decimal
+    rejection_reason: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AdvertiserReview(BaseModel):
+    status: AccountStatus
+    rejection_reason: Optional[str] = Field(None, max_length=500)
+
+    @model_validator(mode="after")
+    def _reason_required_on_reject(self):
+        if self.status == AccountStatus.REJECTED and not (self.rejection_reason or "").strip():
+            raise ValueError("rejection_reason is required when rejecting an advertiser")
+        return self

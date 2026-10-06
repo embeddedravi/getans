@@ -1,13 +1,41 @@
 import { NavLink, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { api } from "../lib/api";
 
-const links = [
-  { to: "/", label: "Analytics", end: true },
-  { to: "/campaigns", label: "Campaigns" },
-  { to: "/publishers", label: "Publishers & slots" },
-];
+type Role = "admin" | "publisher" | "advertiser";
+
+const roleLabels: Record<Role, string> = {
+  admin: "Platform admin",
+  publisher: "Publisher workspace",
+  advertiser: "Advertiser workspace",
+};
+
+const roleLinks: Record<Role, { to: string; label: string; end?: boolean }[]> = {
+  admin: [
+    { to: "/", label: "Overview", end: true },
+    { to: "/campaigns", label: "Campaigns" },
+    { to: "/publishers", label: "Publishers & slots" },
+    { to: "/approvals", label: "Approvals" },
+  ],
+  publisher: [
+    { to: "/", label: "Earnings overview", end: true },
+    { to: "/publishers", label: "My sites & ad slots" },
+  ],
+  advertiser: [
+    { to: "/", label: "Performance overview", end: true },
+    { to: "/campaigns", label: "My campaigns" },
+  ],
+};
 
 export function Sidebar() {
   const navigate = useNavigate();
+  const [role, setRole] = useState<Role | null>(null);
+  useEffect(() => {
+    api.me().then((user) => {
+      const accountRole = (user as { role?: Role }).role;
+      if (accountRole && accountRole in roleLinks) setRole(accountRole);
+    }).catch(() => setRole(null));
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
@@ -20,10 +48,11 @@ export function Sidebar() {
         <span className="font-display text-lg font-semibold tracking-tight">
           Ad Platform
         </span>
+        {role && <p className="mt-1 text-xs text-neutral-content">{roleLabels[role]}</p>}
       </div>
 
       <nav className="flex-1 px-2 py-4 space-y-1">
-        {links.map((link) => (
+        {(role ? roleLinks[role] : []).map((link) => (
           <NavLink
             key={link.to}
             to={link.to}

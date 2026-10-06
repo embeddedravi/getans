@@ -94,6 +94,7 @@ class Publisher(TimestampMixin, Base):
 
     # Operational Notes
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    rejection_reason: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
     # Relationships
     ad_units: Mapped[List["AdUnit"]] = relationship(

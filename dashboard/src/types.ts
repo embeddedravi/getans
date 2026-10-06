@@ -15,10 +15,31 @@ export interface Publisher {
   revenue_share_percentage: number;
   unpaid_earnings: number;
   payout_email: string;
+  rejection_reason: string | null;
   created_at: string;
 }
 
 export type AdFormatType = "display" | "banner" | "native" | "video" | "interstitial";
+export type AdUnitStatus = "pending_review" | "approved" | "rejected";
+
+export type AccountStatus = "pending_verification" | "active" | "suspended" | "rejected" | "archived";
+
+export interface Advertiser {
+  id: number;
+  name: string;
+  company_legal_name: string | null;
+  billing_email: string;
+  website_url: string | null;
+  industry: string | null;
+  status: AccountStatus;
+  is_verified: boolean;
+  currency: "USD" | "EUR" | "GBP";
+  balance: number;
+  credit_limit: number;
+  rejection_reason: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface AdUnit {
   id: number;
@@ -31,8 +52,16 @@ export interface AdUnit {
   reserve_price: number;
   is_active: boolean;
   allow_house_ads: boolean;
+  status: AdUnitStatus;
+  rejection_reason: string | null;
   settings: Record<string, unknown> | null;
   created_at: string;
+}
+
+export interface PendingApprovals {
+  publishers: Publisher[];
+  advertisers: Advertiser[];
+  ad_units: AdUnit[];
 }
 
 export interface TargetingRules {

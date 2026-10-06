@@ -12,9 +12,11 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.ad_unit import AdUnit
+from app.models.ad_unit import AdUnit, AdUnitStatus
+from app.models.advertiser import AccountStatus, Advertiser
 from app.models.campaign import Campaign, CampaignStatus
 from app.models.creative import Creative, ReviewStatus
+from app.models.publisher import PublisherStatus
 
 # In-memory spend cache: {"campaign_id:YYYY-MM-DD": Decimal("spend_so_far")}
 _spend_cache: Dict[str, Decimal] = {}
@@ -50,7 +52,13 @@ async def select_ad(
     context = context or RequestContext()
 
     ad_unit = await db.get(AdUnit, ad_unit_id)
-    if ad_unit is None or not ad_unit.is_active:
+    if (
+        ad_unit is None
+        or not ad_unit.is_active
+        or ad_unit.status != AdUnitStatus.APPROVED
+        or ad_unit.publisher.status != PublisherStatus.ACTIVE
+        or not ad_unit.publisher.is_active
+    ):
         raise NoEligibleCampaignError(f"Ad unit unavailable or inactive: {ad_unit_id}")
 
     now = datetime.now(timezone.utc)
@@ -65,6 +73,8 @@ async def select_ad(
             Campaign.start_date <= now,
             or_(Campaign.end_date.is_(None), Campaign.end_date >= now),
         )
+        .join(Advertiser, Campaign.advertiser_id == Advertiser.id)
+        .where(Advertiser.status == AccountStatus.ACTIVE)
         .join(Creative, Creative.campaign_id == Campaign.id)
         .where(
             Creative.is_active.is_(True),

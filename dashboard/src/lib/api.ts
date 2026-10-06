@@ -46,6 +46,13 @@ export const api = {
     }),
 
   me: () => request("/auth/me"),
+  listPendingApprovals: () => request<import("../types").PendingApprovals>("/admin/approvals/pending"),
+  reviewPublisher: (id: number, status: "active" | "rejected", rejection_reason?: string) =>
+    request(`/admin/publishers/${id}/review`, { method: "PATCH", body: JSON.stringify({ status, rejection_reason }) }),
+  reviewAdvertiser: (id: number, status: "active" | "rejected", rejection_reason?: string) =>
+    request(`/admin/advertisers/${id}/review`, { method: "PATCH", body: JSON.stringify({ status, rejection_reason }) }),
+  reviewAdUnit: (id: number, status: "approved" | "rejected", rejection_reason?: string) =>
+    request(`/admin/ad-units/${id}/review`, { method: "PATCH", body: JSON.stringify({ status, rejection_reason }) }),
   signup: (payload: unknown) =>
     request("/auth/signup", { method: "POST", body: JSON.stringify(payload) }),
   requestOtp: (mobile: string) =>

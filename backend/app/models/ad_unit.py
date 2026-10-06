@@ -35,6 +35,12 @@ class AdFormatType(str, PyEnum):
     INTERSTITIAL = "interstitial"
 
 
+class AdUnitStatus(str, PyEnum):
+    PENDING_REVIEW = "pending_review"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
 class AdUnit(TimestampMixin, Base):
     """A single ad slot on a publisher's site, e.g. 'sidebar-300x250'."""
 
@@ -78,6 +84,15 @@ class AdUnit(TimestampMixin, Base):
 
     # Advanced Targeting & Configuration Payload (e.g., IAB categories, viewability rules)
     settings: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON().with_variant(JSONB, "postgresql"), nullable=True)
+
+    # Approval Status
+    status: Mapped[AdUnitStatus] = mapped_column(
+        Enum(AdUnitStatus, native_enum=False),
+        default=AdUnitStatus.PENDING_REVIEW,
+        nullable=False,
+        index=True,
+    )
+    rejection_reason: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
     # Relationships
     publisher: Mapped["Publisher"] = relationship(

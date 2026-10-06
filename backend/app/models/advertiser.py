@@ -31,6 +31,7 @@ class AccountStatus(str, PyEnum):
     PENDING_VERIFICATION = "pending_verification"
     ACTIVE = "active"
     SUSPENDED = "suspended"
+    REJECTED = "rejected"
     ARCHIVED = "archived"
 
 
@@ -85,6 +86,7 @@ class Advertiser(TimestampMixin, Base):
 
     # Metadata / Operational Notes
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    rejection_reason: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
     # Relationships
     campaigns: Mapped[List["Campaign"]] = relationship(

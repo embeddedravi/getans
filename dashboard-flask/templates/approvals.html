@@ -1,0 +1,55 @@
+{% extends "layout.html" %}
+
+{% block title %}Approvals{% endblock %}
+{% block description %}Review new publishers, advertisers and ad units{% endblock %}
+{% block page_title %}Pending approvals{% endblock %}
+
+{% block content %}
+{% set labels = {'publishers': 'Publishers', 'advertisers': 'Advertisers', 'ad_units': 'Ad units'} %}
+<div class="space-y-5">
+  <div>
+    <h2 class="text-lg font-semibold">Review new accounts and ad units</h2>
+    <p class="text-sm text-neutral-content">Approve an item to activate it, or provide a reason when rejecting it.</p>
+  </div>
+  <div role="tablist" class="tabs tabs-bordered">
+    {% for key, label in labels.items() %}
+      <a role="tab" href="{{ url_for('approvals', tab=key) }}" class="tab {{ 'tab-active' if tab == key else '' }}">
+        {{ label }} <span class="badge badge-sm ml-2">{{ approvals.get(key, [])|length }}</span>
+      </a>
+    {% endfor %}
+  </div>
+  {% set rows = approvals.get(tab, []) %}
+  {% if not rows %}
+    <div class="rounded-lg border border-base-300 bg-base-200 p-8 text-center text-sm text-neutral-content">Nothing is waiting for review.</div>
+  {% else %}
+    <div class="space-y-3">
+      {% for item in rows %}
+        <article class="rounded-lg border border-base-300 bg-base-200 p-4">
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h3 class="font-medium">{{ item.name if tab != 'ad_units' else item.slot_name }}</h3>
+              {% if tab == 'publishers' %}
+                <p class="text-sm text-neutral-content">{{ item.site_url }} · {{ item.payout_email }}</p>
+              {% elif tab == 'advertisers' %}
+                <p class="text-sm text-neutral-content">{{ item.billing_email }}{% if item.industry %} · {{ item.industry }}{% endif %}</p>
+              {% else %}
+                <p class="text-sm text-neutral-content">Publisher #{{ item.publisher_id }} · {{ item.width }} × {{ item.height }} · {{ item.format_type }}</p>
+              {% endif %}
+              <p class="text-xs text-neutral-content mt-1">Submitted {{ item.created_at[:10] }}</p>
+            </div>
+            <form method="POST" action="{{ url_for('review_approval', kind=tab, item_id=item.id) }}">
+              <input type="hidden" name="decision" value="approve" />
+              <button class="btn btn-success btn-sm">Approve</button>
+            </form>
+          </div>
+          <form method="POST" action="{{ url_for('review_approval', kind=tab, item_id=item.id) }}" class="mt-3 flex flex-wrap gap-2">
+            <input type="hidden" name="decision" value="reject" />
+            <input name="rejection_reason" required maxlength="500" placeholder="Reason required to reject" aria-label="Rejection reason" class="input input-bordered input-sm flex-1 min-w-56" />
+            <button class="btn btn-error btn-outline btn-sm">Reject</button>
+          </form>
+        </article>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

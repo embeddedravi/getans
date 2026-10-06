@@ -18,12 +18,39 @@ export function PublishersPage() {
   const [adUnits, setAdUnits] = useState<AdUnit[]>([]);
   const [showCreatePublisher, setShowCreatePublisher] = useState(false);
   const [showCreateAdUnit, setShowCreateAdUnit] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [reviewError, setReviewError] = useState("");
 
   function refreshPublishers() {
-    api.listPublishers().then((data) => setPublishers(data as Publisher[]));
+    api.listPublishers().then((data) => {
+      const updated = data as Publisher[];
+      setPublishers(updated);
+      setSelected((current) => current ? updated.find((publisher) => publisher.id === current.id) || current : current);
+    });
   }
 
-  useEffect(refreshPublishers, []);
+  useEffect(() => {
+    refreshPublishers();
+    api.me().then((user) => setIsAdmin((user as { role?: string }).role === "admin")).catch(() => setIsAdmin(false));
+  }, []);
+
+  async function reviewSelectedPublisher(status: "active" | "rejected") {
+    if (!selected) return;
+    const reason = rejectionReason.trim();
+    if (status === "rejected" && !reason) {
+      setReviewError("Enter a reason before rejecting this publisher.");
+      return;
+    }
+    try {
+      await api.reviewPublisher(selected.id, status, reason || undefined);
+      setRejectionReason("");
+      setReviewError("");
+      refreshPublishers();
+    } catch (err) {
+      setReviewError(err instanceof Error ? err.message : "Publisher review failed");
+    }
+  }
 
   useEffect(() => {
     if (selected) {
@@ -101,6 +128,13 @@ export function PublishersPage() {
                       {selected.api_key}
                     </span>
                   </p>
+                  {selected.status === "rejected" && selected.rejection_reason && <p className="text-xs text-error mt-1">Rejection reason: {selected.rejection_reason}</p>}
+                  {isAdmin && selected.status === "pending_approval" && <div className="mt-3 flex flex-wrap gap-2">
+                    <button onClick={() => reviewSelectedPublisher("active")} className="btn btn-success btn-xs">Approve publisher</button>
+                    <input value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} maxLength={500} placeholder="Reason required to reject" aria-label="Publisher rejection reason" className="input input-bordered input-xs" />
+                    <button onClick={() => reviewSelectedPublisher("rejected")} className="btn btn-error btn-outline btn-xs">Reject</button>
+                    {reviewError && <p role="alert" className="w-full text-xs text-error">{reviewError}</p>}
+                  </div>}
                   <p className="text-xs text-neutral-content mt-1">
                     Payout: {selected.payout_email} · {Number(selected.revenue_share_percentage)}% share
                     {" · "}
@@ -129,6 +163,7 @@ export function PublishersPage() {
                     <th>Format</th>
                     <th>Dimensions</th>
                     <th>Reserve</th>
+                    <th>Status</th>
                     <th>Ad unit ID</th>
                   </tr>
                 </thead>
@@ -145,12 +180,13 @@ export function PublishersPage() {
                           ? `$${Number(unit.reserve_price).toFixed(4)}`
                           : "—"}
                       </td>
+                      <td><span className={`badge badge-xs ${unit.status === "approved" ? "badge-success" : unit.status === "rejected" ? "badge-error" : "badge-warning"}`}>{unit.status.replace("_", " ")}</span></td>
                       <td className="tabular text-neutral-content">{unit.id}</td>
                     </tr>
                   ))}
                   {adUnits.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="text-center text-sm text-neutral-content py-6">
+                      <td colSpan={6} className="text-center text-sm text-neutral-content py-6">
                         No ad slots yet for this publisher.
                       </td>
                     </tr>

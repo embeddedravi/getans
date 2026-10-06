@@ -88,9 +88,26 @@ def login_required(f):
 
     return decorated
 
+
+def admin_required(f):
+    @wraps(f)
+    @login_required
+    def decorated(*args, **kwargs):
+        if session.get("role") != "admin":
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated
+
 @app.context_processor
 def inject_current_path():
-    return {"current_path": flask_request.path}
+    pending_count = 0
+    if session.get("role") == "admin":
+        try:
+            pending = _api("GET", "/admin/approvals/pending")
+            pending_count = sum(len(pending.get(key, [])) for key in ("publishers", "advertisers", "ad_units"))
+        except Exception:
+            pass
+    return {"current_path": flask_request.path, "pending_approval_count": pending_count}
 
 # ── Auth routes ───────────────────────────────────────────────────────────────
 
@@ -389,6 +406,43 @@ def publishers():
         selected=selected,
         ad_units=ad_units,
     )
+
+
+@app.route("/approvals")
+@admin_required
+def approvals():
+    tab = request.args.get("tab", "publishers")
+    if tab not in {"publishers", "advertisers", "ad_units"}:
+        tab = "publishers"
+    try:
+        items = _api("GET", "/admin/approvals/pending")
+    except Exception as exc:
+        items = {"publishers": [], "advertisers": [], "ad_units": []}
+        flash(f"Could not load pending approvals: {exc}", "error")
+    return render_template("approvals.html", approvals=items, tab=tab)
+
+
+@app.route("/approvals/<kind>/<int:item_id>/review", methods=["POST"])
+@admin_required
+def review_approval(kind: str, item_id: int):
+    endpoints = {"publishers": "publishers", "advertisers": "advertisers", "ad_units": "ad-units"}
+    if kind not in endpoints:
+        abort(404)
+    decision = request.form.get("decision")
+    status_value = "approved" if decision == "approve" and kind == "ad_units" else "active" if decision == "approve" else "rejected"
+    reason = request.form.get("rejection_reason", "").strip()
+    if decision not in {"approve", "reject"} or (decision == "reject" and not reason):
+        flash("Choose an action and provide a reason when rejecting.", "error")
+        return redirect(url_for("approvals", tab=kind))
+    payload = {"status": status_value}
+    if decision == "reject":
+        payload["rejection_reason"] = reason
+    try:
+        _api("PATCH", f"/admin/{endpoints[kind]}/{item_id}/review", json=payload)
+        flash(f"{kind.replace('_', ' ').title()} {decision}d.", "success")
+    except Exception as exc:
+        flash(f"Review failed: {exc}", "error")
+    return redirect(url_for("approvals", tab=kind))
 
 
 @app.route("/publishers/create", methods=["POST"])

@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Any, Dict, List, Generic, TypeVar, Optional
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, PositiveInt
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, PositiveInt, model_validator
 
 # ============================================================================
 # Generic / Shared Schemas
@@ -66,6 +66,18 @@ class PublisherOut(BaseModel):
     revenue_share_percentage: Decimal
     unpaid_earnings: Decimal
     payout_email: EmailStr
+    rejection_reason: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class PublisherReview(BaseModel):
+    status: PublisherStatus
+    rejection_reason: Optional[str] = Field(None, max_length=500)
+
+    @model_validator(mode="after")
+    def _reason_required_on_reject(self):
+        if self.status == PublisherStatus.REJECTED and not (self.rejection_reason or "").strip():
+            raise ValueError("rejection_reason is required when rejecting a publisher")
+        return self

@@ -422,6 +422,38 @@ def approvals():
     return render_template("approvals.html", approvals=items, tab=tab)
 
 
+@app.route("/payments")
+@admin_required
+def payments():
+    payment_status = request.args.get("status", "all")
+    allowed_statuses = {"all", "pending", "processing", "paid", "failed", "cancelled"}
+    if payment_status not in allowed_statuses:
+        payment_status = "all"
+    path = "/payouts" if payment_status == "all" else f"/payouts?status={quote(payment_status)}"
+    try:
+        items = _api("GET", path)
+    except Exception as exc:
+        items = []
+        flash(f"Could not load payments: {exc}", "error")
+    return render_template("payments.html", payments=items, payment_status=payment_status)
+
+
+@app.route("/payments/<int:payment_id>/status", methods=["POST"])
+@admin_required
+def update_payment_status(payment_id: int):
+    new_status = request.form.get("status", "")
+    if new_status not in {"pending", "processing", "paid", "cancelled"}:
+        flash("Choose a valid payment status.", "error")
+        return redirect(url_for("payments"))
+    try:
+        _api("PATCH", f"/payouts/{payment_id}", json={"status": new_status})
+        label = "approved" if new_status == "paid" else new_status
+        flash(f"Payment #{payment_id} marked {label}.", "success")
+    except Exception as exc:
+        flash(f"Could not update payment: {exc}", "error")
+    return redirect(url_for("payments", status=request.form.get("filter", "all")))
+
+
 @app.route("/approvals/<kind>/<int:item_id>/review", methods=["POST"])
 @admin_required
 def review_approval(kind: str, item_id: int):

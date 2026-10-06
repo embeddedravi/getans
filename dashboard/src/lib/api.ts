@@ -47,6 +47,9 @@ export const api = {
 
   me: () => request("/auth/me"),
   listPendingApprovals: () => request<import("../types").PendingApprovals>("/admin/approvals/pending"),
+  listPayouts: (status?: string) => request<import("../types").Payout[]>(`/payouts${status ? `?status=${encodeURIComponent(status)}` : ""}`),
+  updatePayout: (id: number, payload: { status?: import("../types").PayoutStatus; reference?: string }) =>
+    request<import("../types").Payout>(`/payouts/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   reviewPublisher: (id: number, status: "active" | "rejected", rejection_reason?: string) =>
     request(`/admin/publishers/${id}/review`, { method: "PATCH", body: JSON.stringify({ status, rejection_reason }) }),
   reviewAdvertiser: (id: number, status: "active" | "rejected", rejection_reason?: string) =>

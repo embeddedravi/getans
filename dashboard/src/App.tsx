@@ -7,6 +7,7 @@ import { PublishersPage } from "./pages/PublishersPage";
 import { VerifyMobilePage } from "./pages/VerifyMobilePage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ApprovalsPage } from "./pages/ApprovalsPage";
+import { PaymentsPage } from "./pages/PaymentsPage";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const token = localStorage.getItem("access_token");
@@ -46,6 +47,7 @@ export default function App() {
           }
         />
         <Route path="/approvals" element={<RequireAuth><ApprovalsPage /></RequireAuth>} />
+        <Route path="/payments" element={<RequireAuth><PaymentsPage /></RequireAuth>} />
       </Routes>
     </BrowserRouter>
   );

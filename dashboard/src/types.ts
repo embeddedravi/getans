@@ -47,6 +47,23 @@ export interface AdvertiserWallet {
   credit_limit: number;
 }
 
+export type PayoutStatus = "pending" | "processing" | "paid" | "failed" | "cancelled";
+
+export interface Payout {
+  id: number;
+  publisher_id: number;
+  amount: number;
+  status: PayoutStatus;
+  payment_method: "stripe" | "paypal" | "wire_transfer" | null;
+  payout_email: string;
+  reference: string | null;
+  failure_reason: string | null;
+  period_start: string | null;
+  period_end: string | null;
+  paid_at: string | null;
+  created_at: string;
+}
+
 export interface RazorpayTopUpOrder {
   order_id: string;
   amount_paise: number;

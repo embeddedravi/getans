@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+
+{% block title %}Payments{% endblock %}
+{% block description %}Review and manage publisher payments{% endblock %}
+{% block page_title %}Payments{% endblock %}
+
+{% block content %}
+{% set filters = [('all', 'All payments'), ('pending', 'Pending'), ('processing', 'Processing'), ('paid', 'Approved'), ('cancelled', 'Canceled'), ('failed', 'Failed')] %}
+{% set badge_classes = {'pending': 'badge-warning', 'processing': 'badge-info', 'paid': 'badge-success', 'cancelled': 'badge-ghost', 'failed': 'badge-error'} %}
+<div class="space-y-5">
+  <div>
+    <h2 class="text-lg font-semibold">Publisher payments</h2>
+    <p class="text-sm text-neutral-content">Review payout requests and record their status.</p>
+  </div>
+
+  <div role="tablist" aria-label="Filter payments" class="tabs tabs-bordered flex-wrap">
+    {% for value, label in filters %}
+      <a role="tab" aria-selected="{{ 'true' if payment_status == value else 'false' }}" href="{{ url_for('payments', status=value) }}" class="tab {{ 'tab-active' if payment_status == value else '' }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+
+  {% if not payments %}
+    <div class="rounded-lg border border-base-300 bg-base-200 p-8 text-center text-sm text-neutral-content">No payments found.</div>
+  {% else %}
+    <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-200">
+      <table class="table">
+        <thead><tr><th>Payment</th><th>Publisher</th><th>Amount</th><th>Method</th><th>Status</th><th>Submitted</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for payment in payments %}
+            <tr>
+              <td class="font-mono text-xs">#{{ payment.id }}</td>
+              <td><div>Publisher #{{ payment.publisher_id }}</div><div class="text-xs text-neutral-content">{{ payment.payout_email }}</div></td>
+              <td class="font-medium">₹{{ "{:,.2f}".format(payment.amount|float) }}</td>
+              <td>{{ payment.payment_method|replace('_', ' ') if payment.payment_method else '—' }}</td>
+              <td><span class="badge {{ badge_classes.get(payment.status, 'badge-ghost') }}">{{ payment.status }}</span></td>
+              <td>{{ payment.created_at[:10] if payment.created_at else '—' }}</td>
+              <td>
+                {% if payment.status in ['pending', 'processing'] %}
+                  <div class="flex flex-wrap gap-2">
+                    <form method="POST" action="{{ url_for('update_payment_status', payment_id=payment.id) }}">
+                      <input type="hidden" name="status" value="paid" /><input type="hidden" name="filter" value="{{ payment_status }}" />
+                      <button class="btn btn-success btn-xs">Approve</button>
+                    </form>
+                    {% if payment.status == 'pending' %}
+                      <form method="POST" action="{{ url_for('update_payment_status', payment_id=payment.id) }}">
+                        <input type="hidden" name="status" value="processing" /><input type="hidden" name="filter" value="{{ payment_status }}" />
+                        <button class="btn btn-outline btn-info btn-xs">Processing</button>
+                      </form>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('update_payment_status', payment_id=payment.id) }}">
+                      <input type="hidden" name="status" value="cancelled" /><input type="hidden" name="filter" value="{{ payment_status }}" />
+                      <button class="btn btn-error btn-outline btn-xs">Cancel</button>
+                    </form>
+                  </div>
+                {% elif payment.reference %}
+                  <span class="text-xs text-neutral-content">Ref: {{ payment.reference }}</span>
+                {% else %}—{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

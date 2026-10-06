@@ -99,7 +99,7 @@ export function AdminSlotsPage() {
               <td>{slot.format_type}</td>
               <td className="tabular">{slot.width} × {slot.height}</td>
               <td className="tabular">₹{Number(slot.reserve_price).toFixed(4)}</td>
-              <td><span className={`badge badge-xs ${slot.status === "approved" ? "badge-success" : slot.status === "rejected" ? "badge-error" : "badge-warning"}`}>{slot.status.replaceAll("_", " ")}</span></td>
+              <td><span className={`badge badge-xs ${slot.status === "approved" ? "badge-success" : slot.status === "rejected" ? "badge-error" : "badge-warning"}`}>{slot.status.replace(/_/g, " ")}</span></td>
               <td className="tabular">{slot.id}</td>
               <td><div className="flex gap-2">
                 {slot.status === "pending_review" && <>
@@ -115,7 +115,7 @@ export function AdminSlotsPage() {
                 {reportsLoading ? "Loading reports..." : reports.length === 0 ? "No visitor reports found." : (
                   <ul className="space-y-1 text-sm">
                     {reports.map((report) => <li key={report.id}>
-                      {report.reason.replaceAll("_", " ")} — creative {report.creative_id ?? "removed"} — {new Date(report.created_at).toLocaleString()}
+                      {report.reason.replace(/_/g, " ")} — creative {report.creative_id ?? "removed"} — {new Date(report.created_at).toLocaleString()}
                     </li>)}
                   </ul>
                 )}

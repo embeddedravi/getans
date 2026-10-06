@@ -52,7 +52,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-60 shrink-0 border-r border-base-300 bg-base-200 flex flex-col">
+    <aside className="min-h-full w-72 max-w-[85vw] shrink-0 border-r border-base-300 bg-base-200 flex flex-col lg:w-60">
       <div className="px-5 py-5 border-b border-base-300">
         <span className="font-display text-lg font-semibold tracking-tight">
           Ad Platform
@@ -66,6 +66,10 @@ export function Sidebar() {
             key={link.to}
             to={link.to}
             end={link.end}
+            onClick={() => {
+              const drawer = document.getElementById("dashboard-drawer-toggle") as HTMLInputElement | null;
+              if (drawer) drawer.checked = false;
+            }}
             className={({ isActive }) =>
               `block rounded px-3 py-2 text-sm transition-colors ${
                 isActive

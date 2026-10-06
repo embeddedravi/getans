@@ -56,7 +56,7 @@ export function AdminAdvertisersPage() {
             {advertisers.map((advertiser) => <tr key={advertiser.id}>
               <td><div className="font-medium">{advertiser.name}</div><div className="text-xs text-neutral-content">#{advertiser.id}{advertiser.industry ? ` · ${advertiser.industry}` : ""}</div></td>
               <td>{advertiser.billing_email}</td>
-              <td><span className={`badge badge-sm ${statusStyle[advertiser.status]}`}>{advertiser.status.replaceAll("_", " ")}</span>{advertiser.rejection_reason && <div className="text-xs text-error mt-1">{advertiser.rejection_reason}</div>}</td>
+              <td><span className={`badge badge-sm ${statusStyle[advertiser.status]}`}>{advertiser.status.replace(/_/g, " ")}</span>{advertiser.rejection_reason && <div className="text-xs text-error mt-1">{advertiser.rejection_reason}</div>}</td>
               <td className="tabular">₹{Number(advertiser.balance).toFixed(2)}</td>
               <td className="tabular">₹{Number(advertiser.credit_limit).toFixed(2)}</td>
               <td><div className="flex gap-2">

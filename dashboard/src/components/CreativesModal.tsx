@@ -75,7 +75,7 @@ export function CreativesModal({
 
     return (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div className="bg-base-200 border border-base-300 rounded p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded border border-base-300 bg-base-200 p-4 sm:p-6">
                 <div className="flex justify-between items-start mb-4">
                     <div>
                         <h2 className="font-display text-lg font-semibold">Creatives</h2>
@@ -90,7 +90,7 @@ export function CreativesModal({
                     </div>
                 )}
 
-                <div className="border border-base-300 rounded overflow-hidden mb-5">
+                <div className="mb-5 overflow-x-auto rounded border border-base-300">
                     <table className="table">
                         <thead>
                             <tr className="text-xs text-neutral-content border-b border-base-300">
@@ -165,7 +165,7 @@ export function CreativesModal({
                     <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name (optional)" className="input input-bordered input-sm w-full bg-base-100" />
                     <input required type="url" value={assetUrl} onChange={(e) => setAssetUrl(e.target.value)} placeholder="Image URL" className="input input-bordered input-sm w-full bg-base-100" />
                     <input required type="url" value={clickUrl} onChange={(e) => setClickUrl(e.target.value)} placeholder="Click-through URL" className="input input-bordered input-sm w-full bg-base-100" />
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <input required type="number" min={1} value={width} onChange={(e) => setWidth(e.target.value)} placeholder="Width" className="input input-bordered input-sm bg-base-100" />
                         <input required type="number" min={1} value={height} onChange={(e) => setHeight(e.target.value)} placeholder="Height" className="input input-bordered input-sm bg-base-100" />
                     </div>

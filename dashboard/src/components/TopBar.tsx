@@ -25,10 +25,21 @@ export function TopBar({ title }: TopBarProps) {
   }, []);
 
   return (
-    <header className="h-16 border-b border-base-300 flex items-center justify-between px-6">
-      <h1 className="font-display text-xl font-semibold">{title}</h1>
+    <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-base-300 px-3 sm:h-16 sm:px-6">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+        <label
+          htmlFor="dashboard-drawer-toggle"
+          className="btn btn-ghost btn-square btn-sm lg:hidden"
+          aria-label="Open navigation"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </label>
+        <h1 className="truncate font-display text-lg font-semibold sm:text-xl">{title}</h1>
+      </div>
 
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex shrink-0 items-center gap-2 text-xs sm:text-sm">
         <span
           className={`h-2 w-2 rounded-full ${
             connected ? "bg-warning live-dot" : "bg-neutral-content/40"

@@ -81,7 +81,7 @@ export function CampaignsPage() {
         </button>
       </div>
 
-      <div className="border border-base-300 bg-base-200 rounded overflow-hidden">
+      <div className="overflow-x-auto rounded border border-base-300 bg-base-200">
         <table className="table">
           <thead>
             <tr className="text-xs text-neutral-content border-b border-base-300">
@@ -237,8 +237,8 @@ function CreateCampaignModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-base-200 border border-base-300 rounded p-6 w-full max-w-md">
+      <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-3 sm:p-4">
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded border border-base-300 bg-base-200 p-4 sm:p-6">
         <h2 className="font-display text-lg font-semibold mb-4">New campaign</h2>
 
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -262,7 +262,7 @@ function CreateCampaignModal({
             />
           </Field>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Priority (1-100)">
               <input
                 type="number"
@@ -298,7 +298,7 @@ function CreateCampaignModal({
             />
           </Field>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Daily cap (₹, optional)">
               <input
                 type="number"
@@ -321,7 +321,7 @@ function CreateCampaignModal({
             </Field>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Start date">
               <input
                 required

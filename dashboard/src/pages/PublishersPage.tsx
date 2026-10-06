@@ -166,6 +166,7 @@ export function PublishersPage() {
                 </button>
               </div>
 
+              <div className="overflow-x-auto">
               <table className="table">
                 <thead>
                   <tr className="text-xs text-neutral-content border-b border-base-300">
@@ -203,6 +204,7 @@ export function PublishersPage() {
                   )}
                 </tbody>
               </table>
+              </div>
             </>
           )}
         </div>
@@ -269,8 +271,8 @@ function CreatePublisherModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-base-200 border border-base-300 rounded p-6 w-full max-w-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-3 sm:p-4">
+      <div className="max-h-[90vh] w-full max-w-sm overflow-y-auto rounded border border-base-300 bg-base-200 p-4 sm:p-6">
         <h2 className="font-display text-lg font-semibold mb-4">Add publisher</h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <label className="block">
@@ -305,7 +307,7 @@ function CreatePublisherModal({
               placeholder="payouts@publisher.example"
             />
           </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block">
               <span className="block text-xs text-neutral-content mb-1">Domain (optional)</span>
               <input
@@ -384,8 +386,8 @@ function CreateAdUnitModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-base-200 border border-base-300 rounded p-6 w-full max-w-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-3 sm:p-4">
+      <div className="max-h-[90vh] w-full max-w-sm overflow-y-auto rounded border border-base-300 bg-base-200 p-4 sm:p-6">
         <h2 className="font-display text-lg font-semibold mb-4">New ad slot</h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <label className="block">
@@ -412,7 +414,7 @@ function CreateAdUnitModal({
               ))}
             </select>
           </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block">
               <span className="block text-xs text-neutral-content mb-1">Width</span>
               <input

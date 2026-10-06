@@ -67,7 +67,7 @@ export function AdminPublishersPage() {
               <td className="tabular">{Number(publisher.revenue_share_percentage).toFixed(2)}%</td>
               <td className="tabular">₹{Number(publisher.unpaid_earnings).toFixed(2)}</td>
               <td>
-                <span className={`badge badge-sm ${statusStyle[publisher.status]}`}>{publisher.status.replaceAll("_", " ")}</span>
+                <span className={`badge badge-sm ${statusStyle[publisher.status]}`}>{publisher.status.replace(/_/g, " ")}</span>
                 {publisher.rejection_reason && <div className="mt-1 text-xs text-error">{publisher.rejection_reason}</div>}
               </td>
               <td><div className="flex flex-wrap gap-2">

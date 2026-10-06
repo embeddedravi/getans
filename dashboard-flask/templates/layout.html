@@ -1,10 +1,13 @@
 {% extends "base.html" %}
 
 {% block body %}
-<div class="flex h-screen overflow-hidden">
+<div class="drawer lg:drawer-open h-dvh min-h-screen overflow-hidden">
+  <input id="flask-dashboard-drawer" type="checkbox" class="drawer-toggle" />
 
-  <!-- Sidebar -->
-  <aside class="w-60 shrink-0 border-r border-base-300 bg-base-200 flex flex-col">
+  <div class="drawer-side z-40">
+    <label for="flask-dashboard-drawer" aria-label="Close navigation" class="drawer-overlay"></label>
+    <!-- Sidebar -->
+    <aside class="min-h-full w-72 max-w-[85vw] shrink-0 border-r border-base-300 bg-base-200 flex flex-col lg:w-60">
     <!-- Brand -->
     <div class="px-5 py-5 border-b border-base-300 flex items-center gap-3">
       <div class="w-7 h-7 rounded bg-primary flex items-center justify-center text-primary-content">
@@ -42,6 +45,7 @@
       {% for href, label, icon_path in nav_links %}
         {% set is_active = (current_path == href or (href != '/' and current_path.startswith(href))) %}
         <a href="{{ href }}"
+           onclick="document.getElementById('flask-dashboard-drawer').checked = false"
            class="flex items-center gap-3 rounded px-3 py-2.5 text-sm transition-all duration-150
                   {% if is_active %}
                     bg-primary/15 text-primary font-semibold border-l-2 border-primary pl-[10px]
@@ -84,14 +88,22 @@
       </a>
     </div>
   </aside>
+  </div>
 
   <!-- Main viewport -->
-  <div class="flex-1 flex flex-col overflow-hidden">
+  <div class="drawer-content flex min-w-0 flex-col overflow-hidden">
     <!-- Top header -->
-    <header class="h-14 shrink-0 border-b border-base-300 bg-base-200/80 backdrop-blur-sm flex items-center justify-between px-6">
-      <h1 class="font-display text-base font-semibold">{% block page_title %}{% endblock %}</h1>
-      <div class="flex items-center gap-2">
-        <div class="flex items-center gap-1.5 text-xs text-neutral-content">
+    <header class="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-base-300 bg-base-200/80 px-3 backdrop-blur-sm sm:px-6">
+      <div class="flex min-w-0 items-center gap-2">
+        <label for="flask-dashboard-drawer" aria-label="Open navigation" class="btn btn-ghost btn-square btn-sm lg:hidden">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </label>
+        <h1 class="truncate font-display text-sm font-semibold sm:text-base">{% block page_title %}{% endblock %}</h1>
+      </div>
+      <div class="flex shrink-0 items-center gap-2">
+        <div class="flex items-center gap-1.5 text-[11px] text-neutral-content sm:text-xs">
           <span class="w-2 h-2 rounded-full bg-success inline-block animate-pulse"></span>
           System Active
         </div>
@@ -99,7 +111,7 @@
     </header>
 
     <!-- Scrollable content zone -->
-    <main class="flex-1 overflow-y-auto p-6">
+    <main class="min-w-0 flex-1 overflow-auto p-3 sm:p-5 lg:p-6">
       {% block content %}{% endblock %}
     </main>
   </div>

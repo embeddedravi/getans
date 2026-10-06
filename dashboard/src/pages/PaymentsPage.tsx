@@ -85,7 +85,7 @@ export function PaymentsPage() {
               <td className="font-mono text-xs">#{payment.id}</td>
               <td><div>Publisher #{payment.publisher_id}</div><div className="text-xs text-neutral-content">{payment.payout_email}</div></td>
               <td className="font-medium">₹{Number(payment.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
-              <td>{payment.payment_method?.replaceAll("_", " ") || "—"}</td>
+              <td>{payment.payment_method?.replace(/_/g, " ") || "—"}</td>
               <td><span className={`badge ${statusStyle[payment.status]}`}>{payment.status}</span></td>
               <td>{new Date(payment.created_at).toLocaleDateString()}</td>
               <td><div className="flex gap-2">

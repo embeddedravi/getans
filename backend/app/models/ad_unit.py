@@ -15,7 +15,7 @@ from sqlalchemy import (
     Numeric,
     String,
     UniqueConstraint,
-    JSON
+    JSON,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -93,6 +93,7 @@ class AdUnit(TimestampMixin, Base):
         index=True,
     )
     rejection_reason: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    report_review_round: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     # Relationships
     publisher: Mapped["Publisher"] = relationship(

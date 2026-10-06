@@ -10,6 +10,8 @@
 (function () {
   "use strict";
 
+  var memoryVisitorId = null;
+
   var currentScript = document.currentScript;
   if (!currentScript) {
     var scripts = document.getElementsByTagName("script");
@@ -70,6 +72,95 @@
     return link;
   }
 
+  function getVisitorId() {
+    var storageKey = "ad-platform-reporter-id";
+    try {
+      var existing = window.localStorage.getItem(storageKey);
+      if (existing) return existing;
+      var visitorId = window.crypto && window.crypto.randomUUID
+        ? window.crypto.randomUUID()
+        : "visitor-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+      window.localStorage.setItem(storageKey, visitorId);
+      return visitorId;
+    } catch (error) {
+      if (!memoryVisitorId) {
+        memoryVisitorId = "visitor-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+      }
+      return memoryVisitorId;
+    }
+  }
+
+  function addReportControl(container, socket, adUnitId, ad) {
+    if (!ad.creative_id) return;
+
+    var details = document.createElement("details");
+    details.style.marginTop = "4px";
+
+    var summary = document.createElement("summary");
+    summary.textContent = "Report this ad";
+    summary.style.cursor = "pointer";
+    summary.style.fontSize = "12px";
+    details.appendChild(summary);
+
+    var controls = document.createElement("div");
+    controls.style.display = "flex";
+    controls.style.gap = "6px";
+    controls.style.alignItems = "center";
+    controls.style.marginTop = "4px";
+
+    var reason = document.createElement("select");
+    reason.setAttribute("aria-label", "Why are you reporting this ad?");
+    [
+      ["", "Choose a reason"],
+      ["misleading", "Misleading"],
+      ["adult_content", "Adult or 18+ content"],
+      ["inappropriate", "Inappropriate"],
+      ["scam", "Scam or suspicious"],
+      ["other", "Other"]
+    ].forEach(function (optionData) {
+      var option = document.createElement("option");
+      option.value = optionData[0];
+      option.textContent = optionData[1];
+      reason.appendChild(option);
+    });
+
+    var submit = document.createElement("button");
+    submit.type = "button";
+    submit.textContent = "Submit report";
+
+    var message = document.createElement("span");
+    message.setAttribute("role", "status");
+    message.style.fontSize = "12px";
+
+    submit.addEventListener("click", function () {
+      if (!reason.value) {
+        message.textContent = "Choose a reason first.";
+        return;
+      }
+
+      submit.disabled = true;
+      message.textContent = "Sending...";
+      socket.emit("report_ad", {
+        ad_unit_id: adUnitId,
+        creative_id: ad.creative_id,
+        api_key: apiKey,
+        visitor_id: getVisitorId(),
+        reason: reason.value
+      }, function (response) {
+        message.textContent = response && response.message
+          ? response.message
+          : "Could not submit the report. Please try again.";
+        if (!response || !response.ok) submit.disabled = false;
+      });
+    });
+
+    controls.appendChild(reason);
+    controls.appendChild(submit);
+    controls.appendChild(message);
+    details.appendChild(controls);
+    container.appendChild(details);
+  }
+
   function requestAdForSlot(socket, container) {
     var adUnitId = container.getAttribute("data-ad-unit-id");
     if (!adUnitId || container.getAttribute("data-ad-loading") === "true") return;
@@ -96,6 +187,7 @@
         ad_unit_id: adUnitId,
         creative_id: ad.creative_id
       });
+      addReportControl(container, socket, adUnitId, ad);
     }
 
     function onNoFill() {

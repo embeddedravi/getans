@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import get_db, require_role
 from app.models.ad_unit import AdUnit, AdUnitStatus
+from app.models.ad_report import AdReport
 from app.models.advertiser import Advertiser, AccountStatus
 from app.models.publisher import Publisher, PublisherStatus
 from app.models.user import User
@@ -20,6 +21,35 @@ from app.schemas.advertiser import AdvertiserOut, AdvertiserReview
 from app.schemas.publisher import PublisherOut, PublisherReview
 
 router = APIRouter(prefix="/admin", tags=["Admin Approvals"])
+
+
+@router.get("/ad-units/{ad_unit_id}/reports", summary="List visitor reports for an ad unit")
+async def list_ad_unit_reports(
+    ad_unit_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role("admin", "staff")),
+) -> list[dict[str, Any]]:
+    ad_unit = await db.get(AdUnit, ad_unit_id)
+    if ad_unit is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Ad unit not found")
+
+    result = await db.execute(
+        select(AdReport)
+        .where(
+            AdReport.ad_unit_id == ad_unit_id,
+            AdReport.review_round == ad_unit.report_review_round,
+        )
+        .order_by(AdReport.created_at.desc())
+    )
+    return [
+        {
+            "id": report.id,
+            "creative_id": report.creative_id,
+            "reason": report.reason,
+            "created_at": report.created_at,
+        }
+        for report in result.scalars().all()
+    ]
 
 
 class AdUnitActivation(BaseModel):
@@ -148,6 +178,7 @@ async def review_ad_unit(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Review status must be approved or rejected")
     ad_unit.status = payload.status
     ad_unit.is_active = payload.status == AdUnitStatus.APPROVED
+    ad_unit.report_review_round += 1
     ad_unit.rejection_reason = (
         payload.rejection_reason.strip() if payload.status == AdUnitStatus.REJECTED else None
     )

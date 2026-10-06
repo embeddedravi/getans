@@ -58,6 +58,8 @@ export const api = {
     request(`/admin/advertisers/${id}/review`, { method: "PATCH", body: JSON.stringify({ status, rejection_reason }) }),
   reviewAdUnit: (id: number, status: "approved" | "rejected", rejection_reason?: string) =>
     request(`/admin/ad-units/${id}/review`, { method: "PATCH", body: JSON.stringify({ status, rejection_reason }) }),
+  listAdUnitReports: (id: number) =>
+    request<{ id: number; creative_id: number | null; reason: string; created_at: string }[]>(`/admin/ad-units/${id}/reports`),
   setAdUnitActive: (id: number, is_active: boolean) =>
     request(`/admin/ad-units/${id}/active`, { method: "PATCH", body: JSON.stringify({ is_active }) }),
   signup: (payload: unknown) =>

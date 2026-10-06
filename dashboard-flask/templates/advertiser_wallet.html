@@ -1,0 +1,94 @@
+{% extends "layout.html" %}
+
+{% block title %}Advertiser wallet{% endblock %}
+{% block description %}Manage your advertiser wallet and add funds{% endblock %}
+{% block page_title %}Advertiser wallet{% endblock %}
+
+{% block content %}
+<div class="space-y-5 max-w-4xl">
+  <section class="rounded-lg border border-base-300 bg-base-200 p-5">
+    <div class="flex flex-wrap items-start justify-between gap-6">
+      <div>
+        <p class="text-xs font-medium uppercase tracking-widest text-primary">INR wallet</p>
+        <h2 id="wallet-balance" class="mt-2 font-display text-2xl font-semibold">₹{{ '%.2f'|format(wallet.balance|float) }}</h2>
+        <p class="mt-1 text-sm text-neutral-content">Available balance · Credit limit ₹{{ '%.2f'|format(wallet.credit_limit|float) }}</p>
+      </div>
+      <form method="POST" action="{{ url_for('advertiser_wallet_order') }}" class="flex w-full max-w-sm flex-col gap-2 sm:flex-row sm:items-end">
+        <label class="flex-1">
+          <span class="mb-1 block text-xs text-neutral-content">Add funds (₹)</span>
+          <input name="amount" type="number" min="1" max="500000" step="0.01" value="1000" required class="input input-bordered input-sm w-full bg-base-100" />
+        </label>
+        <button id="wallet-submit" type="submit" class="btn btn-primary btn-sm">Add funds</button>
+      </form>
+    </div>
+  </section>
+
+  {% if checkout_error %}<div role="alert" class="alert alert-error py-2 text-sm">{{ checkout_error }}</div>{% endif %}
+  <div id="payment-message" role="status" class="hidden rounded border border-success/30 bg-success/10 p-3 text-sm text-success"></div>
+  <div id="payment-error" role="alert" class="hidden rounded border border-error/30 bg-error/10 p-3 text-sm text-error"></div>
+  <p class="text-xs text-neutral-content">Payment confirmation is checked directly with Razorpay. No webhook is required.</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if checkout_order %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+(() => {
+  const order = {{ checkout_order|tojson }};
+  const submit = document.getElementById("wallet-submit");
+  const message = document.getElementById("payment-message");
+  const error = document.getElementById("payment-error");
+  const formatINR = (amount) => new Intl.NumberFormat("en-IN", {
+    style: "currency", currency: "INR", minimumFractionDigits: 2
+  }).format(amount);
+  const showError = (text) => {
+    error.textContent = text;
+    error.classList.remove("hidden");
+  };
+
+  if (!window.Razorpay) {
+    showError("Razorpay Checkout could not load. Refresh the page to try again.");
+    return;
+  }
+
+  const checkout = new window.Razorpay({
+    key: order.key_id,
+    amount: order.amount_paise,
+    currency: "INR",
+    name: order.advertiser_name,
+    description: "Add funds to your advertiser wallet",
+    order_id: order.order_id,
+    prefill: { email: order.billing_email },
+    theme: { color: "#5B8DEF" },
+    handler: async (response) => {
+      submit.disabled = true;
+      try {
+        const result = await fetch("{{ url_for('advertiser_wallet_verify') }}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(response),
+        });
+        const data = await result.json().catch(() => ({}));
+        if (!result.ok) throw new Error(data.detail || "Payment confirmation failed");
+        document.getElementById("wallet-balance").textContent = formatINR(Number(data.balance));
+        message.textContent = `${formatINR(Number(order.amount_paise) / 100)} added to your wallet.`;
+        message.classList.remove("hidden");
+      } catch (confirmationError) {
+        showError(`Payment confirmation failed: ${confirmationError.message || "Please refresh your balance before starting another top-up."}`);
+      } finally {
+        submit.disabled = false;
+      }
+    },
+    modal: { ondismiss: () => { submit.disabled = false; } },
+  });
+  checkout.on("payment.failed", (response) => {
+    showError(response.error?.description || "Payment failed. Please try again.");
+    submit.disabled = false;
+  });
+  submit.disabled = true;
+  checkout.open();
+})();
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+{% block title %}Manage publishers{% endblock %}
+{% block description %}Review and manage publisher accounts{% endblock %}
+{% block page_title %}Manage publishers{% endblock %}
+{% block content %}
+<div class="space-y-4">
+  <p class="text-sm text-neutral-content">Review publisher accounts and manage their payout details and status.</p>
+  <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-200">
+    <table class="table w-full">
+      <thead><tr><th>Publisher</th><th>Payout email</th><th>Revenue share</th><th>Unpaid earnings</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for publisher in publishers %}
+          {% set status_class = {'pending_approval': 'badge-warning', 'active': 'badge-success', 'suspended': 'badge-error', 'rejected': 'badge-ghost'} %}
+          <tr>
+            <td><div class="font-medium">{{ publisher.name }}</div><a class="link link-hover text-xs text-neutral-content" href="{{ publisher.site_url }}" target="_blank" rel="noreferrer">{{ publisher.site_url }}</a><div class="text-xs text-neutral-content">#{{ publisher.id }}{% if publisher.domain %} · {{ publisher.domain }}{% endif %}</div></td>
+            <td>{{ publisher.payout_email }}</td>
+            <td class="tabular-nums">{{ '%.2f'|format(publisher.revenue_share_percentage|float) }}%</td>
+            <td class="tabular-nums">₹{{ '%.2f'|format(publisher.unpaid_earnings|float) }}</td>
+            <td><span class="badge badge-sm {{ status_class.get(publisher.status, 'badge-ghost') }}">{{ publisher.status|replace('_', ' ') }}</span>{% if publisher.rejection_reason %}<div class="mt-1 text-xs text-error">{{ publisher.rejection_reason }}</div>{% endif %}</td>
+            <td><div class="flex flex-wrap gap-2">
+              {% if publisher.status == 'pending_approval' %}
+                <form method="POST" action="{{ url_for('manage_entity_status', kind='publishers', item_id=publisher.id) }}" data-action="Approve publisher" data-name="{{ publisher.name }}" onsubmit="return confirmAction(this)"><input type="hidden" name="status" value="active"><button class="btn btn-success btn-xs">Approve</button></form>
+                <form method="POST" action="{{ url_for('manage_entity_status', kind='publishers', item_id=publisher.id) }}" data-kind="publisher" data-name="{{ publisher.name }}" onsubmit="return rejectWithReason(this)"><input type="hidden" name="status" value="rejected"><input type="hidden" name="rejection_reason"><button class="btn btn-error btn-outline btn-xs">Reject</button></form>
+              {% elif publisher.status == 'active' %}
+                <form method="POST" action="{{ url_for('manage_entity_status', kind='publishers', item_id=publisher.id) }}" data-action="Suspend publisher" data-name="{{ publisher.name }}" onsubmit="return confirmAction(this)"><input type="hidden" name="status" value="suspended"><button class="btn btn-warning btn-xs">Suspend</button></form>
+              {% elif publisher.status in ['suspended', 'rejected'] %}
+                <form method="POST" action="{{ url_for('manage_entity_status', kind='publishers', item_id=publisher.id) }}" data-action="Activate publisher" data-name="{{ publisher.name }}" onsubmit="return confirmAction(this)"><input type="hidden" name="status" value="active"><button class="btn btn-success btn-xs">Activate</button></form>
+              {% endif %}
+            </div></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="py-8 text-center text-sm text-neutral-content">No publishers found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function confirmAction(form) { return window.confirm(`${form.dataset.action} “${form.dataset.name}”?`); }
+function rejectWithReason(form) {
+  const reason = window.prompt(`Enter a reason for rejecting ${form.dataset.kind} “${form.dataset.name}”:`)?.trim();
+  if (!reason) return false;
+  form.elements.rejection_reason.value = reason;
+  return window.confirm(`Reject ${form.dataset.kind} “${form.dataset.name}”?`);
+}
+</script>
+{% endblock %}

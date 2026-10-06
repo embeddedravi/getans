@@ -280,14 +280,13 @@ Backend settings are loaded from environment variables (prefixed
 | `ADPLATFORM_SOCKETIO_CORS_ALLOWED_ORIGINS` | CORS for Socket.IO connections (publisher sites vary; tighten via API-key auth instead) | `*` |
 | `ADPLATFORM_RAZORPAY_KEY_ID` | Razorpay public Checkout key ID | Required for advertiser wallet top-ups |
 | `ADPLATFORM_RAZORPAY_KEY_SECRET` | Server-only Razorpay API and payment signature secret | Required for advertiser wallet top-ups |
-| `ADPLATFORM_RAZORPAY_WEBHOOK_SECRET` | Secret configured for the Razorpay webhook | Required for payment-captured webhook credits |
 
 Advertisers with an active account can add ₹1–₹5,00,000 to their wallet from
-the dashboard. Configure a Razorpay webhook for
-`/api/payments/razorpay/webhook` and subscribe to `payment.captured`; the
-server validates the webhook and Checkout signatures and confirms the captured
-payment before crediting the advertiser balance. Use Razorpay test keys while
-developing. Apply database changes with `alembic upgrade head`.
+the dashboard. The server validates the Checkout signature, confirms the
+payment with Razorpay's Payments API, captures authorized payments through the
+API, and credits the wallet only after Razorpay reports the payment as captured.
+A webhook is not required. Use Razorpay test keys while developing. Apply
+database changes with `alembic upgrade head`.
 
 The Flask dashboard has its own `.env` (`dashboard-flask/.env.example`):
 

@@ -88,8 +88,8 @@ export function AdvertiserWallet({
             setMessage(`${formatINR(Number(amount))} added to your wallet.`);
           } catch (verificationError) {
             setError(verificationError instanceof Error
-              ? `${verificationError.message}. If your payment was captured, your wallet will update after confirmation.`
-              : "Payment confirmation is pending. Your wallet will update after verification.");
+              ? `Payment confirmation failed: ${verificationError.message}. Refresh your balance before starting another top-up.`
+              : "Payment confirmation failed. Refresh your balance before starting another top-up.");
           } finally {
             setBusy(false);
           }

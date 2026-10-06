@@ -98,6 +98,16 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated
 
+
+def advertiser_required(f):
+    @wraps(f)
+    @login_required
+    def decorated(*args, **kwargs):
+        if session.get("role") != "advertiser":
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated
+
 @app.context_processor
 def inject_current_path():
     pending_count = 0
@@ -273,8 +283,11 @@ def manage_campaigns():
 
 
 @app.route("/campaigns/create", methods=["POST"])
+@app.route("/manage-campaign/create", methods=["POST"])
 @login_required
 def create_campaign():
+    if request.path.startswith("/manage-") and session.get("role") != "admin":
+        abort(403)
     payload = {
         "advertiser_id": int(request.form["advertiser_id"]),
         "name": request.form["name"],
@@ -294,18 +307,21 @@ def create_campaign():
         flash("Campaign created successfully.", "success")
     except Exception as exc:
         flash(f"Failed to create campaign: {exc}", "error")
-    return redirect(url_for("campaigns"))
+    return redirect(url_for("manage_campaigns" if request.path.startswith("/manage-") else "campaigns"))
 
 
 @app.route("/campaigns/<int:campaign_id>/toggle", methods=["POST"])
+@app.route("/manage-campaign/<int:campaign_id>/toggle", methods=["POST"])
 @login_required
 def toggle_campaign(campaign_id: int):
+    if request.path.startswith("/manage-") and session.get("role") != "admin":
+        abort(403)
     is_active = request.form.get("is_active") == "true"
     try:
-        _api("PATCH", f"/campaigns/{campaign_id}", json={"is_active": not is_active})
+        _api("PATCH", f"/campaigns/{campaign_id}", json={"is_active": is_active})
     except Exception as exc:
         flash(f"Update failed: {exc}", "error")
-    return redirect(url_for("campaigns"))
+    return redirect(url_for("manage_campaigns" if request.path.startswith("/manage-") else "campaigns"))
 
 @app.route("/campaigns/<int:campaign_id>/creatives")
 @login_required
@@ -382,14 +398,17 @@ def delete_creative(campaign_id: int, creative_id: int):
 
 
 @app.route("/campaigns/<int:campaign_id>/delete", methods=["POST"])
+@app.route("/manage-campaign/<int:campaign_id>/delete", methods=["POST"])
 @login_required
 def delete_campaign(campaign_id: int):
+    if request.path.startswith("/manage-") and session.get("role") != "admin":
+        abort(403)
     try:
         _api("DELETE", f"/campaigns/{campaign_id}")
         flash("Campaign deleted.", "success")
     except Exception as exc:
         flash(f"Delete failed: {exc}", "error")
-    return redirect(url_for("campaigns"))
+    return redirect(url_for("manage_campaigns" if request.path.startswith("/manage-") else "campaigns"))
 
 
 @app.route("/publishers")
@@ -507,6 +526,55 @@ def manage_slot_active(slot_id: int):
     except Exception as exc:
         flash(f"Could not update ad slot: {exc}", "error")
     return redirect(url_for("manage_slots"))
+
+
+def render_wallet(order=None, checkout_error=None):
+    try:
+        wallet = _api("GET", "/payments/wallet")
+    except Exception as exc:
+        wallet = {"balance": 0, "credit_limit": 0, "currency": "INR"}
+        if checkout_error is None:
+            checkout_error = f"Could not load wallet: {exc}"
+    return render_template(
+        "advertiser_wallet.html",
+        wallet=wallet,
+        checkout_order=order,
+        checkout_error=checkout_error,
+    )
+
+
+@app.route("/wallet")
+@advertiser_required
+def advertiser_wallet():
+    return render_wallet()
+
+
+@app.route("/wallet/order", methods=["POST"])
+@advertiser_required
+def advertiser_wallet_order():
+    try:
+        order = _api("POST", "/payments/orders", json={"amount": request.form.get("amount", "")})
+        return render_wallet(order=order)
+    except Exception as exc:
+        return render_wallet(checkout_error=f"Could not start payment: {exc}"), 400
+
+
+@app.route("/wallet/verify", methods=["POST"])
+@advertiser_required
+def advertiser_wallet_verify():
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"detail": "Invalid payment confirmation"}), 400
+    try:
+        return jsonify(_api("POST", "/payments/verify", json=payload))
+    except requests.HTTPError as exc:
+        try:
+            detail = exc.response.json().get("detail", "Payment confirmation failed")
+        except Exception:
+            detail = "Payment confirmation failed"
+        return jsonify({"detail": detail}), exc.response.status_code
+    except Exception:
+        return jsonify({"detail": "Could not confirm payment with Razorpay"}), 502
 
 
 @app.route("/approvals")

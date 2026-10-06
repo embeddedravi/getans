@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+{% block title %}Manage advertisers{% endblock %}
+{% block description %}Review and manage advertiser accounts{% endblock %}
+{% block page_title %}Manage advertisers{% endblock %}
+{% block content %}
+<div class="space-y-4">
+  <p class="text-sm text-neutral-content">Review advertiser accounts and check their billing details and balances.</p>
+  <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-200">
+    <table class="table w-full">
+      <thead><tr><th>Advertiser</th><th>Billing email</th><th>Status</th><th>Balance</th><th>Credit limit</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for advertiser in advertisers %}
+          {% set status_class = {'pending_verification': 'badge-warning', 'active': 'badge-success', 'suspended': 'badge-error', 'rejected': 'badge-ghost', 'archived': 'badge-ghost'} %}
+          <tr>
+            <td><div class="font-medium">{{ advertiser.name }}</div><div class="text-xs text-neutral-content">#{{ advertiser.id }}{% if advertiser.industry %} · {{ advertiser.industry }}{% endif %}</div></td>
+            <td>{{ advertiser.billing_email }}</td>
+            <td><span class="badge badge-sm {{ status_class.get(advertiser.status, 'badge-ghost') }}">{{ advertiser.status|replace('_', ' ') }}</span>{% if advertiser.rejection_reason %}<div class="mt-1 text-xs text-error">{{ advertiser.rejection_reason }}</div>{% endif %}</td>
+            <td class="tabular-nums">₹{{ '%.2f'|format(advertiser.balance|float) }}</td>
+            <td class="tabular-nums">₹{{ '%.2f'|format(advertiser.credit_limit|float) }}</td>
+            <td><div class="flex flex-wrap gap-2">
+              {% if advertiser.status == 'pending_verification' %}
+                <form method="POST" action="{{ url_for('manage_entity_status', kind='advertisers', item_id=advertiser.id) }}" data-action="Approve advertiser" data-name="{{ advertiser.name }}" onsubmit="return confirmAction(this)"><input type="hidden" name="status" value="active"><button class="btn btn-success btn-xs">Approve</button></form>
+                <form method="POST" action="{{ url_for('manage_entity_status', kind='advertisers', item_id=advertiser.id) }}" data-kind="advertiser" data-name="{{ advertiser.name }}" onsubmit="return rejectWithReason(this)"><input type="hidden" name="status" value="rejected"><input type="hidden" name="rejection_reason"><button class="btn btn-error btn-outline btn-xs">Reject</button></form>
+              {% elif advertiser.status == 'active' %}
+                <form method="POST" action="{{ url_for('manage_entity_status', kind='advertisers', item_id=advertiser.id) }}" data-action="Suspend advertiser" data-name="{{ advertiser.name }}" onsubmit="return confirmAction(this)"><input type="hidden" name="status" value="suspended"><button class="btn btn-warning btn-xs">Suspend</button></form>
+              {% elif advertiser.status in ['suspended', 'rejected'] %}
+                <form method="POST" action="{{ url_for('manage_entity_status', kind='advertisers', item_id=advertiser.id) }}" data-action="Activate advertiser" data-name="{{ advertiser.name }}" onsubmit="return confirmAction(this)"><input type="hidden" name="status" value="active"><button class="btn btn-success btn-xs">Activate</button></form>
+              {% endif %}
+            </div></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="py-8 text-center text-sm text-neutral-content">No advertisers found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function confirmAction(form) { return window.confirm(`${form.dataset.action} “${form.dataset.name}”?`); }
+function rejectWithReason(form) {
+  const reason = window.prompt(`Enter a reason for rejecting ${form.dataset.kind} “${form.dataset.name}”:`)?.trim();
+  if (!reason) return false;
+  form.elements.rejection_reason.value = reason;
+  return window.confirm(`Reject ${form.dataset.kind} “${form.dataset.name}”?`);
+}
+</script>
+{% endblock %}

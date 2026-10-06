@@ -5,7 +5,7 @@ import { api } from "../lib/api";
 import type { Payout, PayoutStatus } from "../types";
 
 const filters: { value: "all" | PayoutStatus; label: string }[] = [
-  { value: "all", label: "All payments" },
+  { value: "all", label: "All payouts" },
   { value: "pending", label: "Pending" },
   { value: "processing", label: "Processing" },
   { value: "paid", label: "Approved" },
@@ -44,7 +44,7 @@ export function PaymentsPage() {
   }, []);
   useEffect(() => { if (isAdmin) void refresh(); }, [isAdmin, refresh]);
 
-  if (isAdmin === null) return <Layout title="Payments"><p>Loading…</p></Layout>;
+  if (isAdmin === null) return <Layout title="Payouts"><p>Loading…</p></Layout>;
   if (!isAdmin) return <Navigate to="/" replace />;
 
   async function setStatus(payment: Payout, status: PayoutStatus) {
@@ -60,24 +60,24 @@ export function PaymentsPage() {
     }
   }
 
-  return <Layout title="Payments">
+  return <Layout title="Payouts">
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-semibold">Publisher payments</h2>
+        <h2 className="text-lg font-semibold">Publisher payouts</h2>
         <p className="text-sm text-neutral-content">Review payout requests and record their status.</p>
       </div>
       {error && <div role="alert" className="alert alert-error py-2 text-sm">{error}</div>}
-      <div role="tablist" aria-label="Filter payments" className="tabs tabs-bordered flex-wrap">
+      <div role="tablist" aria-label="Filter payouts" className="tabs tabs-bordered flex-wrap">
         {filters.map((item) => <button key={item.value} role="tab" aria-selected={filter === item.value}
           onClick={() => setFilter(item.value)} className={`tab ${filter === item.value ? "tab-active" : ""}`}>
           {item.label}
         </button>)}
       </div>
       {payments.length === 0 ? <div className="rounded border border-base-300 bg-base-200 p-8 text-center text-sm text-neutral-content">
-        No payments found.
+        No payouts found.
       </div> : <div className="overflow-x-auto rounded border border-base-300 bg-base-200">
         <table className="table">
-          <thead><tr><th>Payment</th><th>Publisher</th><th>Amount</th><th>Method</th><th>Status</th><th>Submitted</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Payout</th><th>Publisher</th><th>Amount</th><th>Method</th><th>Status</th><th>Submitted</th><th>Actions</th></tr></thead>
           <tbody>{payments.map((payment) => {
             const open = payment.status === "pending" || payment.status === "processing";
             const busy = busyId === payment.id;

@@ -21,6 +21,19 @@ router = APIRouter(prefix="/admin", tags=["Admin Approvals"])
 
 
 @router.get(
+    "/advertisers",
+    response_model=list[AdvertiserOut],
+    summary="List all advertisers for administration",
+)
+async def list_advertisers(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role("admin")),
+) -> list[Advertiser]:
+    result = await db.execute(select(Advertiser).order_by(Advertiser.created_at.desc()))
+    return list(result.scalars().all())
+
+
+@router.get(
     "/approvals/pending",
     response_model=Dict[str, Any],
     summary="List all entities awaiting admin approval",

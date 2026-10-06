@@ -31,6 +31,35 @@ router = APIRouter(tags=["Advertiser Payments"])
 _RAZORPAY_API = "https://api.razorpay.com/v1"
 
 
+@router.get("/topups", summary="List advertiser top-ups")
+async def list_topups(
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_role("admin")),
+):
+    rows = (
+        await db.execute(
+            select(AdvertiserTopUp, Advertiser.name, Advertiser.billing_email)
+            .join(Advertiser, Advertiser.id == AdvertiserTopUp.advertiser_id)
+            .order_by(AdvertiserTopUp.created_at.desc())
+        )
+    ).all()
+    return [
+        {
+            "id": topup.id,
+            "advertiser_id": topup.advertiser_id,
+            "advertiser_name": advertiser_name,
+            "billing_email": billing_email,
+            "amount": topup.amount,
+            "status": topup.status.value,
+            "order_id": topup.order_id,
+            "payment_id": topup.payment_id,
+            "paid_at": topup.paid_at,
+            "created_at": topup.created_at,
+        }
+        for topup, advertiser_name, billing_email in rows
+    ]
+
+
 def _credentials() -> tuple[str, str]:
     if not settings.razorpay_key_id or not settings.razorpay_key_secret:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Razorpay is not configured")

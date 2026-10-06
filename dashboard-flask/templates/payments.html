@@ -1,15 +1,15 @@
 {% extends "layout.html" %}
 
-{% block title %}Payments{% endblock %}
-{% block description %}Review and manage publisher payments{% endblock %}
-{% block page_title %}Payments{% endblock %}
+{% block title %}Payouts{% endblock %}
+{% block description %}Review and manage publisher payouts{% endblock %}
+{% block page_title %}Payouts{% endblock %}
 
 {% block content %}
 {% set filters = [('all', 'All payments'), ('pending', 'Pending'), ('processing', 'Processing'), ('paid', 'Approved'), ('cancelled', 'Canceled'), ('failed', 'Failed')] %}
 {% set badge_classes = {'pending': 'badge-warning', 'processing': 'badge-info', 'paid': 'badge-success', 'cancelled': 'badge-ghost', 'failed': 'badge-error'} %}
 <div class="space-y-5">
   <div>
-    <h2 class="text-lg font-semibold">Publisher payments</h2>
+    <h2 class="text-lg font-semibold">Publisher payouts</h2>
     <p class="text-sm text-neutral-content">Review payout requests and record their status.</p>
   </div>
 
@@ -20,7 +20,7 @@
   </div>
 
   {% if not payments %}
-    <div class="rounded-lg border border-base-300 bg-base-200 p-8 text-center text-sm text-neutral-content">No payments found.</div>
+    <div class="rounded-lg border border-base-300 bg-base-200 p-8 text-center text-sm text-neutral-content">No payouts found.</div>
   {% else %}
     <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-200">
       <table class="table">

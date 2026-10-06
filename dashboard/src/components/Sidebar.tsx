@@ -14,10 +14,13 @@ const roleLabels: Record<Role, string> = {
 const roleLinks: Record<Role, { to: string; label: string; end?: boolean }[]> = {
   admin: [
     { to: "/", label: "Overview", end: true },
-    { to: "/campaigns", label: "Campaigns" },
-    { to: "/publishers", label: "Publishers & slots" },
+    { to: "/manage-advertiser", label: "Advertisers" },
+    { to: "/manage-publisher", label: "Publishers" },
+    { to: "/manage-campaign", label: "Campaigns" },
+    { to: "/manage-slots", label: "Ad slots" },
     { to: "/approvals", label: "Approvals" },
     { to: "/payments", label: "Payments" },
+    { to: "/payouts", label: "Payouts" },
   ],
   staff: [
     { to: "/", label: "Operations overview", end: true },

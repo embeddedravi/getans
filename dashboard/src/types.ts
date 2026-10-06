@@ -47,6 +47,19 @@ export interface AdvertiserWallet {
   credit_limit: number;
 }
 
+export interface AdvertiserTopUp {
+  id: number;
+  advertiser_id: number;
+  advertiser_name: string;
+  billing_email: string;
+  amount: number;
+  status: "created" | "paid";
+  order_id: string;
+  payment_id: string | null;
+  paid_at: string | null;
+  created_at: string;
+}
+
 export type PayoutStatus = "pending" | "processing" | "paid" | "failed" | "cancelled";
 
 export interface Payout {

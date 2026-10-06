@@ -51,6 +51,12 @@
     container.innerHTML = "";
     container.style.display = "";
 
+    var creativeFrame = document.createElement("div");
+    creativeFrame.style.position = "relative";
+    creativeFrame.style.display = "inline-block";
+    creativeFrame.style.maxWidth = "100%";
+    creativeFrame.style.lineHeight = "0";
+
     var link = document.createElement("a");
     link.href = ad.click_url;
     link.target = "_blank";
@@ -66,10 +72,11 @@
     if (Number(ad.height) > 0) image.height = Number(ad.height);
 
     link.appendChild(image);
-    container.appendChild(link);
+    creativeFrame.appendChild(link);
+    container.appendChild(creativeFrame);
     if (ad.creative_id != null) container.dataset.creativeId = ad.creative_id;
     if (ad.campaign_id != null) container.dataset.campaignId = ad.campaign_id;
-    return link;
+    return { link: link, frame: creativeFrame };
   }
 
   function getVisitorId() {
@@ -90,16 +97,27 @@
     }
   }
 
-  function addReportControl(container, socket, adUnitId, ad) {
+  function addReportControl(frame, socket, adUnitId, ad) {
     if (!ad.creative_id) return;
 
     var details = document.createElement("details");
-    details.style.marginTop = "4px";
+    details.style.position = "absolute";
+    details.style.top = "4px";
+    details.style.right = "4px";
+    details.style.zIndex = "2";
+    details.style.fontSize = "12px";
 
     var summary = document.createElement("summary");
-    summary.textContent = "Report this ad";
+    summary.textContent = "⚑";
+    summary.setAttribute("aria-label", "Report this ad");
+    summary.title = "Report this ad";
     summary.style.cursor = "pointer";
-    summary.style.fontSize = "12px";
+    summary.style.listStyle = "none";
+    summary.style.background = "rgba(0, 0, 0, 0.72)";
+    summary.style.color = "#fff";
+    summary.style.borderRadius = "3px";
+    summary.style.padding = "4px 7px";
+    summary.style.lineHeight = "1";
     details.appendChild(summary);
 
     var controls = document.createElement("div");
@@ -107,6 +125,9 @@
     controls.style.gap = "6px";
     controls.style.alignItems = "center";
     controls.style.marginTop = "4px";
+    controls.style.padding = "6px";
+    controls.style.background = "rgba(0, 0, 0, 0.82)";
+    controls.style.borderRadius = "4px";
 
     var reason = document.createElement("select");
     reason.setAttribute("aria-label", "Why are you reporting this ad?");
@@ -150,7 +171,21 @@
         message.textContent = response && response.message
           ? response.message
           : "Could not submit the report. Please try again.";
-        if (!response || !response.ok) submit.disabled = false;
+        if (response && response.ok) {
+          frame.innerHTML = "";
+          frame.style.display = "flex";
+          frame.style.alignItems = "center";
+          frame.style.justifyContent = "center";
+          frame.style.width = (Number(ad.width) > 0 ? Number(ad.width) : 300) + "px";
+          frame.style.height = (Number(ad.height) > 0 ? Number(ad.height) : 250) + "px";
+          frame.style.background = "#f3f4f6";
+          frame.style.color = "#4b5563";
+          frame.style.font = "14px sans-serif";
+          frame.style.lineHeight = "normal";
+          frame.textContent = "Reported";
+        } else {
+          submit.disabled = false;
+        }
       });
     });
 
@@ -158,7 +193,7 @@
     controls.appendChild(submit);
     controls.appendChild(message);
     details.appendChild(controls);
-    container.appendChild(details);
+    frame.appendChild(details);
   }
 
   function requestAdForSlot(socket, container) {
@@ -174,10 +209,10 @@
     function onServeAd(ad) {
       cleanup();
       container.removeAttribute("data-ad-loading");
-      var link = renderCreative(container, ad);
-      if (!link) return;
+      var rendered = renderCreative(container, ad);
+      if (!rendered) return;
 
-      link.addEventListener("click", function () {
+      rendered.link.addEventListener("click", function () {
         socket.emit("click", {
           ad_unit_id: adUnitId,
           creative_id: ad.creative_id
@@ -187,7 +222,7 @@
         ad_unit_id: adUnitId,
         creative_id: ad.creative_id
       });
-      addReportControl(container, socket, adUnitId, ad);
+      addReportControl(rendered.frame, socket, adUnitId, ad);
     }
 
     function onNoFill() {

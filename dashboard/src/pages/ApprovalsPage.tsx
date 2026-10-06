@@ -23,7 +23,7 @@ export function ApprovalsPage() {
   }
 
   useEffect(() => {
-    api.me().then((user) => setAdmin((user as { role?: string }).role === "admin")).catch(() => setAdmin(false));
+    api.me().then((user) => setAdmin(["admin", "staff"].includes((user as { role?: string }).role || ""))).catch(() => setAdmin(false));
   }, []);
   useEffect(() => { if (admin) void refresh(); }, [admin]);
 

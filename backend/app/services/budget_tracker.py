@@ -16,9 +16,9 @@ from app.models.event import Event, EventType
 from app.services.ad_selector import record_spend
 
 _COST_PER_EVENT: Dict[EventType, Decimal] = {
-    EventType.IMPRESSION: Decimal("0.001000"),  # $1.00 CPM
-    EventType.CLICK: Decimal("0.100000"),       # $0.10 CPC
-    EventType.CONVERSION: Decimal("1.000000"),   # $1.00 CPA
+    EventType.IMPRESSION: Decimal("0.001000"),  # ₹1.00 CPM
+    EventType.CLICK: Decimal("0.100000"),       # ₹0.10 CPC
+    EventType.CONVERSION: Decimal("1.000000"),   # ₹1.00 CPA
 }
 
 

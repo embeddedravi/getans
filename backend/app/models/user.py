@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 
 class UserRole(str, PyEnum):
     ADMIN = "admin"
+    STAFF = "staff"
     PUBLISHER = "publisher"
     ADVERTISER = "advertiser"
 
@@ -97,6 +98,7 @@ class User(TimestampMixin, Base):
         CheckConstraint(
             """
             (role = 'admin') OR
+            (role = 'staff' AND publisher_id IS NULL AND advertiser_id IS NULL) OR
             (role = 'publisher' AND publisher_id IS NOT NULL AND advertiser_id IS NULL) OR
             (role = 'advertiser' AND advertiser_id IS NOT NULL AND publisher_id IS NULL)
             """,

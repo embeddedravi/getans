@@ -33,7 +33,7 @@ export interface Advertiser {
   industry: string | null;
   status: AccountStatus;
   is_verified: boolean;
-  currency: "USD" | "EUR" | "GBP";
+  currency: "INR";
   balance: number;
   credit_limit: number;
   rejection_reason: string | null;

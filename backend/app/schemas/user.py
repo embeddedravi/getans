@@ -36,6 +36,7 @@ class MessageResponse(BaseModel):
 
 class UserRole(str, Enum):
     ADMIN = "admin"
+    STAFF = "staff"
     PUBLISHER = "publisher"
     ADVERTISER = "advertiser"
 

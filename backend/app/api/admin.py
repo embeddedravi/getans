@@ -27,7 +27,7 @@ router = APIRouter(prefix="/admin", tags=["Admin Approvals"])
 )
 async def list_pending_approvals(
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_role("admin")),
+    _: User = Depends(require_role("admin", "staff")),
 ) -> Dict[str, Any]:
     """Returns pending publishers, advertisers, and ad units in a single payload."""
     publishers = list(
@@ -61,7 +61,7 @@ async def review_publisher(
     publisher_id: int,
     payload: PublisherReview,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_role("admin")),
+    _: User = Depends(require_role("admin", "staff")),
 ) -> Publisher:
     """Sets a publisher's status to active (approved) or rejected."""
     publisher = await db.get(Publisher, publisher_id)
@@ -88,7 +88,7 @@ async def review_advertiser(
     advertiser_id: int,
     payload: AdvertiserReview,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_role("admin")),
+    _: User = Depends(require_role("admin", "staff")),
 ) -> Advertiser:
     """Sets an advertiser's status to active (approved) or rejected."""
     advertiser = await db.get(Advertiser, advertiser_id)
@@ -115,7 +115,7 @@ async def review_ad_unit(
     ad_unit_id: int,
     payload: AdUnitReview,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_role("admin")),
+    _: User = Depends(require_role("admin", "staff")),
 ) -> AdUnit:
     """Sets an ad unit's review status to approved or rejected."""
     ad_unit = await db.get(AdUnit, ad_unit_id)

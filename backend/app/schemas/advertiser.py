@@ -37,9 +37,7 @@ class AccountStatus(str, Enum):
 
 
 class Currency(str, Enum):
-    USD = "USD"
-    EUR = "EUR"
-    GBP = "GBP"
+    INR = "INR"
 
 
 class AdvertiserCreate(BaseModel):
@@ -48,7 +46,7 @@ class AdvertiserCreate(BaseModel):
     billing_email: EmailStr
     website_url: Optional[HttpUrl] = None
     industry: Optional[str] = Field(None, max_length=100)
-    currency: Currency = Currency.USD
+    currency: Currency = Currency.INR
     phone_number: Optional[str] = Field(None, max_length=32)
     vat_number: Optional[str] = Field(None, max_length=64)
 

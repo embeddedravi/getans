@@ -107,16 +107,16 @@ export function CampaignsPage() {
                   </td>
                   <td className="tabular">{c.priority}</td>
                   <td className="tabular text-xs">
-                    {BIDDING_LABEL[c.bidding_strategy]} · ${Number(c.bid_amount).toFixed(4)}
+                    {BIDDING_LABEL[c.bidding_strategy]} · ₹{Number(c.bid_amount).toFixed(4)}
                   </td>
                   <td className="tabular text-xs">
                     <div>
-                      {c.daily_cap != null ? `$${Number(c.daily_cap).toFixed(2)}/day` : "No daily cap"}
+                      {c.daily_cap != null ? `₹${Number(c.daily_cap).toFixed(2)}/day` : "No daily cap"}
                     </div>
                     <div className="text-neutral-content">
                       {c.total_budget != null
-                        ? `$${Number(c.spent_amount).toFixed(2)} / $${Number(c.total_budget).toFixed(2)} total`
-                        : `$${Number(c.spent_amount).toFixed(2)} spent`}
+                        ? `₹${Number(c.spent_amount).toFixed(2)} / ₹${Number(c.total_budget).toFixed(2)} total`
+                        : `₹${Number(c.spent_amount).toFixed(2)} spent`}
                     </div>
                   </td>
                   <td className="tabular text-xs text-neutral-content">
@@ -258,7 +258,7 @@ function CreateCampaignModal({
             </Field>
           </div>
 
-          <Field label="Bid amount ($)">
+          <Field label="Bid amount (₹)">
             <input
               type="number"
               step="0.0001"
@@ -271,7 +271,7 @@ function CreateCampaignModal({
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Daily cap ($, optional)">
+            <Field label="Daily cap (₹, optional)">
               <input
                 type="number"
                 min="0"
@@ -281,7 +281,7 @@ function CreateCampaignModal({
                 className="input input-bordered input-sm w-full bg-base-100"
               />
             </Field>
-            <Field label="Total budget ($, optional)">
+            <Field label="Total budget (₹, optional)">
               <input
                 type="number"
                 min="0"

@@ -2,10 +2,11 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 
-type Role = "admin" | "publisher" | "advertiser";
+type Role = "admin" | "staff" | "publisher" | "advertiser";
 
 const roleLabels: Record<Role, string> = {
   admin: "Platform admin",
+  staff: "Platform staff",
   publisher: "Publisher workspace",
   advertiser: "Advertiser workspace",
 };
@@ -16,6 +17,10 @@ const roleLinks: Record<Role, { to: string; label: string; end?: boolean }[]> = 
     { to: "/campaigns", label: "Campaigns" },
     { to: "/publishers", label: "Publishers & slots" },
     { to: "/approvals", label: "Approvals" },
+  ],
+  staff: [
+    { to: "/", label: "Operations overview", end: true },
+    { to: "/approvals", label: "Review queue" },
   ],
   publisher: [
     { to: "/", label: "Earnings overview", end: true },

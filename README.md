@@ -146,8 +146,8 @@ analytics; neither has a UI for the creatives API yet (see
 | Table         | Purpose                                                        | Notable fields |
 |---------------|-----------------------------------------------------------------|-----------------|
 | `publishers`  | A site running the ad snippet; owns an API key and ad units    | `status` (pending_approval/active/suspended/rejected), `payout_email` (required), `revenue_share_percentage`, `unpaid_earnings`, `ads_txt_verified`, `domain`, `category`, auto-generated `api_key` |
-| `ad_units`    | A named slot on a publisher's page with fixed width/height     | `format_type` (display/banner/native/video/interstitial), `reserve_price` (CPM floor), `is_active`, `allow_house_ads`, `settings` (JSON) |
-| `advertisers` | An advertiser account; owns campaigns                          | `status`, `currency`, `balance`, `credit_limit`, `is_verified` |
+| `ad_units`    | A named slot on a publisher's page with fixed width/height     | `format_type` (display/banner/native/video/interstitial), `reserve_price` (CPM floor, INR), `is_active`, `allow_house_ads`, `settings` (JSON) |
+| `advertisers` | An advertiser account; owns campaigns                          | `status`, `currency` (INR only), `balance`, `credit_limit`, `is_verified` |
 | `campaigns`   | Delivery window, priority, bidding, budget, targeting rules     | `status` (draft/scheduled/active/paused/completed/exhausted/archived), `bidding_strategy` (cpm/cpc/cpa), `bid_amount`, `daily_cap`, `total_budget`, `spent_amount`, `end_date` (optional — omit for an open-ended campaign), `targeting_rules` (JSON: countries/device_types/keywords) |
 | `creatives`   | Assets belonging to a campaign, sized for a specific ad unit   | `review_status` (pending/approved/rejected), `rejection_reason`, `is_active`, `impression_tracker_url`, `weight` |
 | `events`      | Impression/click/conversion log, used for analytics and budget accounting | `cost`, `is_valid`, `country_code`, `user_ip`, `user_agent` |

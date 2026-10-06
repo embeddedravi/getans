@@ -106,7 +106,7 @@
           </a>
           <p class="text-xs text-neutral-content mt-1.5">
             Payout: {{ selected.payout_email }} · {{ selected.revenue_share_percentage }}% share
-            · <span class="tabular-nums">${{ '%.2f'|format(selected.unpaid_earnings) }} unpaid</span>
+            · <span class="tabular-nums">₹{{ '%.2f'|format(selected.unpaid_earnings) }} unpaid</span>
           </p>
           {% if selected.domain or selected.category %}
             <p class="text-xs text-neutral-content mt-1">
@@ -166,7 +166,7 @@
                   <td class="text-xs text-neutral-content">{{ unit.format_type }}</td>
                   <td class="tabular-nums text-sm">{{ unit.width }}×{{ unit.height }}</td>
                   <td class="tabular-nums text-sm">
-                    {{ '$%.4f'|format(unit.reserve_price) if unit.reserve_price and unit.reserve_price > 0 else '—' }}
+                    {{ '₹%.4f'|format(unit.reserve_price) if unit.reserve_price and unit.reserve_price > 0 else '—' }}
                   </td>
                   <td><span class="badge badge-xs {{ 'badge-success' if unit.status == 'approved' else 'badge-error' if unit.status == 'rejected' else 'badge-warning' }}">{{ unit.status | replace('_', ' ') }}</span></td>
                   <td class="tabular-nums text-neutral-content text-sm">#{{ unit.id }}</td>
@@ -253,7 +253,7 @@
         </label>
       </div>
       <label class="block">
-        <span class="block text-xs text-neutral-content mb-1.5">Reserve price (CPM floor, $ optional)</span>
+        <span class="block text-xs text-neutral-content mb-1.5">Reserve price (CPM floor, ₹ optional)</span>
         <input name="reserve_price" type="number" step="0.0001" min="0" value="0" class="input input-bordered input-sm w-full bg-base-100" />
       </label>
       <div class="flex justify-end gap-2 pt-2 border-t border-base-300">

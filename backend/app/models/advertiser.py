@@ -36,9 +36,7 @@ class AccountStatus(str, PyEnum):
 
 
 class Currency(str, PyEnum):
-    USD = "USD"
-    EUR = "EUR"
-    GBP = "GBP"
+    INR = "INR"
 
 
 class Advertiser(TimestampMixin, Base):
@@ -70,7 +68,7 @@ class Advertiser(TimestampMixin, Base):
     # Financial & Credit Configuration
     currency: Mapped[Currency] = mapped_column(
         Enum(Currency, native_enum=False),
-        default=Currency.USD,
+        default=Currency.INR,
         nullable=False,
     )
     balance: Mapped[Decimal] = mapped_column(

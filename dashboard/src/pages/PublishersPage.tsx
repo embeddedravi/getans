@@ -139,7 +139,7 @@ export function PublishersPage() {
                     Payout: {selected.payout_email} · {Number(selected.revenue_share_percentage)}% share
                     {" · "}
                     <span className="tabular">
-                      ${Number(selected.unpaid_earnings).toFixed(2)} unpaid
+                      ₹{Number(selected.unpaid_earnings).toFixed(2)} unpaid
                     </span>
                   </p>
                   {(selected.domain || selected.category) && (
@@ -177,7 +177,7 @@ export function PublishersPage() {
                       </td>
                       <td className="tabular">
                         {Number(unit.reserve_price) > 0
-                          ? `$${Number(unit.reserve_price).toFixed(4)}`
+                          ? `₹${Number(unit.reserve_price).toFixed(4)}`
                           : "—"}
                       </td>
                       <td><span className={`badge badge-xs ${unit.status === "approved" ? "badge-success" : unit.status === "rejected" ? "badge-error" : "badge-warning"}`}>{unit.status.replace("_", " ")}</span></td>
@@ -424,7 +424,7 @@ function CreateAdUnitModal({
           </div>
           <label className="block">
             <span className="block text-xs text-neutral-content mb-1">
-              Reserve price (CPM floor, $, optional)
+              Reserve price (CPM floor, ₹, optional)
             </span>
             <input
               type="number"

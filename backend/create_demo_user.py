@@ -27,7 +27,7 @@ parser.add_argument("--email",    default=None,           help="Optional email")
 #parser.add_argument("--password", default="demo1234")
 parser.add_argument("--password", default=None, help="Omit to generate a random one")
 parser.add_argument("--allow-production", action="store_true")
-parser.add_argument("--role",     default="admin", choices=["admin", "advertiser", "publisher"])
+parser.add_argument("--role",     default="admin", choices=["admin", "staff", "advertiser", "publisher"])
 args = parser.parse_args()
 generated = args.password is None
 if generated:

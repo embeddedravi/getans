@@ -13,6 +13,8 @@ import { api } from "../lib/api";
 import { subscribeToMetrics } from "../lib/socket";
 import type { CampaignStats, Campaign, PendingApprovals, Publisher } from "../types";
 import { Link } from "react-router-dom";
+import { AdvertiserWallet } from "../components/AdvertiserWallet";
+import type { AdvertiserWallet as Wallet } from "../types";
 
 type Role = "admin" | "staff" | "publisher" | "advertiser";
 
@@ -25,6 +27,7 @@ export function AnalyticsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [publishers, setPublishers] = useState<Publisher[]>([]);
   const [approvalCount, setApprovalCount] = useState(0);
+  const [wallet, setWallet] = useState<Wallet | null>(null);
 
   useEffect(() => {
     const end = new Date();
@@ -41,11 +44,17 @@ export function AnalyticsPage() {
         setApprovalCount(pending.publishers.length + pending.advertisers.length + pending.ad_units.length);
       } else {
         const jobs: Promise<unknown>[] = [api.campaignStats(start.toISOString(), end.toISOString())];
-        if (accountRole === "advertiser") jobs.push(api.listCampaigns());
+        if (accountRole === "advertiser") {
+          jobs.push(api.listCampaigns());
+          jobs.push(api.advertiserWallet());
+        }
         if (accountRole === "admin") jobs.push(api.listPendingApprovals());
-        const [statsData, roleData] = await Promise.all(jobs);
+        const [statsData, roleData, walletData] = await Promise.all(jobs);
         setStats(statsData as CampaignStats[]);
-        if (accountRole === "advertiser") setCampaigns(roleData as Campaign[]);
+        if (accountRole === "advertiser") {
+          setCampaigns(roleData as Campaign[]);
+          setWallet(walletData as Wallet);
+        }
         if (accountRole === "admin") {
           const pending = roleData as PendingApprovals;
           setApprovalCount(pending.publishers.length + pending.advertisers.length + pending.ad_units.length);
@@ -115,10 +124,13 @@ export function AnalyticsPage() {
           </div>
         </div>
       ) : role === "advertiser" ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
-          <StatPanel label="Your campaigns" value={campaigns.length} accent="text-primary" />
-          <StatPanel label="Active campaigns" value={campaigns.filter((campaign) => campaign.is_active).length} accent="text-success" />
-          <StatPanel label="7-day impressions" value={totals.impressions} accent="text-base-content" />
+        <div className="space-y-4 mb-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <StatPanel label="Your campaigns" value={campaigns.length} accent="text-primary" />
+            <StatPanel label="Active campaigns" value={campaigns.filter((campaign) => campaign.is_active).length} accent="text-success" />
+            <StatPanel label="7-day impressions" value={totals.impressions} accent="text-base-content" />
+          </div>
+          {wallet && <AdvertiserWallet balance={Number(wallet.balance)} creditLimit={Number(wallet.credit_limit)} onBalanceChange={setWallet} />}
         </div>
       ) : (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

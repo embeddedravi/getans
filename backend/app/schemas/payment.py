@@ -73,4 +73,33 @@ class PayoutOut(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AdvertiserTopUpOrderCreate(BaseModel):
+    amount: Decimal = Field(..., ge=Decimal("1.00"), le=Decimal("500000.00"), decimal_places=2)
+
+
+class AdvertiserTopUpOrderOut(BaseModel):
+    order_id: str
+    amount_paise: int
+    currency: str = "INR"
+    key_id: str
+    advertiser_name: str
+    billing_email: str
+
+
+class AdvertiserTopUpVerify(BaseModel):
+    razorpay_order_id: str = Field(..., min_length=8, max_length=64)
+    razorpay_payment_id: str = Field(..., min_length=8, max_length=64)
+    razorpay_signature: str = Field(..., min_length=32, max_length=128)
+
+
+class AdvertiserWalletOut(BaseModel):
+    balance: Decimal
+    currency: str = "INR"
+    credit_limit: Decimal
+
+
+class AdvertiserTopUpVerifyOut(AdvertiserWalletOut):
+    status: str = "paid"
     

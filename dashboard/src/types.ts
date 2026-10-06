@@ -41,6 +41,21 @@ export interface Advertiser {
   updated_at: string;
 }
 
+export interface AdvertiserWallet {
+  balance: number;
+  currency: "INR";
+  credit_limit: number;
+}
+
+export interface RazorpayTopUpOrder {
+  order_id: string;
+  amount_paise: number;
+  currency: "INR";
+  key_id: string;
+  advertiser_name: string;
+  billing_email: string;
+}
+
 export interface AdUnit {
   id: number;
   publisher_id: number;

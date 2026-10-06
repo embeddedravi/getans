@@ -24,6 +24,7 @@ from sqlalchemy import (
 
 if TYPE_CHECKING:
     from app.models.campaign import Campaign
+    from app.models.payment import AdvertiserTopUp
     from app.models.user import User
 
 
@@ -89,6 +90,12 @@ class Advertiser(TimestampMixin, Base):
     # Relationships
     campaigns: Mapped[List["Campaign"]] = relationship(
         "Campaign",
+        back_populates="advertiser",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    topups: Mapped[List["AdvertiserTopUp"]] = relationship(
+        "AdvertiserTopUp",
         back_populates="advertiser",
         cascade="all, delete-orphan",
         lazy="selectin",

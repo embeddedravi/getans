@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     # --- Secrets: required, no defaults -----------------------------------
     database_url: SecretStr
     jwt_secret: SecretStr
+    razorpay_key_id: str | None = None
+    razorpay_key_secret: SecretStr | None = None
+    razorpay_webhook_secret: SecretStr | None = None
 
     # --- Auth ---------------------------------------------------------------
     jwt_algorithm: str = "HS256"

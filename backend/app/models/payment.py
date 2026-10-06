@@ -23,10 +23,38 @@ from app.db.base import Base, TimestampMixin
 from app.models.publisher import PaymentMethod  # reuse the existing enum
 
 if TYPE_CHECKING:
+    from app.models.advertiser import Advertiser
     from app.models.publisher import Publisher
 
 # BigInteger PKs don't autoincrement on SQLite (used by the test suite).
 _PK = BigInteger().with_variant(Integer, "sqlite")
+
+
+class TopUpStatus(str, PyEnum):
+    CREATED = "created"
+    PAID = "paid"
+
+
+class AdvertiserTopUp(TimestampMixin, Base):
+    """Razorpay order and wallet credit ledger for advertiser top-ups."""
+
+    __tablename__ = "advertiser_topups"
+
+    id: Mapped[int] = mapped_column(_PK, primary_key=True, autoincrement=True)
+    advertiser_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("advertisers.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    order_id: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    payment_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, unique=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(precision=12, scale=2), nullable=False)
+    status: Mapped[TopUpStatus] = mapped_column(
+        Enum(TopUpStatus, native_enum=False), default=TopUpStatus.CREATED, nullable=False
+    )
+    paid_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    advertiser: Mapped["Advertiser"] = relationship("Advertiser", back_populates="topups")
+
+    __table_args__ = (CheckConstraint("amount >= 1.00", name="check_min_advertiser_topup"),)
 
 
 class PayoutStatus(str, PyEnum):

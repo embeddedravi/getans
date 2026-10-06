@@ -103,4 +103,19 @@ export const api = {
 
   campaignStats: (start: string, end: string) =>
     request(`/analytics/campaigns?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),
+
+  advertiserWallet: () => request<import("../types").AdvertiserWallet>("/payments/wallet"),
+  createAdvertiserTopUpOrder: (amount: number) =>
+    request<import("../types").RazorpayTopUpOrder>("/payments/orders", {
+      method: "POST",
+      body: JSON.stringify({ amount }),
+    }),
+  verifyAdvertiserTopUp: (payload: {
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+  }) => request<import("../types").AdvertiserWallet>("/payments/verify", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }),
 };

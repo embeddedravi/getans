@@ -31,7 +31,7 @@ fastapi_app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.api import analytics, auth, campaigns, creatives, payouts, publishers, otp, admin  # noqa: E402
+from app.api import analytics, auth, campaigns, creatives, payouts, publishers, otp, admin, advertiser_payments  # noqa: E402
 
 fastapi_app.include_router(auth.router, prefix="/api", tags=["auth"])
 fastapi_app.include_router(publishers.router, prefix="/api", tags=["publishers"])
@@ -40,6 +40,7 @@ fastapi_app.include_router(creatives.router, prefix="/api", tags=["creatives"])
 fastapi_app.include_router(otp.router, prefix="/api/auth/otp", tags=["otp"])
 fastapi_app.include_router(analytics.router, prefix="/api", tags=["analytics"])
 fastapi_app.include_router(payouts.router, prefix="/api/payouts", tags=["payouts"])
+fastapi_app.include_router(advertiser_payments.router, prefix="/api/payments", tags=["payments"])
 fastapi_app.include_router(admin.router, prefix="/api", tags=["admin"])
 
 @fastapi_app.get("/health")

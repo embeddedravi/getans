@@ -14,6 +14,7 @@ import { AdminAdvertisersPage } from "./pages/AdminAdvertisersPage";
 import { AdminPublishersPage } from "./pages/AdminPublishersPage";
 import { AdminSlotsPage } from "./pages/AdminSlotsPage";
 import { AdminUsersPage } from "./pages/AdminUsersPage";
+import { LiveEventsPage } from "./pages/LiveEventsPage";
 import { api } from "./lib/api";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -70,6 +71,7 @@ export default function App() {
         <Route path="/manage-campaign" element={<RequireAuth><RequireAdmin><CampaignsPage /></RequireAdmin></RequireAuth>} />
         <Route path="/manage-slots" element={<RequireAuth><RequireAdmin><AdminSlotsPage /></RequireAdmin></RequireAuth>} />
         <Route path="/manage-users" element={<RequireAuth><RequireAdmin><AdminUsersPage /></RequireAdmin></RequireAuth>} />
+        <Route path="/live-events" element={<RequireAuth><RequireAdmin><LiveEventsPage /></RequireAdmin></RequireAuth>} />
       </Routes>
     </BrowserRouter>
   );

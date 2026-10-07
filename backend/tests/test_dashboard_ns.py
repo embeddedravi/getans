@@ -11,7 +11,7 @@ from app.config import settings
 from app.core.security import create_access_token
 from app.models.user import User, UserRole
 from app.sockets import dashboard_ns
-from app.sockets.dashboard_ns import DashboardNamespace, emit_metric_update
+from app.sockets.dashboard_ns import DashboardNamespace, emit_metric_update, emit_live_event
 
 SID = "test-sid"
 
@@ -178,3 +178,12 @@ async def test_metric_update_never_broadcasts_unscoped(monkeypatch):
     await emit_metric_update({"type": "click"})  # no owner ids
 
     assert [e[2] for e in fake.emitted] == ["admin"]
+
+@pytest.mark.asyncio
+async def test_live_event_goes_to_admin_room_only(monkeypatch):
+    fake = FakeSio()
+    monkeypatch.setattr(dashboard_ns, "_sio", fake)
+
+    await emit_live_event({"id": 1, "type": "click"})
+
+    assert [(e[0], e[2]) for e in fake.emitted] == [("live_event", "admin")]    

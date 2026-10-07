@@ -194,3 +194,16 @@ export interface MetricUpdate {
   ad_unit_id: number;
   timestamp: string;
 }
+
+export interface LiveEvent {
+  id: number;
+  type: "impression" | "click" | "conversion" | "viewable_impression";
+  campaign_id: number;
+  campaign_name: string | null;
+  ad_unit_id: number;
+  slot_name: string | null;
+  creative_id: number;
+  country_code: string | null;
+  cost: number;
+  timestamp: string;
+}

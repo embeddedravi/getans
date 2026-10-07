@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from pydantic import BaseModel
 from sqlalchemy import func, select
@@ -16,6 +16,8 @@ from app.models.ad_report import AdReport
 from app.models.advertiser import Advertiser, AccountStatus
 from app.models.publisher import Publisher, PublisherStatus
 from app.models.user import User, UserRole as UserRoleModel
+from app.models.campaign import Campaign
+from app.models.event import Event
 from app.schemas.add_unit import AdUnitOut, AdUnitReview
 from app.schemas.advertiser import AdvertiserOut, AdvertiserReview
 from app.schemas.publisher import PublisherOut, PublisherReview
@@ -283,3 +285,34 @@ async def set_ad_unit_active(
     await db.commit()
     await db.refresh(ad_unit)
     return ad_unit
+
+@router.get("/events/recent", summary="Most recent tracking events (admin)")
+async def recent_events(
+    limit: int = Query(100, ge=1, le=500),
+    after_id: int | None = Query(None, ge=0),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role("admin")),
+) -> list[dict[str, Any]]:
+    stmt = (
+        select(Event, Campaign.name, AdUnit.slot_name)
+        .join(Campaign, Campaign.id == Event.campaign_id)
+        .join(AdUnit, AdUnit.id == Event.ad_unit_id)
+    )
+    if after_id is not None:
+        stmt = stmt.where(Event.id > after_id)
+    rows = (await db.execute(stmt.order_by(Event.id.desc()).limit(limit))).all()
+    return [
+        {
+            "id": e.id,
+            "type": e.type.value,
+            "campaign_id": e.campaign_id,
+            "campaign_name": campaign_name,
+            "ad_unit_id": e.ad_unit_id,
+            "slot_name": slot_name,
+            "creative_id": e.creative_id,
+            "country_code": e.country_code,
+            "cost": float(e.cost),
+            "timestamp": e.timestamp.isoformat(),
+        }
+        for e, campaign_name, slot_name in rows
+    ]

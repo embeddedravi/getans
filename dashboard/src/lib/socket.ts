@@ -1,5 +1,5 @@
 import { io, Socket } from "socket.io-client";
-import type { MetricUpdate } from "../types";
+import type { MetricUpdate, LiveEvent } from "../types";
 
 let socket: Socket | null = null;
 
@@ -41,4 +41,10 @@ export function subscribeToMetrics(callback: (update: MetricUpdate) => void): ()
   const s = getDashboardSocket();
   s.on("metric_update", callback);
   return () => s.off("metric_update", callback);
+}
+
+export function subscribeToLiveEvents(callback: (event: LiveEvent) => void): () => void {
+  const s = getDashboardSocket();
+  s.on("live_event", callback);
+  return () => s.off("live_event", callback);
 }

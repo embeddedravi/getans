@@ -54,6 +54,7 @@ async def record_event(
         identity = f"{visitor_hash}:{ad_unit_id}:{enum_event_type.value}:{timestamp:%Y-%m-%d}"
         dedupe_key = hashlib.sha256(identity.encode("utf-8")).hexdigest()
 
+    live = None
     async with async_session_factory() as db:
         campaign_id, advertiser_id = await _campaign_for_creative(db, creative_id)
         publisher_id = await db.scalar(select(AdUnit.publisher_id).where(AdUnit.id == ad_unit_id))
@@ -76,15 +77,30 @@ async def record_event(
         try:
             await db.commit()
         except IntegrityError:
-            # Duplicate event_id (retry) or visitor/day dedupe key. Do not
-            # charge budget or emit dashboard metrics for either duplicate.
             await db.rollback()
             return
 
+        live = {
+            "id": event.id,
+            "type": enum_event_type.value,
+            "campaign_id": campaign_id,
+            "campaign_name": await db.scalar(select(Campaign.name).where(Campaign.id == campaign_id)),
+            "ad_unit_id": ad_unit_id,
+            "slot_name": await db.scalar(select(AdUnit.slot_name).where(AdUnit.id == ad_unit_id)),
+            "creative_id": creative_id,
+            "country_code": country_code,
+            "cost": float(cost),
+            "timestamp": timestamp.isoformat(),
+        }
+
     record_spend(campaign_id, cost)
-    await _emit_dashboard_update(
-        enum_event_type.value, campaign_id, ad_unit_id, advertiser_id, publisher_id
-    )
+    await _emit_dashboard_update(enum_event_type.value, campaign_id, ad_unit_id, advertiser_id, publisher_id)
+    await _emit_live_event(live)
+
+
+async def _emit_live_event(payload: dict) -> None:
+    from app.sockets.dashboard_ns import emit_live_event
+    await emit_live_event(payload)
 
 
 async def _campaign_for_creative(db, creative_id: int) -> tuple[int, int]:

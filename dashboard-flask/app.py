@@ -750,6 +750,25 @@ def create_ad_unit(publisher_id: int):
         flash(f"Failed: {exc}", "error")
     return redirect(url_for("publishers", selected=publisher_id))
 
+# ── Live events (for admin) ─────────────────────────────────────────────────
+
+@app.route("/live-events")
+@admin_required
+def live_events():
+    return render_template("live_events.html")
+
+
+@app.route("/proxy/live-events")
+@admin_required
+def proxy_live_events():
+    params = {"limit": min(request.args.get("limit", 100, type=int), 500)}
+    after_id = request.args.get("after_id", type=int)
+    if after_id is not None:
+        params["after_id"] = after_id
+    try:
+        return jsonify(_api("GET", "/admin/events/recent", params=params))
+    except Exception:
+        return jsonify({"detail": "Could not load events"}), 502
 
 # ── API proxy (for live analytics via JS fetch) ───────────────────────────────
 

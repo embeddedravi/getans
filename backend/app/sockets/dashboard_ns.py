@@ -142,6 +142,13 @@ async def emit_metric_update(
         await _sio.emit("metric_update", payload, room=room, namespace="/dashboard")
 
 
+async def emit_live_event(payload: dict) -> None:
+    """Detailed event feed. Admin room only -- never advertiser/publisher rooms."""
+    if _sio is None:
+        logger.warning("Dashboard namespace not registered; dropping live_event")
+        return
+    await _sio.emit("live_event", payload, room=ADMIN_ROOM, namespace="/dashboard")
+
 def register_dashboard_namespace(sio: socketio.AsyncServer) -> None:
     global _sio
     _sio = sio

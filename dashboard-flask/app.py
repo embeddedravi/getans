@@ -66,6 +66,20 @@ def _headers() -> dict[str, str]:
     return {"Content-Type": "application/json"}
 
 
+def _remember_user(user: dict) -> None:
+    """Keep the authenticated user's profile available to the shared layout."""
+    session["user_id"] = user.get("id")
+    session["role"] = user.get("role")
+    session["user_mobile"] = user.get("mobile")
+    session["user_email"] = user.get("email")
+    full_name = " ".join(
+        part.strip()
+        for part in (user.get("first_name"), user.get("last_name"))
+        if isinstance(part, str) and part.strip()
+    )
+    session["user_name"] = full_name or user.get("email") or user.get("mobile") or "User"
+
+
 def _api(method: str, path: str, **kwargs):
     """Thin wrapper around requests that raises on error."""
     url = f"{API_BASE}{path}"
@@ -111,6 +125,12 @@ def advertiser_required(f):
 @app.context_processor
 def inject_current_path():
     pending_count = 0
+    if session.get("access_token"):
+        try:
+            _remember_user(_api("GET", "/auth/me"))
+        except requests.RequestException:
+            # Keep the current display while the API is temporarily unavailable.
+            pass
     if session.get("role") == "admin":
         try:
             pending = _api("GET", "/admin/approvals/pending")
@@ -137,8 +157,7 @@ def login():
             session["user_mobile"] = mobile
             try:
                 current_user = _api("GET", "/auth/me")
-                session["role"] = current_user["role"]
-                session["user_id"] = current_user["id"]
+                _remember_user(current_user)
             except Exception:
                 session["role"] = None
                 session.pop("user_id", None)
@@ -468,7 +487,7 @@ def manage_publishers():
 def manage_users():
     try:
         current_user = _api("GET", "/auth/me")
-        session["user_id"] = current_user["id"]
+        _remember_user(current_user)
         users = _api("GET", "/admin/users")
         publishers_list = _api("GET", "/publishers")
         advertisers_list = _api("GET", "/admin/advertisers")

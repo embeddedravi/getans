@@ -19,8 +19,11 @@
           {% set locked = user.is_superuser or user.id == session.get('user_id') %}
           <tr class="border-b border-base-300 last:border-0 align-top">
             <td class="min-w-52">
-              <div class="font-medium">{{ [user.first_name, user.last_name] | select | join(' ') or user.mobile or user.email or ('User #' ~ user.id) }}</div>
-              <div class="text-xs text-neutral-content">{{ user.mobile or user.email or ('#' ~ user.id) }}</div>
+              {% set full_name = [user.first_name, user.last_name] | select | join(' ') %}
+              <div class="font-medium">{{ full_name or ('User #' ~ user.id) }}</div>
+              {% if user.mobile %}<div class="text-xs text-neutral-content">{{ user.mobile }}</div>{% endif %}
+              {% if user.email %}<div class="text-xs text-neutral-content">{{ user.email }}</div>{% endif %}
+              {% if not user.mobile and not user.email %}<div class="text-xs text-neutral-content">ID {{ user.id }}</div>{% endif %}
               {% if user.is_superuser %}<span class="badge badge-xs badge-warning mt-1">Superuser</span>{% endif %}
             </td>
             <td>

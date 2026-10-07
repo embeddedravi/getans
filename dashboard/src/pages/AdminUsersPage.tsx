@@ -123,8 +123,10 @@ export function AdminUsersPage() {
                 return (
                   <tr key={user.id} className="border-b border-base-300 last:border-0 align-top">
                     <td className="min-w-52">
-                      <div className="font-medium">{displayName || user.mobile || user.email || `User #${user.id}`}</div>
-                      <div className="text-xs text-neutral-content">{user.mobile || user.email || `#${user.id}`}</div>
+                      <div className="font-medium">{displayName || `User #${user.id}`}</div>
+                      {user.mobile && <div className="text-xs text-neutral-content">{user.mobile}</div>}
+                      {user.email && <div className="text-xs text-neutral-content">{user.email}</div>}
+                      {!user.mobile && !user.email && <div className="text-xs text-neutral-content">ID {user.id}</div>}
                       {user.is_superuser && <span className="badge badge-xs badge-warning mt-1">Superuser</span>}
                     </td>
                     <td>

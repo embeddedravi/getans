@@ -40,12 +40,31 @@ const roleLinks: Record<Role, { to: string; label: string; end?: boolean }[]> = 
 export function Sidebar() {
   const navigate = useNavigate();
   const [role, setRole] = useState<Role | null>(null);
+  const [user, setUser] = useState<{
+    first_name?: string | null;
+    last_name?: string | null;
+    mobile?: string | null;
+    email?: string | null;
+  } | null>(null);
   useEffect(() => {
     api.me().then((user) => {
-      const accountRole = (user as { role?: Role }).role;
+      const account = user as {
+        role?: Role;
+        first_name?: string | null;
+        last_name?: string | null;
+        mobile?: string | null;
+        email?: string | null;
+      };
+      setUser(account);
+      const accountRole = account.role;
       if (accountRole && accountRole in roleLinks) setRole(accountRole);
     }).catch(() => setRole(null));
   }, []);
+
+  const displayName = [user?.first_name, user?.last_name].filter(Boolean).join(" ")
+    || user?.email
+    || user?.mobile
+    || "User";
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
@@ -85,6 +104,17 @@ export function Sidebar() {
       </nav>
 
       <div className="px-4 py-4 border-t border-base-300 flex flex-col gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-semibold text-primary">
+            {displayName.slice(0, 1).toUpperCase()}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-medium text-base-content">{displayName}</p>
+            <p className="truncate text-xs text-neutral-content">{role ? roleLabels[role] : "Account"}</p>
+            {user?.mobile && <p className="truncate text-xs text-neutral-content">{user.mobile}</p>}
+            {user?.email && <p className="truncate text-xs text-neutral-content">{user.email}</p>}
+          </div>
+        </div>
         <span className="text-xs text-neutral-content">Self-hosted ad server</span>
         <button
           onClick={handleLogout}

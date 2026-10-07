@@ -70,15 +70,22 @@
         <div class="avatar placeholder">
           <div class="bg-primary/20 text-primary rounded-full w-8 h-8 flex items-center justify-center">
             <span class="text-xs font-semibold">
-              {{ session.get('user_mobile', 'A')[-1] }}
+              {{ (session.get('user_name') or 'U')[:1]|upper }}
             </span>
           </div>
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-xs font-medium text-base-content truncate">
-            {{ session.get('user_mobile') or 'Administrator' }}
+            {{ session.get('user_name') or session.get('user_mobile') or session.get('user_email') or 'User' }}
           </p>
-          <p class="text-xs text-neutral-content">Administrator</p>
+          <p class="text-xs text-neutral-content truncate">
+            {{ (session.get('role') or 'user')|replace('_', ' ')|title }}
+            {% if session.get('user_mobile') and session.get('user_email') %}
+              · {{ session.get('user_mobile') }} · {{ session.get('user_email') }}
+            {% else %}
+              {{ session.get('user_mobile') or session.get('user_email') or '' }}
+            {% endif %}
+          </p>
         </div>
       </div>
       <a href="/logout" class="btn btn-ghost btn-xs w-full text-neutral-content hover:text-error justify-start gap-2">

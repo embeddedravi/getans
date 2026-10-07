@@ -1,38 +1,48 @@
+import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { api } from "../lib/api";
 import { Sidebar } from "./Sidebar";
+
+vi.mock("../lib/api", () => ({ api: { me: vi.fn() } }));
+const mockedMe = vi.mocked(api.me);
+
+beforeEach(() => {
+    vi.resetAllMocks();
+    mockedMe.mockResolvedValue({ role: "admin" });
+});
 
 const renderAt = (path: string) =>
     render(
-        <MemoryRouter initialEntries={[path]}>
+        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }} initialEntries={[path]}>
             <Sidebar />
         </MemoryRouter>
     );
 
 describe("Sidebar", () => {
-    it("links to every section", () => {
+    it("links to every section", async () => {
         renderAt("/");
 
-        expect(screen.getByRole("link", { name: "Analytics" })).toHaveAttribute("href", "/");
-        expect(screen.getByRole("link", { name: "Campaigns" })).toHaveAttribute("href", "/campaigns");
-        expect(screen.getByRole("link", { name: "Publishers & slots" })).toHaveAttribute(
+        expect(await screen.findByRole("link", { name: "Overview" })).toHaveAttribute("href", "/");
+        expect(await screen.findByRole("link", { name: "Campaigns" })).toHaveAttribute("href", "/manage-campaign");
+        expect(await screen.findByRole("link", { name: "Publishers" })).toHaveAttribute(
             "href",
-            "/publishers"
+            "/manage-publisher"
         );
     });
 
-    it("highlights only the current section", () => {
-        renderAt("/campaigns");
+    it("highlights only the current section", async () => {
+        renderAt("/manage-campaign");
 
-        expect(screen.getByRole("link", { name: "Campaigns" })).toHaveClass("font-medium");
-        expect(screen.getByRole("link", { name: "Analytics" })).not.toHaveClass("font-medium");
+        expect(await screen.findByRole("link", { name: "Campaigns" })).toHaveClass("font-medium");
+        expect(await screen.findByRole("link", { name: "Overview" })).not.toHaveClass("font-medium");
     });
 
-    it("does not keep Analytics highlighted on nested routes (end matching)", () => {
-        renderAt("/publishers");
+    it("does not keep Overview highlighted on nested routes (end matching)", async () => {
+        renderAt("/manage-publisher");
 
-        expect(screen.getByRole("link", { name: "Analytics" })).not.toHaveClass("font-medium");
-        expect(screen.getByRole("link", { name: "Publishers & slots" })).toHaveClass("font-medium");
+        expect(await screen.findByRole("link", { name: "Overview" })).not.toHaveClass("font-medium");
+        expect(await screen.findByRole("link", { name: "Publishers" })).toHaveClass("font-medium");
     });
 });

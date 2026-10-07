@@ -22,7 +22,7 @@ async def test_create_campaign_requires_auth(client, advertiser):
 
 @pytest.mark.asyncio
 async def test_admin_can_create_and_fetch_campaign(client, admin_user, advertiser):
-    headers = await auth_headers(client, "admin@platform.example", "adminpass123")
+    headers = await auth_headers(client, "9876543210", "adminpass123")
     start, end = campaign_window()
 
     create_res = await client.post(
@@ -47,7 +47,7 @@ async def test_admin_can_create_and_fetch_campaign(client, admin_user, advertise
 
 @pytest.mark.asyncio
 async def test_end_date_before_start_date_rejected(client, admin_user, advertiser):
-    headers = await auth_headers(client, "admin@platform.example", "adminpass123")
+    headers = await auth_headers(client, "9876543210", "adminpass123")
     start, end = campaign_window()
 
     res = await client.post(
@@ -74,7 +74,7 @@ async def test_advertiser_cannot_create_campaign_for_other_advertiser(
     await db.commit()
     await db.refresh(other)
 
-    headers = await auth_headers(client, "advertiser@acme.example", "advertiserpass123")
+    headers = await auth_headers(client, "9123456789", "advertiserpass123")
     start, end = campaign_window()
 
     res = await client.post(
@@ -101,7 +101,7 @@ async def test_advertiser_only_sees_own_campaigns(client, admin_user, advertiser
     await db.refresh(other)
 
     start, end = campaign_window()
-    admin_headers = await auth_headers(client, "admin@platform.example", "adminpass123")
+    admin_headers = await auth_headers(client, "9876543210", "adminpass123")
 
     await client.post(
         "/api/campaigns",
@@ -114,7 +114,7 @@ async def test_advertiser_only_sees_own_campaigns(client, admin_user, advertiser
         headers=admin_headers,
     )
 
-    advertiser_headers = await auth_headers(client, "advertiser@acme.example", "advertiserpass123")
+    advertiser_headers = await auth_headers(client, "9123456789", "advertiserpass123")
     res = await client.get("/api/campaigns", headers=advertiser_headers)
 
     assert res.status_code == 200
@@ -124,7 +124,7 @@ async def test_advertiser_only_sees_own_campaigns(client, admin_user, advertiser
 
 @pytest.mark.asyncio
 async def test_update_and_delete_campaign(client, admin_user, advertiser):
-    headers = await auth_headers(client, "admin@platform.example", "adminpass123")
+    headers = await auth_headers(client, "9876543210", "adminpass123")
     start, end = campaign_window()
 
     create_res = await client.post(

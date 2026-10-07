@@ -51,7 +51,7 @@ class User(TimestampMixin, Base):
 
     # Role & Permissions
     role: Mapped[UserRole] = mapped_column(
-        Enum(UserRole, native_enum=False),
+        Enum(UserRole, native_enum=False, values_callable=lambda roles: [role.value for role in roles]),
         nullable=False,
         index=True,
     )

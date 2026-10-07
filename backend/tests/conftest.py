@@ -14,6 +14,8 @@ from datetime import datetime, timedelta, timezone
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import BigInteger
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
@@ -24,6 +26,12 @@ from app.main import fastapi_app
 from app.models.advertiser import Advertiser
 from app.models.publisher import Publisher
 from app.models.user import User
+
+
+@compiles(BigInteger, "sqlite")
+def _compile_bigint_for_sqlite(_type, _compiler, **_kw):
+    """SQLite only auto-generates integer primary keys for INTEGER columns."""
+    return "INTEGER"
 
 # --- Database -----------------------------------------------------------
 
@@ -111,7 +119,7 @@ async def admin_user(db) -> User:
 @pytest_asyncio.fixture
 async def advertiser_user(db, advertiser) -> User:
     user = User(
-        mobile="+919876543210",
+        mobile="+919123456789",
         email="advertiser@acme.example",
         hashed_password=hash_password("advertiserpass123"),
         role="advertiser",

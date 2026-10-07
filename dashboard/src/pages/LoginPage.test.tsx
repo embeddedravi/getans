@@ -1,3 +1,4 @@
+import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,7 +11,7 @@ const login = vi.mocked(api.login);
 
 function renderPage() {
     return render(
-        <MemoryRouter initialEntries={["/login"]}>
+        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }} initialEntries={["/login"]}>
             <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/" element={<div>dashboard home</div>} />

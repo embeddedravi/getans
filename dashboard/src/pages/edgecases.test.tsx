@@ -1,3 +1,4 @@
+import "@testing-library/jest-dom/vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -24,11 +25,11 @@ vi.mock("../components/CreativesModal", () => ({
 }));
 vi.mock("../lib/api", () => ({
     api: {
-        me: vi.fn(),
         listCampaigns: vi.fn(),
         createCampaign: vi.fn(),
         updateCampaign: vi.fn(),
         deleteCampaign: vi.fn(),
+        me: vi.fn(),
         listPublishers: vi.fn(),
         listAdUnits: vi.fn(),
         createPublisher: vi.fn(),
@@ -53,11 +54,14 @@ const publisher = (id: number, name: string): Publisher => ({
 const adUnit = (id: number, publisher_id: number, slot_name: string): AdUnit => ({
     id, publisher_id, slot_name, description: null, format_type: "display", width: 300, height: 250,
     reserve_price: 0, is_active: true, allow_house_ads: true, settings: null,
+    status: "pending_review",
     created_at: "2026-09-01T00:00:00Z",
 });
 
 beforeEach(() => {
     vi.resetAllMocks();
+    mocked.me.mockResolvedValue({ role: "admin" });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
 });
 
 describe("CampaignsPage edge cases", () => {

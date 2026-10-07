@@ -89,10 +89,31 @@ async def test_register_duplicate_mobile_conflicts(client, admin_user):
 
 @pytest.mark.asyncio
 async def test_register_requires_admin(client, advertiser_user):
-    headers = await auth_headers(client, "9123456780", "advertiserpass123")
+    headers = await auth_headers(client, "9123456789", "advertiserpass123")
     res = await client.post(
         "/api/auth/register",
         json={"mobile": "9811122333", "password": "newuserpass1", "role": "admin"},
         headers=headers,
     )
     assert res.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_password_reset_requires_valid_otp_and_updates_credentials(client, admin_user, monkeypatch):
+    async def invalid_otp(db, mobile, code):
+        return False
+
+    monkeypatch.setattr("app.api.auth.verify_otp", invalid_otp)
+    payload = {"mobile": "9876543210", "code": "123456", "password": "newpassword1"}
+    rejected = await client.post("/api/auth/forgot-password/reset", json=payload)
+    assert rejected.status_code == 400
+
+    async def valid_otp(db, mobile, code):
+        assert mobile == "+919876543210"
+        return True
+
+    monkeypatch.setattr("app.api.auth.verify_otp", valid_otp)
+    reset = await client.post("/api/auth/forgot-password/reset", json=payload)
+    assert reset.status_code == 200
+    login = await client.post("/api/auth/login", json={"mobile": "9876543210", "password": "newpassword1"})
+    assert login.status_code == 200

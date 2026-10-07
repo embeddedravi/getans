@@ -1,3 +1,4 @@
+import "@testing-library/jest-dom/vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -16,6 +17,7 @@ vi.mock("../components/Layout", () => ({
 }));
 vi.mock("../lib/api", () => ({
     api: {
+        me: vi.fn(),
         listPublishers: vi.fn(),
         listAdUnits: vi.fn(),
         createPublisher: vi.fn(),
@@ -53,6 +55,7 @@ const adUnit = (o: Partial<AdUnit> = {}): AdUnit => ({
     reserve_price: 0.5,
     is_active: true,
     allow_house_ads: true,
+    status: "pending_review",
     settings: null,
     created_at: "2026-09-01T00:00:00Z",
     ...o,
@@ -65,6 +68,8 @@ async function selectPublisher() {
 
 beforeEach(() => {
     vi.resetAllMocks();
+    mocked.me.mockResolvedValue({ role: "admin" });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
     mocked.listPublishers.mockResolvedValue([publisher()]);
     mocked.listAdUnits.mockResolvedValue([adUnit()]);
 });
@@ -94,12 +99,12 @@ describe("publisher list and detail", () => {
         expect(mocked.listAdUnits).toHaveBeenCalledWith(1);
         expect(screen.getByText("pub_live_abc123")).toBeInTheDocument();
         expect(screen.getByText(/Payout: pay@example\.com · 70% share/)).toBeInTheDocument();
-        expect(screen.getByText("$12.50 unpaid")).toBeInTheDocument();
+        expect(screen.getByText("₹12.50 unpaid")).toBeInTheDocument();
         expect(screen.getByText("ads.txt verified")).toBeInTheDocument();
         expect(screen.getByText("example.com · News")).toBeInTheDocument();
         expect(await screen.findByText("sidebar-300x250")).toBeInTheDocument();
         expect(screen.getByText("300×250")).toBeInTheDocument();
-        expect(screen.getByText("$0.5000")).toBeInTheDocument();
+        expect(screen.getByText("₹0.5000")).toBeInTheDocument();
     });
 
     it("renders a dash for a zero reserve price and an empty slot state", async () => {

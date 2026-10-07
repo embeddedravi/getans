@@ -1,6 +1,7 @@
+import "@testing-library/jest-dom/vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../lib/api";
 import type { Publisher } from "../types";
 import { fill, submitForm } from "../tests/utils";
@@ -16,6 +17,7 @@ vi.mock("../components/Layout", () => ({
 }));
 vi.mock("../lib/api", () => ({
     api: {
+        me: vi.fn(),
         listPublishers: vi.fn(),
         listAdUnits: vi.fn(),
         createPublisher: vi.fn(),
@@ -43,9 +45,13 @@ const publisher: Publisher = {
 
 beforeEach(() => {
     vi.resetAllMocks();
+    mocked.me.mockResolvedValue({ role: "admin" });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
     mocked.listPublishers.mockResolvedValue([publisher]);
     mocked.listAdUnits.mockResolvedValue([]);
 });
+
+afterEach(() => vi.restoreAllMocks());
 
 describe("PublishersPage gaps", () => {
     it("uses a generic message when creating a publisher rejects with a non-Error", async () => {

@@ -1,3 +1,4 @@
+import "@testing-library/jest-dom/vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -54,6 +55,7 @@ const campaign = (o: Partial<Campaign> = {}): Campaign => ({
 
 beforeEach(() => {
     vi.resetAllMocks();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
     mocked.me.mockResolvedValue({ role: "admin" });
     mocked.listCampaigns.mockResolvedValue([campaign()]);
 });
@@ -69,9 +71,9 @@ describe("campaign list", () => {
 
         expect(await screen.findByText("Autumn sale")).toBeInTheDocument();
         expect(screen.getByText("active")).toBeInTheDocument();
-        expect(screen.getByText("CPM · $1.5000")).toBeInTheDocument();
+        expect(screen.getByText("CPM · ₹1.5000")).toBeInTheDocument();
         expect(screen.getByText("No daily cap")).toBeInTheDocument();
-        expect(screen.getByText("$0.00 spent")).toBeInTheDocument();
+        expect(screen.getByText("₹0.00 spent")).toBeInTheDocument();
         expect(screen.getByText(/Ongoing/)).toBeInTheDocument();
         expect(screen.getByText("1 campaign")).toBeInTheDocument();
     });
@@ -82,8 +84,8 @@ describe("campaign list", () => {
         ]);
         render(<CampaignsPage />);
 
-        expect(await screen.findByText("$25.00/day")).toBeInTheDocument();
-        expect(screen.getByText("$12.50 / $100.00 total")).toBeInTheDocument();
+        expect(await screen.findByText("₹25.00/day")).toBeInTheDocument();
+        expect(screen.getByText("₹12.50 / ₹100.00 total")).toBeInTheDocument();
     });
 
     it("shows an empty state", async () => {
@@ -98,7 +100,7 @@ describe("campaign list", () => {
 describe("row actions", () => {
     it("toggles active/paused and reloads", async () => {
         render(<CampaignsPage />);
-        fireEvent.click(await screen.findByTitle("Toggle active/paused"));
+        fireEvent.click(await screen.findByRole("button", { name: "Pause" }));
 
         await waitFor(() => expect(mocked.updateCampaign).toHaveBeenCalledWith(1, { is_active: false }));
         await waitFor(() => expect(mocked.listCampaigns).toHaveBeenCalledTimes(2));

@@ -4,14 +4,19 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from app.models.ad_unit import AdUnit
-from app.models.campaign import Campaign
-from app.models.creative import Creative
+from app.models.ad_unit import AdUnit, AdUnitStatus
+from app.models.advertiser import AccountStatus
+from app.models.campaign import Campaign, CampaignStatus
+from app.models.creative import Creative, ReviewStatus
+from app.models.publisher import PublisherStatus
 from app.services.ad_selector import NoEligibleCampaignError, RequestContext, select_ad, _spend_cache
 
 
 async def _make_ad_unit(db, publisher, width=300, height=250) -> AdUnit:
-    unit = AdUnit(publisher_id=publisher.id, slot_name="test-slot", width=width, height=height)
+    publisher.status = PublisherStatus.ACTIVE
+    publisher.is_active = True
+    unit = AdUnit(publisher_id=publisher.id, slot_name="test-slot", width=width, height=height,
+                  status=AdUnitStatus.APPROVED)
     db.add(unit)
     await db.commit()
     await db.refresh(unit)
@@ -29,10 +34,12 @@ async def _make_campaign(
     width=300,
     height=250,
 ) -> Campaign:
+    advertiser.status = AccountStatus.ACTIVE
     now = datetime.now(timezone.utc)
     campaign = Campaign(
         advertiser_id=advertiser.id,
         name=f"Campaign p{priority}",
+        status=CampaignStatus.ACTIVE,
         is_active=is_active,
         priority=priority,
         daily_cap=daily_cap,
@@ -50,9 +57,12 @@ async def _make_campaign(
         click_url="https://advertiser.example.com",
         width=width,
         height=height,
+        review_status=ReviewStatus.APPROVED,
     )
+    campaign.creatives.append(creative)
     db.add(creative)
     await db.commit()
+    await db.refresh(creative)
 
     return campaign
 

@@ -67,7 +67,7 @@ async def test_missing_or_malformed_auth_refused(ns, users, auth):
 @pytest.mark.asyncio
 async def test_token_signed_with_wrong_secret_refused(ns, users):
     users[1] = make_user(1, UserRole.ADMIN)
-    bad = jwt.encode({"sub": "1", "exp": time.time() + 60}, "other-secret", algorithm="HS256")
+    bad = jwt.encode({"sub": "1", "exp": time.time() + 60}, "other-secret-" + "x" * 40, algorithm="HS256")
     with pytest.raises(ConnectionRefusedError):
         await ns.on_connect(SID, {}, {"token": bad})
 

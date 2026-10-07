@@ -11,3 +11,4 @@ backend/alembic.ini
 backend/*.egg-info/
 dashboard/dist
 dashboard/*.tsbuildinfo
+dashboard/coverage

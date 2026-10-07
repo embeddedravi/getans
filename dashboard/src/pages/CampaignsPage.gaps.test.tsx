@@ -1,6 +1,7 @@
+import "@testing-library/jest-dom/vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../lib/api";
 import type { Campaign } from "../types";
 import { fill, submitForm } from "../tests/utils";
@@ -56,9 +57,12 @@ const campaign = (o: Partial<Campaign> = {}): Campaign => ({
 
 beforeEach(() => {
     vi.resetAllMocks();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
     mocked.me.mockResolvedValue({ role: "admin" });
     mocked.listCampaigns.mockResolvedValue([campaign()]);
 });
+
+afterEach(() => vi.restoreAllMocks());
 
 describe("CampaignsPage gaps", () => {
     it("closes the creatives modal via its onClose", async () => {
@@ -75,10 +79,7 @@ describe("CampaignsPage gaps", () => {
         mocked.listCampaigns.mockResolvedValue([campaign({ is_active: false })]);
         render(<CampaignsPage />);
 
-        const toggle = await screen.findByTitle("Toggle active/paused");
-
-        expect(toggle).toHaveTextContent("Off");
-        expect(toggle).toHaveClass("badge-ghost");
+        expect(await screen.findByText("Off")).toHaveClass("badge-ghost");
     });
 
     it("shows the formatted end date instead of 'Ongoing' when one is set", async () => {

@@ -1,3 +1,4 @@
+import "@testing-library/jest-dom/vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,7 +11,7 @@ const signup = vi.mocked(api.signup);
 
 function renderPage() {
     return render(
-        <MemoryRouter initialEntries={["/signup"]}>
+        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }} initialEntries={["/signup"]}>
             <Routes>
                 <Route path="/signup" element={<SignupPage />} />
                 <Route path="/verify" element={<div>verify page</div>} />

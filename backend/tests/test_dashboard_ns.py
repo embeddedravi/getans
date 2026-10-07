@@ -107,6 +107,13 @@ async def test_admin_joins_admin_room(ns, users):
 
 
 @pytest.mark.asyncio
+async def test_staff_joins_isolated_room(ns, users):
+    users[4] = make_user(4, UserRole.STAFF)
+    await ns.on_connect(SID, {}, {"token": token_for(users[4])})
+    assert ns.joined == ["staff"]
+
+
+@pytest.mark.asyncio
 async def test_advertiser_joins_own_room_only(ns, users):
     users[2] = make_user(2, UserRole.ADVERTISER, advertiser_id=3)
     await ns.on_connect(SID, {}, {"token": token_for(users[2])})

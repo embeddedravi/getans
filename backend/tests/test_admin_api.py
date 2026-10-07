@@ -80,6 +80,8 @@ async def test_staff_can_review_but_cannot_use_admin_only_controls(client, db, p
     db.add(staff)
     await db.commit()
     headers = await auth_headers(client, staff.mobile, "staffpass1")
+    pending = await client.get("/api/admin/approvals/pending", headers=headers)
+    assert pending.status_code == 200, pending.text
     review = await client.patch(f"/api/admin/publishers/{publisher.id}/review", json={"status": "active"}, headers=headers)
     assert review.status_code == 200
     assert (await client.get("/api/admin/users", headers=headers)).status_code == 403

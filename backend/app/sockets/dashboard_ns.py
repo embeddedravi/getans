@@ -7,6 +7,7 @@ re-loaded from the database (roles in the token are not trusted) and placed
 in a room scoped to their account:
 
     admin       -> "admin"                 (sees every event)
+    staff       -> "staff"                 (no metric/event feed)
     advertiser  -> "advertiser:{id}"       (events for their campaigns)
     publisher   -> "publisher:{id}"        (events for their ad units)
 
@@ -36,6 +37,7 @@ logger = logging.getLogger(__name__)
 _sio: socketio.AsyncServer | None = None
 
 ADMIN_ROOM = "admin"
+STAFF_ROOM = "staff"
 
 
 def advertiser_room(advertiser_id: int) -> str:
@@ -49,6 +51,10 @@ def publisher_room(publisher_id: int) -> str:
 def _rooms_for(user: User) -> list[str]:
     if user.role == UserRole.ADMIN:
         return [ADMIN_ROOM]
+    # Staff need an authenticated dashboard connection for the shared layout,
+    # but must not receive the admin-only event feed or account metrics.
+    if user.role == UserRole.STAFF:
+        return [STAFF_ROOM]
     if user.role == UserRole.ADVERTISER and user.advertiser_id is not None:
         return [advertiser_room(user.advertiser_id)]
     if user.role == UserRole.PUBLISHER and user.publisher_id is not None:

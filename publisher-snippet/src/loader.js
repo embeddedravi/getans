@@ -97,6 +97,14 @@
     }
   }
 
+  function createEventId() {
+    if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (char) {
+      var random = Math.random() * 16 | 0;
+      return (char === "x" ? random : (random & 3 | 8)).toString(16);
+    });
+  }
+
   function addReportControl(frame, socket, adUnitId, ad) {
     if (!ad.creative_id) return;
 
@@ -215,12 +223,16 @@
       rendered.link.addEventListener("click", function () {
         socket.emit("click", {
           ad_unit_id: adUnitId,
-          creative_id: ad.creative_id
+          creative_id: ad.creative_id,
+          visitor_id: getVisitorId(),
+          event_id: createEventId()
         });
       });
       socket.emit("impression", {
         ad_unit_id: adUnitId,
-        creative_id: ad.creative_id
+        creative_id: ad.creative_id,
+        visitor_id: getVisitorId(),
+        event_id: createEventId()
       });
       addReportControl(rendered.frame, socket, adUnitId, ad);
     }

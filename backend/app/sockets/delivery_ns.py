@@ -61,6 +61,9 @@ class DeliveryNamespace(socketio.AsyncNamespace):
             device_type=data.get("context", {}).get("device_type"),
             page_keywords=data.get("context", {}).get("page_keywords"),
         )
+        session = await self.get_session(sid)
+        session["country_code"] = _normalize_country(context.country)
+        await self.save_session(sid, session)
 
         async for db in get_session():
             await self._serve(db, sid, ad_unit_id, context)
@@ -93,18 +96,53 @@ class DeliveryNamespace(socketio.AsyncNamespace):
         )
 
     async def on_impression(self, sid: str, data: dict) -> None:
+        metadata = await self._event_metadata(sid, data)
         await record_event(
             event_type="impression",
             ad_unit_id=data.get("ad_unit_id"),
             creative_id=data.get("creative_id"),
+            event_id=data.get("event_id"),
+            visitor_id=data.get("visitor_id"),
+            **metadata,
         )
 
     async def on_click(self, sid: str, data: dict) -> None:
+        metadata = await self._event_metadata(sid, data)
         await record_event(
             event_type="click",
             ad_unit_id=data.get("ad_unit_id"),
             creative_id=data.get("creative_id"),
+            event_id=data.get("event_id"),
+            visitor_id=data.get("visitor_id"),
+            **metadata,
         )
+
+    async def _event_metadata(self, sid: str, data: dict) -> dict[str, str | None]:
+        """Extract client metadata from the socket request and ad request context."""
+        environ = self.server.get_environ(sid, namespace=self.namespace) or {}
+        session = await self.get_session(sid)
+        country = _normalize_country(
+            data.get("country_code")
+            or session.get("country_code")
+            or environ.get("HTTP_CF_IPCOUNTRY")
+            or environ.get("HTTP_CLOUDFRONT_VIEWER_COUNTRY")
+            or environ.get("HTTP_X_COUNTRY_CODE")
+            or environ.get("GEOIP_COUNTRY_CODE")
+        )
+
+        user_ip = environ.get("REMOTE_ADDR")
+        if isinstance(user_ip, str):
+            user_ip = user_ip.strip()[:45] or None
+        else:
+            user_ip = None
+
+        user_agent = environ.get("HTTP_USER_AGENT")
+        if isinstance(user_agent, str):
+            user_agent = user_agent[:512] or None
+        else:
+            user_agent = None
+
+        return {"user_ip": user_ip, "user_agent": user_agent, "country_code": country}
 
     async def on_report_ad(self, sid: str, data: dict) -> dict:
         """Record one report per distinct visitor in the current review round."""
@@ -201,6 +239,13 @@ class DeliveryNamespace(socketio.AsyncNamespace):
             }
 
         return {"ok": False, "message": "Could not record the report."}
+
+
+def _normalize_country(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    country = value.strip().upper()
+    return country if len(country) == 2 and country.isalpha() else None
 
 
 def register_delivery_namespace(sio: socketio.AsyncServer) -> None:

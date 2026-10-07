@@ -50,6 +50,9 @@ class Event(Base):
         nullable=True,
         index=True,
     )
+    # Hashed anonymous visitor + ad unit + event type + UTC day. A unique
+    # constraint makes repeat suppression safe across concurrent workers.
+    dedupe_key: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
 
     # Foreign Keys to Ad Serving Entities
     ad_unit_id: Mapped[int] = mapped_column(
@@ -115,6 +118,7 @@ class Event(Base):
     # Composite Indexes for Analytics & Aggregation Pipelines
     __table_args__ = (
         CheckConstraint("cost >= 0.000000", name="check_positive_event_cost"),
+        Index("uq_events_dedupe_key", "dedupe_key", unique=True),
         # Index for time-range reporting per campaign
         Index("ix_events_campaign_time", "campaign_id", "type", "timestamp"),
         # Index for time-range reporting per ad unit (publisher payouts)

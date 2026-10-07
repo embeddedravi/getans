@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Dict, Optional
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select
 
 from app.db.session import async_session_factory
@@ -29,8 +31,10 @@ async def record_event(
     user_ip: Optional[str] = None,
     user_agent: Optional[str] = None,
     event_id: Optional[str] = None,
+    country_code: Optional[str] = None,
+    visitor_id: Optional[str] = None,
 ) -> None:
-    """Records an impression or click event and updates campaign spend."""
+    """Records a billable event once per visitor, ad unit, event type, and UTC day."""
     if isinstance(event_type, str):
         try:
             enum_event_type = EventType(event_type)
@@ -43,6 +47,12 @@ async def record_event(
         raise ValueError(f"Unsupported tracking cost type: {enum_event_type}")
 
     cost = _COST_PER_EVENT[enum_event_type]
+    timestamp = datetime.now(timezone.utc)
+    dedupe_key = None
+    if isinstance(visitor_id, str) and 1 <= len(visitor_id) <= 128:
+        visitor_hash = hashlib.sha256(visitor_id.encode("utf-8")).hexdigest()
+        identity = f"{visitor_hash}:{ad_unit_id}:{enum_event_type.value}:{timestamp:%Y-%m-%d}"
+        dedupe_key = hashlib.sha256(identity.encode("utf-8")).hexdigest()
 
     async with async_session_factory() as db:
         campaign_id, advertiser_id = await _campaign_for_creative(db, creative_id)
@@ -50,6 +60,7 @@ async def record_event(
 
         event = Event(
             event_id=event_id,
+            dedupe_key=dedupe_key,
             ad_unit_id=ad_unit_id,
             campaign_id=campaign_id,
             creative_id=creative_id,
@@ -58,10 +69,17 @@ async def record_event(
             is_valid=True,
             user_ip=user_ip,
             user_agent=user_agent,
-            timestamp=datetime.now(timezone.utc),
+            country_code=country_code,
+            timestamp=timestamp,
         )
         db.add(event)
-        await db.commit()
+        try:
+            await db.commit()
+        except IntegrityError:
+            # Duplicate event_id (retry) or visitor/day dedupe key. Do not
+            # charge budget or emit dashboard metrics for either duplicate.
+            await db.rollback()
+            return
 
     record_spend(campaign_id, cost)
     await _emit_dashboard_update(

@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter }  from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../lib/api";
 import { Sidebar } from "./Sidebar";
@@ -15,7 +15,7 @@ beforeEach(() => {
 
 const renderAt = (path: string) =>
     render(
-        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }} initialEntries={[path]}>
+        <MemoryRouter  initialEntries={[path]}>
             <Sidebar />
         </MemoryRouter>
     );

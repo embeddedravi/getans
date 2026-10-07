@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { act, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter }  from "react-router-dom";
 import { api } from "../lib/api";
 import { subscribeToMetrics } from "../lib/socket";
 import type { MetricUpdate } from "../types";
@@ -29,7 +29,7 @@ const currentUser = vi.mocked(api.me);
 const pendingApprovals = vi.mocked(api.listPendingApprovals);
 const subscribe = vi.mocked(subscribeToMetrics);
 
-const renderPage = () => render(<MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><AnalyticsPage /></MemoryRouter>);
+const renderPage = () => render(<MemoryRouter ><AnalyticsPage /></MemoryRouter>);
 
 const STATS = [
     { campaign_id: 1, campaign_name: "Autumn sale", impressions: 1000, clicks: 100, ctr: 10 },

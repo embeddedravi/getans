@@ -11,7 +11,7 @@ const login = vi.mocked(api.login);
 
 function renderPage() {
     return render(
-        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }} initialEntries={["/login"]}>
+        <MemoryRouter initialEntries={["/login"]}>
             <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/" element={<div>dashboard home</div>} />

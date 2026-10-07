@@ -11,7 +11,7 @@ const signup = vi.mocked(api.signup);
 
 function renderPage() {
     return render(
-        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }} initialEntries={["/signup"]}>
+        <MemoryRouter  initialEntries={["/signup"]}>
             <Routes>
                 <Route path="/signup" element={<SignupPage />} />
                 <Route path="/verify" element={<div>verify page</div>} />

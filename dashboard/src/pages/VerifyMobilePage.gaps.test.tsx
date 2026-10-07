@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter }  from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../lib/api";
 import { fill, submitForm } from "../tests/utils";
@@ -14,7 +14,7 @@ const MOBILE = "98765 43210";
 
 function renderPage() {
     return render(
-        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <MemoryRouter >
             <VerifyMobilePage />
         </MemoryRouter>
     );

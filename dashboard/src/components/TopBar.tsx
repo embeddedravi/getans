@@ -7,6 +7,14 @@ interface TopBarProps {
 
 export function TopBar({ title }: TopBarProps) {
   const [connected, setConnected] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">(() =>
+    localStorage.getItem("dashboard-theme") === "dark" ? "dark" : "light",
+  );
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("dashboard-theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     const socket = getDashboardSocket();
@@ -40,6 +48,23 @@ export function TopBar({ title }: TopBarProps) {
       </div>
 
       <div className="flex shrink-0 items-center gap-2 text-xs sm:text-sm">
+        <button
+          type="button"
+          className="btn btn-ghost btn-square btn-sm"
+          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} theme`}
+          title={`Switch to ${theme === "light" ? "dark" : "light"} theme`}
+          onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+        >
+          {theme === "light" ? (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364 6.364-1.414-1.414M7.05 7.05 5.636 5.636m12.728 0-1.414 1.414M7.05 16.95l-1.414 1.414M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          )}
+        </button>
         <span
           className={`h-2 w-2 rounded-full ${
             connected ? "bg-warning live-dot" : "bg-neutral-content/40"

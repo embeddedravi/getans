@@ -1,0 +1,11 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark;
+}
+
+@layer utilities {
+  [data-theme="light"] .text-neutral-content,
+  [data-theme="light"] [class*="text-neutral-content/"] {
+    color: color-mix(in oklab, var(--color-base-content) 65%, transparent);
+  }
+}

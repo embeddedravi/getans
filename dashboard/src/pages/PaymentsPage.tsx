@@ -64,7 +64,7 @@ export function PaymentsPage() {
     <div className="space-y-5">
       <div>
         <h2 className="text-lg font-semibold">Publisher payouts</h2>
-        <p className="text-sm text-neutral-content">Review payout requests and record their status.</p>
+        <p className="text-sm ">Review payout requests and record their status.</p>
       </div>
       {error && <div role="alert" className="alert alert-error py-2 text-sm">{error}</div>}
       <div role="tablist" aria-label="Filter payouts" className="tabs tabs-bordered flex-wrap">
@@ -73,7 +73,7 @@ export function PaymentsPage() {
           {item.label}
         </button>)}
       </div>
-      {payments.length === 0 ? <div className="rounded border border-base-300 bg-base-200 p-8 text-center text-sm text-neutral-content">
+      {payments.length === 0 ? <div className="rounded border border-base-300 bg-base-200 p-8 text-center text-sm ">
         No payouts found.
       </div> : <div className="overflow-x-auto rounded border border-base-300 bg-base-200">
         <table className="table">
@@ -83,7 +83,7 @@ export function PaymentsPage() {
             const busy = busyId === payment.id;
             return <tr key={payment.id}>
               <td className="font-mono text-xs">#{payment.id}</td>
-              <td><div>Publisher #{payment.publisher_id}</div><div className="text-xs text-neutral-content">{payment.payout_email}</div></td>
+              <td><div>Publisher #{payment.publisher_id}</div><div className="text-xs ">{payment.payout_email}</div></td>
               <td className="font-medium">₹{Number(payment.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
               <td>{payment.payment_method?.replace(/_/g, " ") || "—"}</td>
               <td><span className={`badge ${statusStyle[payment.status]}`}>{payment.status}</span></td>
@@ -94,7 +94,7 @@ export function PaymentsPage() {
                   {payment.status === "pending" && <button className="btn btn-outline btn-info btn-xs" disabled={busy} onClick={() => void setStatus(payment, "processing")}>Processing</button>}
                   <button className="btn btn-error btn-outline btn-xs" disabled={busy} onClick={() => void setStatus(payment, "cancelled")}>Cancel</button>
                 </>}
-                {!open && payment.reference && <span className="text-xs text-neutral-content">Ref: {payment.reference}</span>}
+                {!open && payment.reference && <span className="text-xs ">Ref: {payment.reference}</span>}
               </div></td>
             </tr>;
           })}</tbody>

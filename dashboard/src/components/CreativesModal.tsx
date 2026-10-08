@@ -79,7 +79,7 @@ export function CreativesModal({
                 <div className="flex justify-between items-start mb-4">
                     <div>
                         <h2 className="font-display text-lg font-semibold">Creatives</h2>
-                        <p className="text-xs text-neutral-content">{campaign.name}</p>
+                        <p className="text-xs ">{campaign.name}</p>
                     </div>
                     <button onClick={onClose} className="btn btn-ghost btn-sm">Close</button>
                 </div>
@@ -93,7 +93,7 @@ export function CreativesModal({
                 <div className="mb-5 overflow-x-auto rounded border border-base-300">
                     <table className="table">
                         <thead>
-                            <tr className="text-xs text-neutral-content border-b border-base-300">
+                            <tr className="text-xs  border-b border-base-300">
                                 <th>Preview</th>
                                 <th>Details</th>
                                 <th>Review</th>
@@ -102,9 +102,9 @@ export function CreativesModal({
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan={4} className="text-center text-sm text-neutral-content py-6">Loading...</td></tr>
+                                <tr><td colSpan={4} className="text-center text-sm  py-6">Loading...</td></tr>
                             ) : creatives.length === 0 ? (
-                                <tr><td colSpan={4} className="text-center text-sm text-neutral-content py-6">
+                                <tr><td colSpan={4} className="text-center text-sm  py-6">
                                     No creatives yet. This campaign can't serve until it has an approved one.
                                 </td></tr>
                             ) : (
@@ -115,8 +115,8 @@ export function CreativesModal({
                                         </td>
                                         <td className="text-xs">
                                             <div className="font-medium text-sm">{c.name || `Creative #${c.id}`}</div>
-                                            <div className="tabular text-neutral-content">{c.width}×{c.height}</div>
-                                            <a href={c.click_url} target="_blank" rel="noopener noreferrer" className="link text-neutral-content truncate block max-w-[200px]">
+                                            <div className="tabular ">{c.width}×{c.height}</div>
+                                            <a href={c.click_url} target="_blank" rel="noopener noreferrer" className="link  truncate block max-w-[200px]">
                                                 {c.click_url}
                                             </a>
                                         </td>
@@ -169,7 +169,7 @@ export function CreativesModal({
                         <input required type="number" min={1} value={width} onChange={(e) => setWidth(e.target.value)} placeholder="Width" className="input input-bordered input-sm bg-base-100" />
                         <input required type="number" min={1} value={height} onChange={(e) => setHeight(e.target.value)} placeholder="Height" className="input input-bordered input-sm bg-base-100" />
                     </div>
-                    <p className="text-xs text-neutral-content">
+                    <p className="text-xs ">
                         Width and height must exactly match an ad slot's dimensions for this creative to be selected.
                     </p>
                     <div className="flex justify-end">

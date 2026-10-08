@@ -51,7 +51,7 @@ export function AdminPublishersPage() {
 
   return <Layout title="Manage publishers">
     <div className="space-y-4">
-      <p className="text-sm text-neutral-content">Review publisher accounts and manage their status, payout details, and inventory settings.</p>
+      <p className="text-sm ">Review publisher accounts and manage their status, payout details, and inventory settings.</p>
       {error && <div role="alert" className="alert alert-error py-2 text-sm">{error}</div>}
       <div className="overflow-x-auto rounded border border-base-300 bg-base-200">
         <table className="table">
@@ -60,8 +60,8 @@ export function AdminPublishersPage() {
             {publishers.map((publisher) => <tr key={publisher.id}>
               <td>
                 <div className="font-medium">{publisher.name}</div>
-                <a className="text-xs link link-hover text-neutral-content" href={publisher.site_url} target="_blank" rel="noreferrer">{publisher.site_url}</a>
-                <div className="text-xs text-neutral-content">#{publisher.id}{publisher.domain ? ` · ${publisher.domain}` : ""}</div>
+                <a className="text-xs link link-hover " href={publisher.site_url} target="_blank" rel="noreferrer">{publisher.site_url}</a>
+                <div className="text-xs ">#{publisher.id}{publisher.domain ? ` · ${publisher.domain}` : ""}</div>
               </td>
               <td>{publisher.payout_email}</td>
               <td className="tabular">{Number(publisher.revenue_share_percentage).toFixed(2)}%</td>
@@ -79,7 +79,7 @@ export function AdminPublishersPage() {
                 {(publisher.status === "suspended" || publisher.status === "rejected") && <button disabled={busy === publisher.id} className="btn btn-success btn-xs" onClick={() => void setStatus(publisher, "active")}>Activate</button>}
               </div></td>
             </tr>)}
-            {publishers.length === 0 && <tr><td colSpan={6} className="py-8 text-center text-sm text-neutral-content">No publishers found.</td></tr>}
+            {publishers.length === 0 && <tr><td colSpan={6} className="py-8 text-center text-sm ">No publishers found.</td></tr>}
           </tbody>
         </table>
       </div>

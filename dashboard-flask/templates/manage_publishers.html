@@ -4,7 +4,7 @@
 {% block page_title %}Manage publishers{% endblock %}
 {% block content %}
 <div class="space-y-4">
-  <p class="text-sm text-neutral-content">Review publisher accounts and manage their payout details and status.</p>
+  <p class="text-sm ">Review publisher accounts and manage their payout details and status.</p>
   <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-200">
     <table class="table w-full">
       <thead><tr><th>Publisher</th><th>Payout email</th><th>Revenue share</th><th>Unpaid earnings</th><th>Status</th><th>Actions</th></tr></thead>
@@ -12,7 +12,7 @@
         {% for publisher in publishers %}
           {% set status_class = {'pending_approval': 'badge-warning', 'active': 'badge-success', 'suspended': 'badge-error', 'rejected': 'badge-ghost'} %}
           <tr>
-            <td><div class="font-medium">{{ publisher.name }}</div><a class="link link-hover text-xs text-neutral-content" href="{{ publisher.site_url }}" target="_blank" rel="noreferrer">{{ publisher.site_url }}</a><div class="text-xs text-neutral-content">#{{ publisher.id }}{% if publisher.domain %} · {{ publisher.domain }}{% endif %}</div></td>
+            <td><div class="font-medium">{{ publisher.name }}</div><a class="link link-hover text-xs " href="{{ publisher.site_url }}" target="_blank" rel="noreferrer">{{ publisher.site_url }}</a><div class="text-xs ">#{{ publisher.id }}{% if publisher.domain %} · {{ publisher.domain }}{% endif %}</div></td>
             <td>{{ publisher.payout_email }}</td>
             <td class="tabular-nums">{{ '%.2f'|format(publisher.revenue_share_percentage|float) }}%</td>
             <td class="tabular-nums">₹{{ '%.2f'|format(publisher.unpaid_earnings|float) }}</td>
@@ -29,7 +29,7 @@
             </div></td>
           </tr>
         {% else %}
-          <tr><td colspan="6" class="py-8 text-center text-sm text-neutral-content">No publishers found.</td></tr>
+          <tr><td colspan="6" class="py-8 text-center text-sm ">No publishers found.</td></tr>
         {% endfor %}
       </tbody>
     </table>

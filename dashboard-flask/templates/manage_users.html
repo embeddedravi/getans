@@ -5,8 +5,8 @@
 {% block content %}
 <div class="space-y-4">
   <div>
-    <p class="text-sm text-neutral-content">Manage dashboard roles, tenant access, and account status.</p>
-    <p class="mt-1 text-xs text-neutral-content">Superuser accounts and your own role or status are protected.</p>
+    <p class="text-sm ">Manage dashboard roles, tenant access, and account status.</p>
+    <p class="mt-1 text-xs ">Superuser accounts and your own role or status are protected.</p>
   </div>
 
   <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-200">
@@ -21,9 +21,9 @@
             <td class="min-w-52">
               {% set full_name = [user.first_name, user.last_name] | select | join(' ') %}
               <div class="font-medium">{{ full_name or ('User #' ~ user.id) }}</div>
-              {% if user.mobile %}<div class="text-xs text-neutral-content">{{ user.mobile }}</div>{% endif %}
-              {% if user.email %}<div class="text-xs text-neutral-content">{{ user.email }}</div>{% endif %}
-              {% if not user.mobile and not user.email %}<div class="text-xs text-neutral-content">ID {{ user.id }}</div>{% endif %}
+              {% if user.mobile %}<div class="text-xs ">{{ user.mobile }}</div>{% endif %}
+              {% if user.email %}<div class="text-xs ">{{ user.email }}</div>{% endif %}
+              {% if not user.mobile and not user.email %}<div class="text-xs ">ID {{ user.id }}</div>{% endif %}
               {% if user.is_superuser %}<span class="badge badge-xs badge-warning mt-1">Superuser</span>{% endif %}
             </td>
             <td>
@@ -46,7 +46,7 @@
                   {% for advertiser in advertisers %}<option value="{{ advertiser.id }}" {% if user.advertiser_id == advertiser.id %}selected{% endif %}>{{ advertiser.name }}</option>{% endfor %}
                 </select>
               </div>
-              {% if user.role in ['admin', 'staff'] %}<span class="text-neutral-content">—</span>{% endif %}
+              {% if user.role in ['admin', 'staff'] %}<span class="">—</span>{% endif %}
             </td>
             <td>
               <label class="flex items-center gap-2">
@@ -54,14 +54,14 @@
                 <span class="badge badge-xs {{ 'badge-success' if user.is_active else 'badge-ghost' }}">{{ 'Active' if user.is_active else 'Inactive' }}</span>
               </label>
             </td>
-            <td class="text-xs text-neutral-content">{{ user.last_login_at|replace('T', ' ') if user.last_login_at else 'Never' }}</td>
+            <td class="text-xs ">{{ user.last_login_at|replace('T', ' ') if user.last_login_at else 'Never' }}</td>
             <td>
               <form id="user-form-{{ user.id }}" method="POST" action="{{ url_for('update_managed_user', user_id=user.id) }}"></form>
               <button form="user-form-{{ user.id }}" type="submit" class="btn btn-primary btn-xs" {% if locked %}disabled{% endif %}>Save</button>
             </td>
           </tr>
         {% else %}
-          <tr><td colspan="6" class="py-8 text-center text-sm text-neutral-content">No users found.</td></tr>
+          <tr><td colspan="6" class="py-8 text-center text-sm ">No users found.</td></tr>
         {% endfor %}
       </tbody>
     </table>

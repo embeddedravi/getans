@@ -80,11 +80,10 @@ export function PublishersPage() {
               <li key={p.id}>
                 <button
                   onClick={() => setSelected(p)}
-                  className={`w-full text-left px-4 py-3 text-sm border-b border-base-300 last:border-0 transition-colors ${
-                    selected?.id === p.id
+                  className={`w-full text-left px-4 py-3 text-sm border-b border-base-300 last:border-0 transition-colors ${selected?.id === p.id
                       ? "bg-base-300"
                       : "hover:bg-base-300/50"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium truncate">{p.name}</span>
@@ -92,12 +91,12 @@ export function PublishersPage() {
                       {p.status.replace("_", " ")}
                     </span>
                   </div>
-                  <div className="text-xs text-neutral-content truncate">{p.site_url}</div>
+                  <div className="text-xs  truncate">{p.site_url}</div>
                 </button>
               </li>
             ))}
             {publishers.length === 0 && (
-              <li className="px-4 py-6 text-sm text-neutral-content text-center">
+              <li className="px-4 py-6 text-sm  text-center">
                 No publishers yet.
               </li>
             )}
@@ -106,7 +105,7 @@ export function PublishersPage() {
 
         <div className="border border-base-300 bg-base-200 rounded p-5">
           {!selected ? (
-            <p className="text-sm text-neutral-content">
+            <p className="text-sm ">
               Select a publisher to view their ad slots and API key.
             </p>
           ) : (
@@ -124,7 +123,7 @@ export function PublishersPage() {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-neutral-content mt-1">
+                  <p className="text-xs  mt-1">
                     API key:{" "}
                     <span className="tabular bg-base-300 px-1.5 py-0.5 rounded">
                       {selected.api_key}
@@ -145,7 +144,7 @@ export function PublishersPage() {
                   {isAdmin && selected.status === "rejected" && <div className="mt-3">
                     <button onClick={() => reviewSelectedPublisher("active")} className="btn btn-success btn-xs">Reactivate publisher</button>
                   </div>}
-                  <p className="text-xs text-neutral-content mt-1">
+                  <p className="text-xs  mt-1">
                     Payout: {selected.payout_email} · {Number(selected.revenue_share_percentage)}% share
                     {" · "}
                     <span className="tabular">
@@ -153,7 +152,7 @@ export function PublishersPage() {
                     </span>
                   </p>
                   {(selected.domain || selected.category) && (
-                    <p className="text-xs text-neutral-content mt-1">
+                    <p className="text-xs  mt-1">
                       {[selected.domain, selected.category].filter(Boolean).join(" · ")}
                     </p>
                   )}
@@ -167,43 +166,43 @@ export function PublishersPage() {
               </div>
 
               <div className="overflow-x-auto">
-              <table className="table">
-                <thead>
-                  <tr className="text-xs text-neutral-content border-b border-base-300">
-                    <th>Slot name</th>
-                    <th>Format</th>
-                    <th>Dimensions</th>
-                    <th>Reserve</th>
-                    <th>Status</th>
-                    <th>Ad unit ID</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {adUnits.map((unit) => (
-                    <tr key={unit.id} className="border-b border-base-300 last:border-0">
-                      <td>{unit.slot_name}</td>
-                      <td className="text-xs text-neutral-content">{unit.format_type}</td>
-                      <td className="tabular">
-                        {unit.width}×{unit.height}
-                      </td>
-                      <td className="tabular">
-                        {Number(unit.reserve_price) > 0
-                          ? `₹${Number(unit.reserve_price).toFixed(4)}`
-                          : "—"}
-                      </td>
-                      <td><span className={`badge badge-xs ${unit.status === "approved" ? "badge-success" : unit.status === "rejected" ? "badge-error" : "badge-warning"}`}>{unit.status.replace("_", " ")}</span></td>
-                      <td className="tabular text-neutral-content">{unit.id}</td>
+                <table className="table">
+                  <thead>
+                    <tr className="text-xs  border-b border-base-300">
+                      <th>Slot name</th>
+                      <th>Format</th>
+                      <th>Dimensions</th>
+                      <th>Reserve</th>
+                      <th>Status</th>
+                      <th>Ad unit ID</th>
                     </tr>
-                  ))}
-                  {adUnits.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="text-center text-sm text-neutral-content py-6">
-                        No ad slots yet for this publisher.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {adUnits.map((unit) => (
+                      <tr key={unit.id} className="border-b border-base-300 last:border-0">
+                        <td>{unit.slot_name}</td>
+                        <td className="text-xs ">{unit.format_type}</td>
+                        <td className="tabular">
+                          {unit.width}×{unit.height}
+                        </td>
+                        <td className="tabular">
+                          {Number(unit.reserve_price) > 0
+                            ? `₹${Number(unit.reserve_price).toFixed(4)}`
+                            : "—"}
+                        </td>
+                        <td><span className={`badge badge-xs ${unit.status === "approved" ? "badge-success" : unit.status === "rejected" ? "badge-error" : "badge-warning"}`}>{unit.status.replace("_", " ")}</span></td>
+                        <td className="tabular ">{unit.id}</td>
+                      </tr>
+                    ))}
+                    {adUnits.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="text-center text-sm  py-6">
+                          No ad slots yet for this publisher.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </>
           )}
@@ -276,7 +275,7 @@ function CreatePublisherModal({
         <h2 className="font-display text-lg font-semibold mb-4">Add publisher</h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <label className="block">
-            <span className="block text-xs text-neutral-content mb-1">Name</span>
+            <span className="block text-xs  mb-1">Name</span>
             <input
               required
               minLength={2}
@@ -286,7 +285,7 @@ function CreatePublisherModal({
             />
           </label>
           <label className="block">
-            <span className="block text-xs text-neutral-content mb-1">Site URL</span>
+            <span className="block text-xs  mb-1">Site URL</span>
             <input
               required
               type="url"
@@ -297,7 +296,7 @@ function CreatePublisherModal({
             />
           </label>
           <label className="block">
-            <span className="block text-xs text-neutral-content mb-1">Payout email</span>
+            <span className="block text-xs  mb-1">Payout email</span>
             <input
               required
               type="email"
@@ -309,7 +308,7 @@ function CreatePublisherModal({
           </label>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block">
-              <span className="block text-xs text-neutral-content mb-1">Domain (optional)</span>
+              <span className="block text-xs  mb-1">Domain (optional)</span>
               <input
                 value={domain}
                 onChange={(e) => setDomain(e.target.value)}
@@ -318,7 +317,7 @@ function CreatePublisherModal({
               />
             </label>
             <label className="block">
-              <span className="block text-xs text-neutral-content mb-1">Category (optional)</span>
+              <span className="block text-xs  mb-1">Category (optional)</span>
               <input
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
@@ -391,7 +390,7 @@ function CreateAdUnitModal({
         <h2 className="font-display text-lg font-semibold mb-4">New ad slot</h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <label className="block">
-            <span className="block text-xs text-neutral-content mb-1">Slot name</span>
+            <span className="block text-xs  mb-1">Slot name</span>
             <input
               required
               value={slotName}
@@ -401,7 +400,7 @@ function CreateAdUnitModal({
             />
           </label>
           <label className="block">
-            <span className="block text-xs text-neutral-content mb-1">Format</span>
+            <span className="block text-xs  mb-1">Format</span>
             <select
               value={formatType}
               onChange={(e) => setFormatType(e.target.value as AdFormatType)}
@@ -416,7 +415,7 @@ function CreateAdUnitModal({
           </label>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block">
-              <span className="block text-xs text-neutral-content mb-1">Width</span>
+              <span className="block text-xs  mb-1">Width</span>
               <input
                 type="number"
                 min={1}
@@ -426,7 +425,7 @@ function CreateAdUnitModal({
               />
             </label>
             <label className="block">
-              <span className="block text-xs text-neutral-content mb-1">Height</span>
+              <span className="block text-xs  mb-1">Height</span>
               <input
                 type="number"
                 min={1}
@@ -437,7 +436,7 @@ function CreateAdUnitModal({
             </label>
           </div>
           <label className="block">
-            <span className="block text-xs text-neutral-content mb-1">
+            <span className="block text-xs  mb-1">
               Reserve price (CPM floor, ₹, optional)
             </span>
             <input

@@ -96,7 +96,7 @@ export function AnalyticsPage() {
             <h2 className="font-display text-2xl font-semibold">
               {role === "admin" ? "Platform overview" : role === "staff" ? "Review queue overview" : role === "publisher" ? "Your inventory & earnings" : "Your campaign performance"}
             </h2>
-            <p className="mt-1 text-sm text-neutral-content">
+            <p className="mt-1 text-sm ">
               {role === "admin" ? "Monitor delivery and keep new accounts moving." : role === "staff" ? "Review new accounts and ad units waiting for approval." : role === "publisher" ? "Manage your sites and ad slots, then track your unpaid earnings." : "Track delivery and manage the campaigns you run on the network."}
             </p>
           </div>
@@ -110,7 +110,7 @@ export function AnalyticsPage() {
           <StatPanel label="Unpaid earnings" value={publishers.reduce((total, publisher) => total + Number(publisher.unpaid_earnings || 0), 0)} accent="text-success" prefix="₹" decimals />
           <div className="sm:col-span-2 rounded border border-base-300 bg-base-200 p-5">
             <h2 className="font-display text-base font-semibold">Get your inventory ready</h2>
-            <p className="mt-2 text-sm text-neutral-content">Add your site and create ad slots to make your inventory available for review.</p>
+            <p className="mt-2 text-sm ">Add your site and create ad slots to make your inventory available for review.</p>
             <Link className="btn btn-outline btn-sm mt-4" to="/publishers">Open sites & slots</Link>
           </div>
         </div>
@@ -119,7 +119,7 @@ export function AnalyticsPage() {
           <StatPanel label="Items awaiting review" value={approvalCount} accent="text-warning" />
           <div className="rounded border border-base-300 bg-base-200 p-5">
             <h2 className="font-display text-base font-semibold">Keep the network ready</h2>
-            <p className="mt-2 text-sm text-neutral-content">Review publisher and advertiser accounts, along with new ad units.</p>
+            <p className="mt-2 text-sm ">Review publisher and advertiser accounts, along with new ad units.</p>
             <Link className="btn btn-outline btn-sm mt-4" to="/approvals">Open review queue</Link>
           </div>
         </div>
@@ -133,58 +133,58 @@ export function AnalyticsPage() {
           {wallet && <AdvertiserWallet balance={Number(wallet.balance)} creditLimit={Number(wallet.credit_limit)} onBalanceChange={setWallet} />}
         </div>
       ) : (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <StatPanel
-          label="Impressions this session"
-          value={liveImpressions}
-          accent="text-warning"
-        />
-        <StatPanel label="Clicks this session" value={liveClicks} accent="text-secondary" />
-        <StatPanel
-          label="7-day impressions"
-          value={totals.impressions}
-          accent="text-base-content"
-        />
-      </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <StatPanel
+            label="Impressions this session"
+            value={liveImpressions}
+            accent="text-warning"
+          />
+          <StatPanel label="Clicks this session" value={liveClicks} accent="text-secondary" />
+          <StatPanel
+            label="7-day impressions"
+            value={totals.impressions}
+            accent="text-base-content"
+          />
+        </div>
       )}
 
       {role !== "publisher" && role !== "staff" && <>
-      <div className="border border-base-300 bg-base-200 rounded p-5">
-        <h2 className="font-display text-base font-semibold mb-4">
-          Impressions by campaign, last 7 days
-        </h2>
+        <div className="border border-base-300 bg-base-200 rounded p-5">
+          <h2 className="font-display text-base font-semibold mb-4">
+            Impressions by campaign, last 7 days
+          </h2>
 
-        {loading ? (
-          <p className="text-sm text-neutral-content">Loading...</p>
-        ) : stats.length === 0 ? (
-          <p className="text-sm text-neutral-content">
-            No event data yet for this period. Once ads start serving, campaign
-            performance will show up here.
-          </p>
-        ) : (
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart data={stats}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#2E3742" />
-              <XAxis
-                dataKey="campaign_name"
-                stroke="#8B94A3"
-                tick={{ fontSize: 12, fontFamily: "IBM Plex Mono" }}
-              />
-              <YAxis stroke="#8B94A3" tick={{ fontSize: 12, fontFamily: "IBM Plex Mono" }} />
-              <Tooltip
-                contentStyle={{
-                  background: "#1B212A",
-                  border: "1px solid #2E3742",
-                  fontFamily: "IBM Plex Mono",
-                  fontSize: 12,
-                }}
-              />
-              <Bar dataKey="impressions" fill="#F2A93B" radius={[2, 2, 0, 0]} />
-              <Bar dataKey="clicks" fill="#5B8DEF" radius={[2, 2, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-      </div>
+          {loading ? (
+            <p className="text-sm ">Loading...</p>
+          ) : stats.length === 0 ? (
+            <p className="text-sm ">
+              No event data yet for this period. Once ads start serving, campaign
+              performance will show up here.
+            </p>
+          ) : (
+            <ResponsiveContainer width="100%" height={320}>
+              <BarChart data={stats}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#2E3742" />
+                <XAxis
+                  dataKey="campaign_name"
+                  stroke="#8B94A3"
+                  tick={{ fontSize: 12, fontFamily: "IBM Plex Mono" }}
+                />
+                <YAxis stroke="#8B94A3" tick={{ fontSize: 12, fontFamily: "IBM Plex Mono" }} />
+                <Tooltip
+                  contentStyle={{
+                    background: "#1B212A",
+                    border: "1px solid #2E3742",
+                    fontFamily: "IBM Plex Mono",
+                    fontSize: 12,
+                  }}
+                />
+                <Bar dataKey="impressions" fill="#F2A93B" radius={[2, 2, 0, 0]} />
+                <Bar dataKey="clicks" fill="#5B8DEF" radius={[2, 2, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
       </>}
     </Layout>
   );
@@ -205,7 +205,7 @@ function StatPanel({
 }) {
   return (
     <div className="border border-base-300 bg-base-200 rounded p-5">
-      <p className="text-xs text-neutral-content mb-2">{label}</p>
+      <p className="text-xs  mb-2">{label}</p>
       <p className={`tabular text-3xl font-medium ${accent}`}>
         {prefix}{value.toLocaleString(undefined, decimals ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : undefined)}
       </p>

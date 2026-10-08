@@ -87,7 +87,7 @@ export function AdminSlotsPage() {
 
   return <Layout title="Manage ad slots">
     <div className="space-y-4">
-      <p className="text-sm text-neutral-content">Ad inventory across all publisher accounts.</p>
+      <p className="text-sm ">Ad inventory across all publisher accounts.</p>
       {error && <div role="alert" className="alert alert-error py-2 text-sm">{error}</div>}
       <div className="overflow-x-auto rounded border border-base-300 bg-base-200">
         <table className="table">
@@ -121,8 +121,8 @@ export function AdminSlotsPage() {
                 )}
               </td></tr>}
             </Fragment>)}
-            {!loading && slots.length === 0 && <tr><td colSpan={8} className="py-8 text-center text-sm text-neutral-content">No ad slots found.</td></tr>}
-            {loading && <tr><td colSpan={8} className="py-8 text-center text-sm text-neutral-content">Loading ad slots…</td></tr>}
+            {!loading && slots.length === 0 && <tr><td colSpan={8} className="py-8 text-center text-sm ">No ad slots found.</td></tr>}
+            {loading && <tr><td colSpan={8} className="py-8 text-center text-sm ">Loading ad slots…</td></tr>}
           </tbody>
         </table>
       </div>

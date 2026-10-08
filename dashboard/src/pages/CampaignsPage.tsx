@@ -73,7 +73,7 @@ export function CampaignsPage() {
   return (
     <Layout title="Campaigns">
       <div className="flex justify-between items-center mb-5">
-        <p className="text-sm text-neutral-content">
+        <p className="text-sm ">
           {campaigns.length} campaign{campaigns.length === 1 ? "" : "s"}
         </p>
         <button className="btn btn-primary btn-sm" onClick={() => setShowCreate(true)}>
@@ -84,7 +84,7 @@ export function CampaignsPage() {
       <div className="overflow-x-auto rounded border border-base-300 bg-base-200">
         <table className="table">
           <thead>
-            <tr className="text-xs text-neutral-content border-b border-base-300">
+            <tr className="text-xs  border-b border-base-300">
               <th>Name</th>
               <th>Status</th>
               <th>Priority</th>
@@ -97,13 +97,13 @@ export function CampaignsPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className="text-center text-sm text-neutral-content py-6">
+                <td colSpan={7} className="text-center text-sm  py-6">
                   Loading...
                 </td>
               </tr>
             ) : campaigns.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center text-sm text-neutral-content py-6">
+                <td colSpan={7} className="text-center text-sm  py-6">
                   No campaigns yet. Create one to start serving ads.
                 </td>
               </tr>
@@ -127,13 +127,13 @@ export function CampaignsPage() {
                     <div>
                       {c.daily_cap != null ? `₹${Number(c.daily_cap).toFixed(2)}/day` : "No daily cap"}
                     </div>
-                    <div className="text-neutral-content">
+                    <div className="">
                       {c.total_budget != null
                         ? `₹${Number(c.spent_amount).toFixed(2)} / ₹${Number(c.total_budget).toFixed(2)} total`
                         : `₹${Number(c.spent_amount).toFixed(2)} spent`}
                     </div>
                   </td>
-                  <td className="tabular text-xs text-neutral-content">
+                  <td className="tabular text-xs ">
                     {new Date(c.start_date).toLocaleDateString()} –{" "}
                     {c.end_date ? new Date(c.end_date).toLocaleDateString() : "Ongoing"}
                   </td>
@@ -237,7 +237,7 @@ function CreateCampaignModal({
   }
 
   return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-3 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-3 sm:p-4">
       <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded border border-base-300 bg-base-200 p-4 sm:p-6">
         <h2 className="font-display text-lg font-semibold mb-4">New campaign</h2>
 
@@ -364,7 +364,7 @@ function CreateCampaignModal({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="block text-xs text-neutral-content mb-1">{label}</span>
+      <span className="block text-xs  mb-1">{label}</span>
       {children}
     </label>
   );

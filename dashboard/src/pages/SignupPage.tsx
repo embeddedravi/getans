@@ -44,7 +44,7 @@ export function SignupPage() {
         <div className="min-h-screen flex items-center justify-center bg-base-100 p-4">
             <div className="w-full max-w-sm border border-base-300 bg-base-200 rounded p-8">
                 <h1 className="font-display text-2xl font-semibold mb-1">Create an account</h1>
-                <p className="text-sm text-neutral-content mb-6">Advertise or monetise your site.</p>
+                <p className="text-sm  mb-6">Advertise or monetise your site.</p>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
@@ -103,7 +103,7 @@ export function SignupPage() {
                     </button>
                 </form>
 
-                <p className="text-sm text-neutral-content mt-5">
+                <p className="text-sm  mt-5">
                     Already registered? <Link to="/login" className="link text-primary">Sign in</Link>
                 </p>
             </div>

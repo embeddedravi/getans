@@ -30,7 +30,7 @@ export function LoginPage() {
     <div className="h-screen flex items-center justify-center bg-base-100">
       <div className="w-full max-w-sm border border-base-300 bg-base-200 rounded p-8">
         <h1 className="font-display text-2xl font-semibold mb-1">Ad Platform</h1>
-        <p className="text-sm text-neutral-content mb-6">Sign in to manage campaigns</p>
+        <p className="text-sm  mb-6">Sign in to manage campaigns</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -81,13 +81,13 @@ export function LoginPage() {
           </button>
         </form>
 
-        <p className="text-sm text-neutral-content mt-5">
+        <p className="text-sm  mt-5">
           {needsVerification ? "Your number isn't verified yet. " : "First time signing in? "}
           <Link to="/verify" className="link text-primary">
             Verify your mobile number
           </Link>
         </p>
-        <p className="text-sm text-neutral-content mt-5">
+        <p className="text-sm  mt-5">
           Don't have an account?{" "}
           <Link to="/signup" className="link text-primary">
             Create an account

@@ -66,11 +66,10 @@ export function TopBar({ title }: TopBarProps) {
           )}
         </button>
         <span
-          className={`h-2 w-2 rounded-full ${
-            connected ? "bg-warning live-dot" : "bg-neutral-content/40"
-          }`}
+          className={`h-2 w-2 rounded-full ${connected ? "bg-warning live-dot" : "bg-neutral-content/40"
+            }`}
         />
-        <span className="tabular text-neutral-content">
+        <span className="tabular ">
           {connected ? "Live" : "Disconnected"}
         </span>
       </div>

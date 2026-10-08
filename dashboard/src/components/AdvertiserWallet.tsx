@@ -114,11 +114,11 @@ export function AdvertiserWallet({
         <div>
           <p className="text-xs font-medium uppercase tracking-widest text-primary">INR wallet</p>
           <h2 className="mt-2 font-display text-xl font-semibold">{formatINR(balance)}</h2>
-          <p className="mt-1 text-sm text-neutral-content">Available balance · Credit limit {formatINR(creditLimit)}</p>
+          <p className="mt-1 text-sm ">Available balance · Credit limit {formatINR(creditLimit)}</p>
         </div>
         <form onSubmit={startPayment} className="flex w-full max-w-sm flex-col gap-2 sm:flex-row sm:items-end">
           <label className="flex-1">
-            <span className="mb-1 block text-xs text-neutral-content">Add funds (₹)</span>
+            <span className="mb-1 block text-xs ">Add funds (₹)</span>
             <input
               aria-label="Top-up amount in rupees"
               type="number"

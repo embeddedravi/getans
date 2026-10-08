@@ -56,7 +56,7 @@ export function VerifyMobilePage() {
 
         {step === "mobile" && (
           <>
-            <p className="text-sm text-neutral-content mb-6">
+            <p className="text-sm  mb-6">
               We'll text a 6-digit code to the number on your account.
             </p>
             <form onSubmit={sendCode} className="space-y-4">
@@ -87,7 +87,7 @@ export function VerifyMobilePage() {
 
         {step === "code" && (
           <>
-            <p className="text-sm text-neutral-content mb-6">
+            <p className="text-sm  mb-6">
               If {mobile} has an account, a code is on its way. It expires in 5 minutes.
             </p>
             <form onSubmit={submitCode} className="space-y-4">
@@ -126,7 +126,7 @@ export function VerifyMobilePage() {
                   setError(null);
                   setStep("mobile");
                 }}
-                className="link text-neutral-content"
+                className="link "
               >
                 Use a different number
               </button>
@@ -144,7 +144,7 @@ export function VerifyMobilePage() {
 
         {step === "done" && (
           <>
-            <p className="text-sm text-neutral-content mb-6">
+            <p className="text-sm  mb-6">
               {mobile} is verified. You can sign in now.
             </p>
             <Link to="/login" className="btn btn-primary w-full">
@@ -154,7 +154,7 @@ export function VerifyMobilePage() {
         )}
 
         {step !== "done" && (
-          <p className="text-sm text-neutral-content mt-6">
+          <p className="text-sm  mt-6">
             <Link to="/login" className="link">
               Back to sign in
             </Link>

@@ -63,7 +63,7 @@ export function LiveEventsPage() {
             ))}
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-neutral-content tabular">{visible.length} shown</span>
+            <span className="text-xs  tabular">{visible.length} shown</span>
             <button className="btn btn-ghost btn-xs" onClick={() => setEvents([])}>Clear</button>
             <button className={`btn btn-xs ${paused ? "btn-success" : "btn-warning"}`} onClick={togglePause}>
               {paused ? "Resume" : "Pause"}
@@ -77,7 +77,7 @@ export function LiveEventsPage() {
         <div className="overflow-x-auto rounded border border-base-300 bg-base-200">
           <table className="table">
             <thead>
-              <tr className="text-xs text-neutral-content">
+              <tr className="text-xs ">
                 <th>Time</th><th>Type</th><th>Campaign</th><th>Ad slot</th>
                 <th>Creative</th><th>Country</th><th className="text-right">Cost</th>
               </tr>
@@ -93,13 +93,13 @@ export function LiveEventsPage() {
                   </td>
                   <td>{e.campaign_name ?? `#${e.campaign_id}`}</td>
                   <td>{e.slot_name ?? `#${e.ad_unit_id}`}</td>
-                  <td className="tabular text-neutral-content">#{e.creative_id}</td>
+                  <td className="tabular ">#{e.creative_id}</td>
                   <td>{e.country_code ?? "—"}</td>
                   <td className="tabular text-right">₹{e.cost.toFixed(4)}</td>
                 </tr>
               ))}
               {visible.length === 0 && (
-                <tr><td colSpan={7} className="py-8 text-center text-sm text-neutral-content">
+                <tr><td colSpan={7} className="py-8 text-center text-sm ">
                   No events yet. They'll appear here as ads are served.
                 </td></tr>
               )}

@@ -4,7 +4,7 @@
 {% block page_title %}Manage ad slots{% endblock %}
 {% block content %}
 <div class="space-y-4">
-  <p class="text-sm text-neutral-content">Ad inventory across all publisher accounts.</p>
+  <p class="text-sm ">Ad inventory across all publisher accounts.</p>
   <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-200">
     <table class="table w-full">
       <thead><tr><th>Slot</th><th>Publisher</th><th>Format</th><th>Dimensions</th><th>Floor CPM</th><th>Status</th><th>Slot ID</th><th>Actions</th></tr></thead>
@@ -26,7 +26,7 @@
             </div></td>
           </tr>
         {% else %}
-          <tr><td colspan="8" class="py-8 text-center text-sm text-neutral-content">No ad slots found.</td></tr>
+          <tr><td colspan="8" class="py-8 text-center text-sm ">No ad slots found.</td></tr>
         {% endfor %}
       </tbody>
     </table>

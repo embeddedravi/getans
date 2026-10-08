@@ -11,31 +11,31 @@
 
   <div class="border border-base-300 bg-base-200 rounded-lg p-5 relative overflow-hidden group hover:border-warning/50 transition-colors">
     <div class="absolute top-0 right-0 w-20 h-20 bg-warning/5 rounded-full -translate-y-6 translate-x-6 group-hover:bg-warning/10 transition-colors"></div>
-    <p class="text-xs text-neutral-content mb-3 flex items-center gap-1.5">
+    <p class="text-xs  mb-3 flex items-center gap-1.5">
       <span class="w-1.5 h-1.5 rounded-full bg-warning inline-block animate-ping"></span>
       Impressions this session
     </p>
     <p class="text-3xl font-semibold text-warning tabular-nums" id="live-impressions">0</p>
-    <p class="text-xs text-neutral-content mt-1">Real-time via Socket.IO</p>
+    <p class="text-xs  mt-1">Real-time via Socket.IO</p>
   </div>
 
   <div class="border border-base-300 bg-base-200 rounded-lg p-5 relative overflow-hidden group hover:border-secondary/50 transition-colors">
     <div class="absolute top-0 right-0 w-20 h-20 bg-secondary/5 rounded-full -translate-y-6 translate-x-6 group-hover:bg-secondary/10 transition-colors"></div>
-    <p class="text-xs text-neutral-content mb-3 flex items-center gap-1.5">
+    <p class="text-xs  mb-3 flex items-center gap-1.5">
       <span class="w-1.5 h-1.5 rounded-full bg-secondary inline-block animate-ping"></span>
       Clicks this session
     </p>
     <p class="text-3xl font-semibold text-secondary tabular-nums" id="live-clicks">0</p>
-    <p class="text-xs text-neutral-content mt-1">Real-time via Socket.IO</p>
+    <p class="text-xs  mt-1">Real-time via Socket.IO</p>
   </div>
 
   <div class="border border-base-300 bg-base-200 rounded-lg p-5 relative overflow-hidden group hover:border-accent/50 transition-colors sm:col-span-2 xl:col-span-1">
     <div class="absolute top-0 right-0 w-20 h-20 bg-accent/5 rounded-full -translate-y-6 translate-x-6 group-hover:bg-accent/10 transition-colors"></div>
-    <p class="text-xs text-neutral-content mb-3">7-day impressions</p>
+    <p class="text-xs  mb-3">7-day impressions</p>
     <p class="text-3xl font-semibold text-base-content tabular-nums">
       {{ totals.impressions | format_num if totals is defined and totals.impressions is defined else (totals.impressions if totals is defined else 0) }}
     </p>
-    <p class="text-xs text-neutral-content mt-1">
+    <p class="text-xs  mt-1">
       {% set total_imp = totals.impressions if totals is defined and totals.impressions else 0 %}
       {% set total_clk = totals.clicks if totals is defined and totals.clicks else 0 %}
       {% set ctr_calc = (total_clk / total_imp * 100) if total_imp > 0 else 0.0 %}
@@ -49,7 +49,7 @@
 <div class="border border-base-300 bg-base-200 rounded-lg p-5 mb-6">
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-display text-base font-semibold">Impressions by campaign — last 7 days</h2>
-    <div class="flex items-center gap-4 text-xs text-neutral-content">
+    <div class="flex items-center gap-4 text-xs ">
       <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-warning inline-block"></span>Impressions</span>
       <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-secondary inline-block"></span>Clicks</span>
     </div>
@@ -57,11 +57,11 @@
 
   {% if not stats %}
     <div class="flex flex-col items-center justify-center py-14 text-center">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-neutral-content/40 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 /40 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
       </svg>
-      <p class="text-sm text-neutral-content">No event data yet for this period.</p>
-      <p class="text-xs text-neutral-content/60 mt-1">Once ads start serving, campaign performance will appear here.</p>
+      <p class="text-sm ">No event data yet for this period.</p>
+      <p class="text-xs /60 mt-1">Once ads start serving, campaign performance will appear here.</p>
     </div>
   {% else %}
     <div class="relative h-72">
@@ -79,7 +79,7 @@
   <div class="overflow-x-auto">
     <table class="table w-full">
       <thead>
-        <tr class="text-xs text-neutral-content border-b border-base-300">
+        <tr class="text-xs  border-b border-base-300">
           <th>Campaign</th>
           <th class="tabular-nums text-right">Impressions</th>
           <th class="tabular-nums text-right">Clicks</th>

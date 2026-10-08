@@ -63,19 +63,19 @@ export function ApprovalsPage() {
 
   return <Layout title="Pending approvals">
     <div className="space-y-5">
-      <div><h2 className="text-lg font-semibold">Review new accounts and ad units</h2><p className="text-sm text-neutral-content">Approved items become eligible for the platform.</p></div>
+      <div><h2 className="text-lg font-semibold">Review new accounts and ad units</h2><p className="text-sm ">Approved items become eligible for the platform.</p></div>
       {error && <div role="alert" className="alert alert-error py-2 text-sm">{error}</div>}
       <div role="tablist" className="tabs tabs-bordered">
         {tabs.map((item) => <button key={item.id} role="tab" aria-selected={tab === item.id} onClick={() => setTab(item.id)} className={`tab ${tab === item.id ? "tab-active" : ""}`}>{item.label}<span className="badge badge-sm ml-2">{item.count}</span></button>)}
       </div>
-      {rows.length === 0 ? <div className="rounded border border-base-300 bg-base-200 p-8 text-center text-sm text-neutral-content">Nothing is waiting for review.</div> : <div className="space-y-3">
+      {rows.length === 0 ? <div className="rounded border border-base-300 bg-base-200 p-8 text-center text-sm ">Nothing is waiting for review.</div> : <div className="space-y-3">
         {rows.map((row) => <article key={row.id} className="rounded border border-base-300 bg-base-200 p-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div><h3 className="font-medium">{row.name || row.slot_name}</h3>
-              {tab === "publishers" && <p className="text-sm text-neutral-content">{row.site_url} · {row.payout_email}</p>}
-              {tab === "advertisers" && <p className="text-sm text-neutral-content">{row.billing_email}{row.industry ? ` · ${row.industry}` : ""}</p>}
-              {tab === "ad_units" && <p className="text-sm text-neutral-content">Publisher #{row.publisher_id} · {row.width} × {row.height}</p>}
-              <p className="text-xs text-neutral-content mt-1">Submitted {new Date(row.created_at).toLocaleDateString()}</p>
+              {tab === "publishers" && <p className="text-sm ">{row.site_url} · {row.payout_email}</p>}
+              {tab === "advertisers" && <p className="text-sm ">{row.billing_email}{row.industry ? ` · ${row.industry}` : ""}</p>}
+              {tab === "ad_units" && <p className="text-sm ">Publisher #{row.publisher_id} · {row.width} × {row.height}</p>}
+              <p className="text-xs  mt-1">Submitted {new Date(row.created_at).toLocaleDateString()}</p>
             </div>
             <form onSubmit={(event) => review(tab, row.id, "approve", event)}><button disabled={busy === `${tab}-${row.id}`} className="btn btn-success btn-sm">Approve</button></form>
           </div>

@@ -9,7 +9,7 @@
 <div class="space-y-5">
   <div>
     <h2 class="text-lg font-semibold">Review new accounts and ad units</h2>
-    <p class="text-sm text-neutral-content">Approve an item to activate it, or provide a reason when rejecting it.</p>
+    <p class="text-sm ">Approve an item to activate it, or provide a reason when rejecting it.</p>
   </div>
   <div role="tablist" class="tabs tabs-bordered">
     {% for key, label in labels.items() %}
@@ -20,7 +20,7 @@
   </div>
   {% set rows = approvals.get(tab, []) %}
   {% if not rows %}
-    <div class="rounded-lg border border-base-300 bg-base-200 p-8 text-center text-sm text-neutral-content">Nothing is waiting for review.</div>
+    <div class="rounded-lg border border-base-300 bg-base-200 p-8 text-center text-sm ">Nothing is waiting for review.</div>
   {% else %}
     <div class="space-y-3">
       {% for item in rows %}
@@ -29,13 +29,13 @@
             <div>
               <h3 class="font-medium">{{ item.name if tab != 'ad_units' else item.slot_name }}</h3>
               {% if tab == 'publishers' %}
-                <p class="text-sm text-neutral-content">{{ item.site_url }} · {{ item.payout_email }}</p>
+                <p class="text-sm ">{{ item.site_url }} · {{ item.payout_email }}</p>
               {% elif tab == 'advertisers' %}
-                <p class="text-sm text-neutral-content">{{ item.billing_email }}{% if item.industry %} · {{ item.industry }}{% endif %}</p>
+                <p class="text-sm ">{{ item.billing_email }}{% if item.industry %} · {{ item.industry }}{% endif %}</p>
               {% else %}
-                <p class="text-sm text-neutral-content">Publisher #{{ item.publisher_id }} · {{ item.width }} × {{ item.height }} · {{ item.format_type }}</p>
+                <p class="text-sm ">Publisher #{{ item.publisher_id }} · {{ item.width }} × {{ item.height }} · {{ item.format_type }}</p>
               {% endif %}
-              <p class="text-xs text-neutral-content mt-1">Submitted {{ item.created_at[:10] }}</p>
+              <p class="text-xs  mt-1">Submitted {{ item.created_at[:10] }}</p>
             </div>
             <form method="POST" action="{{ url_for('review_approval', kind=tab, item_id=item.id) }}">
               <input type="hidden" name="decision" value="approve" />

@@ -49,7 +49,7 @@ export function ForgotPasswordPage() {
     <div className="h-screen flex items-center justify-center bg-base-100">
       <div className="w-full max-w-sm border border-base-300 bg-base-200 rounded p-8">
         <h1 className="font-display text-2xl font-semibold mb-1">Reset Password</h1>
-        <p className="text-sm text-neutral-content mb-6">
+        <p className="text-sm  mb-6">
           {step === "request"
             ? "Enter your mobile number to receive an OTP."
             : "Enter the OTP sent to your mobile and your new password."}
@@ -136,7 +136,7 @@ export function ForgotPasswordPage() {
         )}
 
         <div className="mt-5 text-sm text-center">
-          <Link to="/login" className="link text-neutral-content hover:text-primary">
+          <Link to="/login" className="link  hover:text-primary">
             Back to login
           </Link>
         </div>

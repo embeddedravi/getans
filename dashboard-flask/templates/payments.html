@@ -10,7 +10,7 @@
 <div class="space-y-5">
   <div>
     <h2 class="text-lg font-semibold">Publisher payouts</h2>
-    <p class="text-sm text-neutral-content">Review payout requests and record their status.</p>
+    <p class="text-sm ">Review payout requests and record their status.</p>
   </div>
 
   <div role="tablist" aria-label="Filter payments" class="tabs tabs-bordered flex-wrap">
@@ -20,7 +20,7 @@
   </div>
 
   {% if not payments %}
-    <div class="rounded-lg border border-base-300 bg-base-200 p-8 text-center text-sm text-neutral-content">No payouts found.</div>
+    <div class="rounded-lg border border-base-300 bg-base-200 p-8 text-center text-sm ">No payouts found.</div>
   {% else %}
     <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-200">
       <table class="table">
@@ -29,7 +29,7 @@
           {% for payment in payments %}
             <tr>
               <td class="font-mono text-xs">#{{ payment.id }}</td>
-              <td><div>Publisher #{{ payment.publisher_id }}</div><div class="text-xs text-neutral-content">{{ payment.payout_email }}</div></td>
+              <td><div>Publisher #{{ payment.publisher_id }}</div><div class="text-xs ">{{ payment.payout_email }}</div></td>
               <td class="font-medium">₹{{ "{:,.2f}".format(payment.amount|float) }}</td>
               <td>{{ payment.payment_method|replace('_', ' ') if payment.payment_method else '—' }}</td>
               <td><span class="badge {{ badge_classes.get(payment.status, 'badge-ghost') }}">{{ payment.status }}</span></td>
@@ -53,7 +53,7 @@
                     </form>
                   </div>
                 {% elif payment.reference %}
-                  <span class="text-xs text-neutral-content">Ref: {{ payment.reference }}</span>
+                  <span class="text-xs ">Ref: {{ payment.reference }}</span>
                 {% else %}—{% endif %}
               </td>
             </tr>

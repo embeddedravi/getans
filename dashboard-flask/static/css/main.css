@@ -3980,27 +3980,6 @@
   .text-error {
     color: var(--color-error);
   }
-  .text-neutral-content {
-    color: var(--color-neutral-content);
-  }
-  .text-neutral-content\/30 {
-    color: var(--color-neutral-content);
-    @supports (color: color-mix(in lab, red, red)) {
-      color: color-mix(in oklab, var(--color-neutral-content) 30%, transparent);
-    }
-  }
-  .text-neutral-content\/40 {
-    color: var(--color-neutral-content);
-    @supports (color: color-mix(in lab, red, red)) {
-      color: color-mix(in oklab, var(--color-neutral-content) 40%, transparent);
-    }
-  }
-  .text-neutral-content\/60 {
-    color: var(--color-neutral-content);
-    @supports (color: color-mix(in lab, red, red)) {
-      color: color-mix(in oklab, var(--color-neutral-content) 60%, transparent);
-    }
-  }
   .text-primary {
     color: var(--color-primary);
   }
@@ -4567,14 +4546,6 @@
   .xl\:grid-cols-3 {
     @media (width >= 80rem) {
       grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-  }
-}
-@layer utilities {
-  [data-theme="light"] .text-neutral-content, [data-theme="light"] [class*="text-neutral-content/"] {
-    color: var(--color-base-content);
-    @supports (color: color-mix(in lab, red, red)) {
-      color: color-mix(in oklab, var(--color-base-content) 65%, transparent);
     }
   }
 }

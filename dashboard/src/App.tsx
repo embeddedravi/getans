@@ -27,7 +27,7 @@ function RequireAdmin({ children }: { children: JSX.Element }) {
   useEffect(() => {
     api.me().then((user) => setIsAdmin((user as { role?: string }).role === "admin")).catch(() => setIsAdmin(false));
   }, []);
-  if (isAdmin === null) return <div className="p-6 text-sm text-neutral-content">Checking access…</div>;
+  if (isAdmin === null) return <div className="p-6 text-sm ">Checking access…</div>;
   return isAdmin ? children : <Navigate to="/" replace />;
 }
 

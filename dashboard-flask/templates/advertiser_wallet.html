@@ -11,11 +11,11 @@
       <div>
         <p class="text-xs font-medium uppercase tracking-widest text-primary">INR wallet</p>
         <h2 id="wallet-balance" class="mt-2 font-display text-2xl font-semibold">₹{{ '%.2f'|format(wallet.balance|float) }}</h2>
-        <p class="mt-1 text-sm text-neutral-content">Available balance · Credit limit ₹{{ '%.2f'|format(wallet.credit_limit|float) }}</p>
+        <p class="mt-1 text-sm ">Available balance · Credit limit ₹{{ '%.2f'|format(wallet.credit_limit|float) }}</p>
       </div>
       <form method="POST" action="{{ url_for('advertiser_wallet_order') }}" class="flex w-full max-w-sm flex-col gap-2 sm:flex-row sm:items-end">
         <label class="flex-1">
-          <span class="mb-1 block text-xs text-neutral-content">Add funds (₹)</span>
+          <span class="mb-1 block text-xs ">Add funds (₹)</span>
           <input name="amount" type="number" min="1" max="500000" step="0.01" value="1000" required class="input input-bordered input-sm w-full bg-base-100" />
         </label>
         <button id="wallet-submit" type="submit" class="btn btn-primary btn-sm">Add funds</button>
@@ -26,7 +26,7 @@
   {% if checkout_error %}<div role="alert" class="alert alert-error py-2 text-sm">{{ checkout_error }}</div>{% endif %}
   <div id="payment-message" role="status" class="hidden rounded border border-success/30 bg-success/10 p-3 text-sm text-success"></div>
   <div id="payment-error" role="alert" class="hidden rounded border border-error/30 bg-error/10 p-3 text-sm text-error"></div>
-  <p class="text-xs text-neutral-content">Payment confirmation is checked directly with Razorpay. No webhook is required.</p>
+  <p class="text-xs ">Payment confirmation is checked directly with Razorpay. No webhook is required.</p>
 </div>
 {% endblock %}
 

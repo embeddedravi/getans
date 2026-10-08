@@ -78,7 +78,7 @@ export function Sidebar() {
         <span className="font-display text-lg font-semibold tracking-tight">
           Ad Platform
         </span>
-        {role && <p className="mt-1 text-xs text-neutral-content">{roleLabels[role]}</p>}
+        {role && <p className="mt-1 text-xs ">{roleLabels[role]}</p>}
       </div>
 
       <nav className="flex-1 px-2 py-4 space-y-1">
@@ -92,10 +92,9 @@ export function Sidebar() {
               if (drawer) drawer.checked = false;
             }}
             className={({ isActive }) =>
-              `block rounded px-3 py-2 text-sm transition-colors ${
-                isActive
-                  ? "bg-base-300 text-base-content font-medium"
-                  : "text-neutral-content hover:bg-base-300/60 hover:text-base-content"
+              `block rounded px-3 py-2 text-sm transition-colors ${isActive
+                ? "bg-base-300 text-base-content font-medium"
+                : " hover:bg-base-300/60 hover:text-base-content"
               }`
             }
           >
@@ -111,15 +110,15 @@ export function Sidebar() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-medium text-base-content">{displayName}</p>
-            <p className="truncate text-xs text-neutral-content">{role ? roleLabels[role] : "Account"}</p>
-            {user?.mobile && <p className="truncate text-xs text-neutral-content">{user.mobile}</p>}
-            {user?.email && <p className="truncate text-xs text-neutral-content">{user.email}</p>}
+            <p className="truncate text-xs ">{role ? roleLabels[role] : "Account"}</p>
+            {user?.mobile && <p className="truncate text-xs ">{user.mobile}</p>}
+            {user?.email && <p className="truncate text-xs ">{user.email}</p>}
           </div>
         </div>
-        <span className="text-xs text-neutral-content">Self-hosted ad server</span>
+        <span className="text-xs ">Self-hosted ad server</span>
         <button
           onClick={handleLogout}
-          className="btn btn-ghost btn-xs w-full text-neutral-content hover:text-error justify-start gap-2 px-0"
+          className="btn btn-ghost btn-xs w-full  hover:text-error justify-start gap-2 px-0"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

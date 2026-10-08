@@ -96,15 +96,15 @@ export function AdminUsersPage() {
     <Layout title="Manage users">
       <div className="space-y-4">
         <div>
-          <p className="text-sm text-neutral-content">Manage dashboard roles, tenant access, and account status.</p>
-          <p className="mt-1 text-xs text-neutral-content">Superuser accounts and your own role or status are protected.</p>
+          <p className="text-sm ">Manage dashboard roles, tenant access, and account status.</p>
+          <p className="mt-1 text-xs ">Superuser accounts and your own role or status are protected.</p>
         </div>
         {error && <div role="alert" className="alert alert-error py-2 text-sm"><span>{error}</span></div>}
 
         <div className="overflow-x-auto rounded border border-base-300 bg-base-200">
           <table className="table">
             <thead>
-              <tr className="text-xs text-neutral-content">
+              <tr className="text-xs ">
                 <th>User</th><th>Role</th><th>Tenant</th><th>Status</th><th>Last login</th><th>Actions</th>
               </tr>
             </thead>
@@ -124,9 +124,9 @@ export function AdminUsersPage() {
                   <tr key={user.id} className="border-b border-base-300 last:border-0 align-top">
                     <td className="min-w-52">
                       <div className="font-medium">{displayName || `User #${user.id}`}</div>
-                      {user.mobile && <div className="text-xs text-neutral-content">{user.mobile}</div>}
-                      {user.email && <div className="text-xs text-neutral-content">{user.email}</div>}
-                      {!user.mobile && !user.email && <div className="text-xs text-neutral-content">ID {user.id}</div>}
+                      {user.mobile && <div className="text-xs ">{user.mobile}</div>}
+                      {user.email && <div className="text-xs ">{user.email}</div>}
+                      {!user.mobile && !user.email && <div className="text-xs ">ID {user.id}</div>}
                       {user.is_superuser && <span className="badge badge-xs badge-warning mt-1">Superuser</span>}
                     </td>
                     <td>
@@ -192,7 +192,7 @@ export function AdminUsersPage() {
                         </span>
                       </label>
                     </td>
-                    <td className="text-xs text-neutral-content">
+                    <td className="text-xs ">
                       {user.last_login_at ? new Date(user.last_login_at).toLocaleString() : "Never"}
                     </td>
                     <td>
@@ -207,8 +207,8 @@ export function AdminUsersPage() {
                   </tr>
                 );
               })}
-              {!loading && users.length === 0 && <tr><td colSpan={6} className="py-8 text-center text-sm text-neutral-content">No users found.</td></tr>}
-              {loading && <tr><td colSpan={6} className="py-8 text-center text-sm text-neutral-content">Loading users...</td></tr>}
+              {!loading && users.length === 0 && <tr><td colSpan={6} className="py-8 text-center text-sm ">No users found.</td></tr>}
+              {loading && <tr><td colSpan={6} className="py-8 text-center text-sm ">Loading users...</td></tr>}
             </tbody>
           </table>
         </div>

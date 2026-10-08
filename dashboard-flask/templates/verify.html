@@ -9,7 +9,7 @@
     <h1 class="font-display text-xl font-semibold mb-1">Verify your mobile number</h1>
 
     {% if step == 'mobile' %}
-      <p class="text-sm text-neutral-content mb-6">We'll text a 6-digit code to the number on your account.</p>
+      <p class="text-sm  mb-6">We'll text a 6-digit code to the number on your account.</p>
 
       <form method="POST" action="{{ url_for('verify.verify_page') }}" class="space-y-4">
         <input type="hidden" name="action" value="request" />
@@ -26,7 +26,7 @@
       </form>
 
     {% else %}
-      <p class="text-sm text-neutral-content mb-6">
+      <p class="text-sm  mb-6">
         If {{ mobile }} has an account, a code is on its way. It expires in 5 minutes.
       </p>
 
@@ -46,7 +46,7 @@
       </form>
 
       <div class="flex justify-between items-center mt-4 text-sm">
-        <a href="{{ url_for('verify.verify_page') }}" class="link text-neutral-content">Use a different number</a>
+        <a href="{{ url_for('verify.verify_page') }}" class="link ">Use a different number</a>
 
         <form method="POST" action="{{ url_for('verify.verify_page') }}">
           <input type="hidden" name="action" value="request" />
@@ -75,7 +75,7 @@
       {% endif %}
     {% endif %}
 
-    <p class="text-sm text-neutral-content mt-6">
+    <p class="text-sm  mt-6">
       <a href="{{ url_for('login') }}" class="link">Back to sign in</a>
     </p>
   </div>

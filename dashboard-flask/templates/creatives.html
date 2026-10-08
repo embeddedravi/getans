@@ -7,7 +7,7 @@
 {% set review_badge = {'pending': 'badge-warning', 'approved': 'badge-success', 'rejected': 'badge-error'} %}
 
 <div class="flex items-center justify-between mb-5">
-  <a href="/campaigns" class="link text-sm text-neutral-content">← Back to campaigns</a>
+  <a href="/campaigns" class="link text-sm ">← Back to campaigns</a>
   <button class="btn btn-primary btn-sm" onclick="document.getElementById('modal-create-creative').showModal()">
     Add creative
   </button>
@@ -17,13 +17,13 @@
   <div class="overflow-x-auto">
     <table class="table w-full">
       <thead>
-        <tr class="text-xs text-neutral-content border-b border-base-300">
+        <tr class="text-xs  border-b border-base-300">
           <th>Preview</th><th>Details</th><th>Review</th><th class="text-right">Actions</th>
         </tr>
       </thead>
       <tbody>
         {% if not creatives %}
-          <tr><td colspan="4" class="py-10 text-center text-sm text-neutral-content">
+          <tr><td colspan="4" class="py-10 text-center text-sm ">
             No creatives yet. This campaign can't serve until it has an approved one.
           </td></tr>
         {% else %}
@@ -32,9 +32,9 @@
               <td><img src="{{ cr.asset_url }}" alt="creative" class="max-h-16 max-w-[96px] object-contain bg-base-100 rounded" /></td>
               <td class="text-xs">
                 <div class="font-medium text-sm">{{ cr.name or ('Creative #' ~ cr.id) }}</div>
-                <div class="tabular-nums text-neutral-content">{{ cr.width }}×{{ cr.height }}</div>
+                <div class="tabular-nums ">{{ cr.width }}×{{ cr.height }}</div>
                 <a href="{{ cr.click_url }}" target="_blank" rel="noopener noreferrer"
-                   class="link text-neutral-content block truncate max-w-[220px]">{{ cr.click_url }}</a>
+                   class="link  block truncate max-w-[220px]">{{ cr.click_url }}</a>
               </td>
               <td>
                 <span class="badge badge-sm {{ review_badge.get(cr.review_status, 'badge-ghost') }}">{{ cr.review_status }}</span>
@@ -79,19 +79,19 @@
     <form method="dialog" class="absolute top-4 right-4"><button class="btn btn-ghost btn-sm btn-circle">✕</button></form>
     <h3 class="font-display text-lg font-semibold mb-5">Add image creative</h3>
     <form method="POST" action="/campaigns/{{ campaign.id }}/creatives/create" class="space-y-4">
-      <label class="block"><span class="block text-xs text-neutral-content mb-1.5">Name (optional)</span>
+      <label class="block"><span class="block text-xs  mb-1.5">Name (optional)</span>
         <input name="name" class="input input-bordered input-sm w-full bg-base-100" /></label>
-      <label class="block"><span class="block text-xs text-neutral-content mb-1.5">Image URL</span>
+      <label class="block"><span class="block text-xs  mb-1.5">Image URL</span>
         <input name="asset_url" type="url" required class="input input-bordered input-sm w-full bg-base-100" /></label>
-      <label class="block"><span class="block text-xs text-neutral-content mb-1.5">Click-through URL</span>
+      <label class="block"><span class="block text-xs  mb-1.5">Click-through URL</span>
         <input name="click_url" type="url" required class="input input-bordered input-sm w-full bg-base-100" /></label>
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label class="block"><span class="block text-xs text-neutral-content mb-1.5">Width (px)</span>
+        <label class="block"><span class="block text-xs  mb-1.5">Width (px)</span>
           <input name="width" type="number" min="1" value="300" required class="input input-bordered input-sm w-full bg-base-100" /></label>
-        <label class="block"><span class="block text-xs text-neutral-content mb-1.5">Height (px)</span>
+        <label class="block"><span class="block text-xs  mb-1.5">Height (px)</span>
           <input name="height" type="number" min="1" value="250" required class="input input-bordered input-sm w-full bg-base-100" /></label>
       </div>
-      <p class="text-xs text-neutral-content">Dimensions must exactly match an ad slot for this creative to be selected.</p>
+      <p class="text-xs ">Dimensions must exactly match an ad slot for this creative to be selected.</p>
       <div class="flex justify-end gap-2 pt-2 border-t border-base-300">
         <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('modal-create-creative').close()">Cancel</button>
         <button type="submit" class="btn btn-primary btn-sm">Add creative</button>

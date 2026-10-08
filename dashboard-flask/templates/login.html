@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}Sign In{% endblock %}
-{% block description %}Sign in to your Ad Platform dashboard{% endblock %}
+{% block description %}Sign in to your {{ site_name }} dashboard{% endblock %}
 
 {% block body %}
 <div class="min-h-screen flex items-center justify-center bg-base-100 relative overflow-hidden p-4">
@@ -17,7 +17,7 @@
           </svg>
         </div>
         <div>
-          <h1 class="font-display text-xl font-semibold leading-tight">Ad Platform</h1>
+          <h1 class="font-display text-xl font-semibold leading-tight">{{ site_name }}</h1>
           <p class="text-xs ">Management Dashboard</p>
         </div>
       </div>

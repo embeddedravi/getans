@@ -1,4 +1,4 @@
-# Ad Platform
+# GetANS
 
 A self-hosted ad server and campaign management platform (INR-only, India-first). Publishers embed a lightweight JavaScript snippet, ads are selected and delivered in real time over Socket.IO, and advertisers, publishers, staff, and admins manage everything through a REST API plus a choice of two dashboard frontends.
 

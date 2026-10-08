@@ -76,7 +76,7 @@ export function Sidebar() {
     <aside className="min-h-full w-72 max-w-[85vw] shrink-0 border-r border-base-300 bg-base-200 flex flex-col lg:w-60">
       <div className="px-5 py-5 border-b border-base-300">
         <span className="font-display text-lg font-semibold tracking-tight">
-          Ad Platform
+          GetANS
         </span>
         {role && <p className="mt-1 text-xs ">{roleLabels[role]}</p>}
       </div>

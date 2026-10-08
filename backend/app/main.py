@@ -21,7 +21,7 @@ from app.sockets.delivery_ns import register_delivery_namespace
 
 logging.basicConfig(level=logging.INFO)
 
-fastapi_app = FastAPI(title="Ad Platform API")
+fastapi_app = FastAPI(title="GetANS API")
 
 fastapi_app.add_middleware(
     CORSMiddleware,

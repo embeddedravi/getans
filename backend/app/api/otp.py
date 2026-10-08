@@ -47,7 +47,7 @@ async def request_otp(payload: OTPRequest, db: AsyncSession = Depends(get_db)) -
         minutes = max(1, settings.otp_ttl_seconds // 60)
         await send_sms(
             payload.mobile,
-            f"{code} is your Ad Platform verification code. It expires in {minutes} minutes.",
+            f"{code} is your GetANS verification code. It expires in {minutes} minutes.",
         )
     return OTPRequestResponse(
         message="If this number is registered, a code has been sent",

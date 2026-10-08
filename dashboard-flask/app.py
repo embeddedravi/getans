@@ -27,6 +27,7 @@ from flask import (
 from dotenv import load_dotenv
 from verify_routes import verify_bp
 
+SITE_NAME = "GetANS"
 
 load_dotenv()
 def _require_env(name: str, min_len: int = 32) -> str:
@@ -144,7 +145,7 @@ def inject_current_path():
             pending_count = sum(len(pending.get(key, [])) for key in ("publishers", "advertisers", "ad_units"))
         except Exception:
             pass
-    return {"current_path": flask_request.path, "pending_approval_count": pending_count}
+    return {"current_path": flask_request.path, "pending_approval_count": pending_count, "site_name": SITE_NAME,}
 
 # ── Auth routes ───────────────────────────────────────────────────────────────
 

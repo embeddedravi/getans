@@ -35,7 +35,7 @@
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
 (() => {
-  const order = {{ checkout_order|tojson }};
+  const order = {{ checkout_order | tojson }};
   const submit = document.getElementById("wallet-submit");
   const message = document.getElementById("payment-message");
   const error = document.getElementById("payment-error");

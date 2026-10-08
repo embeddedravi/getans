@@ -50,6 +50,13 @@ def format_num(value):
         return f"{int(value):,}"
     except (ValueError, TypeError):
         return value
+        
+@app.template_filter("inr")
+def inr(value, places=2):
+    try:
+        return f"₹{float(value):,.{places}f}"
+    except (TypeError, ValueError):
+        return "—"
 
 # ── Backend URL ───────────────────────────────────────────────────────────────
 API_BASE = os.environ.get("API_BASE_URL", "http://localhost:8000/api")

@@ -68,15 +68,15 @@
               </td>
               <td class="tabular-nums">{{ c.priority }}</td>
               <td class="tabular-nums text-xs">
-                {{ c.bidding_strategy | upper }} · ₹{{ '%.4f'|format(c.bid_amount) }}
+                {{ c.bidding_strategy | upper }} · {{ c.bid_amount | inr(4) }}
               </td>
               <td class="tabular-nums text-xs">
-                <div>{{ '₹%.2f/day'|format(c.daily_cap) if c.daily_cap is not none else 'No daily cap' }}</div>
-                <div class="">
+                <div>{{ (c.daily_cap | inr ~ '/day') if c.daily_cap is not none else 'No daily cap' }}</div>
+                <div>
                   {% if c.total_budget is not none %}
-                    ₹{{ '%.2f'|format(c.spent_amount) }} / ₹{{ '%.2f'|format(c.total_budget) }} total
+                    {{ c.spent_amount | inr }} / {{ c.total_budget | inr }} total
                   {% else %}
-                    ₹{{ '%.2f'|format(c.spent_amount) }} spent
+                    {{ c.spent_amount | inr }} spent
                   {% endif %}
                 </div>
               </td>

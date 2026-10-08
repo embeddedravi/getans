@@ -106,7 +106,7 @@
           </a>
           <p class="text-xs  mt-1.5">
             Payout: {{ selected.payout_email }} · {{ selected.revenue_share_percentage }}% share
-            · <span class="tabular-nums">₹{{ '%.2f'|format(selected.unpaid_earnings) }} unpaid</span>
+            · <span class="tabular-nums">{{ selected.unpaid_earnings | inr }} unpaid</span>
           </p>
           {% if selected.domain or selected.category %}
             <p class="text-xs  mt-1">
@@ -167,7 +167,7 @@
                   <td class="text-xs ">{{ unit.format_type }}</td>
                   <td class="tabular-nums text-sm">{{ unit.width }}×{{ unit.height }}</td>
                   <td class="tabular-nums text-sm">
-                    {{ '₹%.4f'|format(unit.reserve_price) if unit.reserve_price and unit.reserve_price > 0 else '—' }}
+                    {{ unit.reserve_price | inr(4) if unit.reserve_price|float > 0 else '—' }}
                   </td>
                   <td><span class="badge badge-xs {{ 'badge-success' if unit.status == 'approved' else 'badge-error' if unit.status == 'rejected' else 'badge-warning' }}">{{ unit.status | replace('_', ' ') }}</span></td>
                   <td class="tabular-nums  text-sm">#{{ unit.id }}</td>

@@ -49,7 +49,7 @@ async def test_request_ad_persists_normalized_context_and_serves_creative(namesp
     async def select(_db, ad_unit_id, context):
         assert ad_unit_id == 42
         assert context.country == "ca" and context.device_type == "mobile"
-        return SimpleNamespace(campaign_id=5, creative_id=8, asset_url="https://cdn.example/ad.png", click_url="https://click.example", width=300, height=250)
+        return SimpleNamespace(campaign_id=5, creative_id=8, asset_url="https://cdn.example/ad.png", click_url="https://click.example", width=300, height=250, format="image")
     async def db_generator():
         yield object()
 
@@ -60,7 +60,7 @@ async def test_request_ad_persists_normalized_context_and_serves_creative(namesp
     monkeypatch.setattr(delivery_ns, "select_ad", select)
     await namespace.on_request_ad("sid", {"ad_unit_id": 42, "api_key": "valid", "context": {"country": "ca", "device_type": "mobile"}})
     assert saved["country_code"] == "CA"
-    assert namespace.emitted[-1] == ("serve_ad", {"campaign_id": 5, "creative_id": 8, "asset_url": "https://cdn.example/ad.png", "click_url": "https://click.example", "width": 300, "height": 250}, "sid")
+    assert namespace.emitted[-1] == ("serve_ad", {"campaign_id": 5, "creative_id": 8, "asset_url": "https://cdn.example/ad.png", "click_url": "https://click.example", "width": 300, "height": 250, "format": "image"}, "sid")
 
 
 @pytest.mark.asyncio

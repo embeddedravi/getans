@@ -120,6 +120,13 @@ export interface AdUnit {
   created_at: string;
 }
 
+export interface MediaAsset {
+  id: number; advertiser_id: number; kind: "image" | "video";
+  original_filename: string; content_type: string; size_bytes: number;
+  width: number; height: number; duration_seconds: number | null;
+  url: string; created_at: string;
+}
+
 export interface PendingApprovals {
   publishers: Publisher[];
   advertisers: Advertiser[];
@@ -178,6 +185,7 @@ export interface Creative {
   review_status: ReviewStatus;
   rejection_reason: string | null;
   created_at: string;
+  media_asset_id: number | null;
 }
 
 export interface CampaignStats {

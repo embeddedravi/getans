@@ -28,7 +28,6 @@ from dotenv import load_dotenv
 from verify_routes import verify_bp
 
 SITE_NAME = "GetANS"
-
 load_dotenv()
 def _require_env(name: str, min_len: int = 32) -> str:
     value = os.environ.get(name, "")
@@ -362,33 +361,43 @@ def creatives(campaign_id: int):
     except requests.HTTPError:
         flash("Could not load creatives for that campaign.", "error")
         return redirect(url_for("campaigns"))
+    try:
+        library = [
+            m for m in _api("GET", "/media")
+            if m["advertiser_id"] == campaign["advertiser_id"]
+        ]
+    except Exception:
+        library = []
     return render_template(
         "creatives.html",
         campaign=campaign,
         creatives=items,
+        media=library,
         is_admin=session.get("role") == "admin",
     )
 
-
-@app.route("/campaigns/<int:campaign_id>/creatives/create", methods=["POST"])
+@app.route("/campaigns/<int:campaign_id>/creatives/create-from-media", methods=["POST"])
 @login_required
-def create_creative(campaign_id: int):
+def create_creative_from_media(campaign_id: int):
+    try:
+        media_id = int(request.form["media_id"])
+    except (KeyError, ValueError):
+        flash("Choose an image or video first.", "error")
+        return redirect(url_for("creatives", campaign_id=campaign_id))
     payload = {
         "campaign_id": campaign_id,
+        "media_id": media_id,
         "name": request.form.get("name") or None,
-        "asset_url": request.form["asset_url"],
         "click_url": request.form["click_url"],
-        "width": int(request.form["width"]),
-        "height": int(request.form["height"]),
-        "format": "image",
     }
     try:
         _api("POST", "/creatives", json=payload)
-        flash("Creative added. It will serve once approved.", "success")
+        flash("Creative created. It will serve once approved.", "success")
+    except requests.HTTPError as exc:
+        flash(f"Failed: {_detail_from(exc.response)}", "error")
     except Exception as exc:
         flash(f"Failed: {exc}", "error")
     return redirect(url_for("creatives", campaign_id=campaign_id))
-
 
 @app.route("/campaigns/<int:campaign_id>/creatives/<int:creative_id>/toggle", methods=["POST"])
 @login_required
@@ -758,6 +767,86 @@ def create_ad_unit(publisher_id: int):
         flash(f"Failed: {exc}", "error")
     return redirect(url_for("publishers", selected=publisher_id))
 
+# ── Media library (advertisers) ───────────────────────────────────────────────
+
+
+def _detail_from(resp: requests.Response) -> str:
+    """Turn a FastAPI error body (string or 422 list) into a message."""
+    try:
+        detail = resp.json().get("detail")
+    except ValueError:
+        detail = None
+    if isinstance(detail, list):
+        return ", ".join(str(d.get("msg", "Invalid input")).replace("Value error, ", "") for d in detail)
+    if isinstance(detail, str):
+        return detail
+    return f"Request failed ({resp.status_code})"
+
+
+@app.route("/media")
+@advertiser_required
+def media_library():
+    try:
+        items = _api("GET", "/media")
+    except Exception as exc:
+        items = []
+        flash(f"Could not load media: {exc}", "error")
+    return render_template("media.html", media=items)
+
+
+@app.route("/media/upload", methods=["POST"])
+@advertiser_required
+def media_upload():
+    files = [f for f in request.files.getlist("files") if f and f.filename]
+    if not files:
+        flash("Choose at least one file to upload.", "error")
+        return redirect(url_for("media_library"))
+
+    # Only used for videos when the server has no ffprobe to read the size itself.
+    extra = {k: v for k in ("width", "height") if (v := request.form.get(k, "").strip())}
+    # Multipart: let requests set its own Content-Type (with boundary), so don't use _headers().
+    auth = {"Authorization": f"Bearer {session['access_token']}"}
+
+    uploaded, errors = 0, []
+    for f in files:
+        try:
+            resp = requests.post(
+                f"{API_BASE}/media",
+                headers=auth,
+                files={"file": (f.filename, f.stream, f.mimetype)},
+                data=extra,
+                timeout=120,
+            )
+        except requests.RequestException:
+            errors.append(f"{f.filename}: could not reach the backend")
+            continue
+        if resp.status_code == 401:
+            session.clear()
+            abort(401)
+        if resp.ok:
+            uploaded += 1
+        else:
+            errors.append(f"{f.filename}: {_detail_from(resp)}")
+
+    if uploaded:
+        flash(f"Uploaded {uploaded} file{'s' if uploaded != 1 else ''}.", "success")
+    for message in errors:
+        flash(message, "error")
+    return redirect(url_for("media_library"))
+
+
+@app.route("/media/<int:media_id>/delete", methods=["POST"])
+@advertiser_required
+def media_delete(media_id: int):
+    try:
+        _api("DELETE", f"/media/{media_id}")
+        flash("Media deleted.", "success")
+    except requests.HTTPError as exc:
+        flash(_detail_from(exc.response), "error")
+    except Exception as exc:
+        flash(f"Delete failed: {exc}", "error")
+    return redirect(url_for("media_library"))
+
 # ── Live events (for admin) ─────────────────────────────────────────────────
 
 @app.route("/live-events")
@@ -794,7 +883,10 @@ def proxy_analytics():
 
 
 # ── Error handlers ────────────────────────────────────────────────────────────
-
+@app.errorhandler(413)
+def too_large(e):
+    flash("Upload too large. Images are limited to 5 MB and videos to 50 MB.", "error")
+    return redirect(url_for("media_library"))
 
 @app.errorhandler(401)
 def unauthorized(e):
@@ -805,6 +897,7 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=os.environ.get("FLASK_INSECURE_COOKIES") != "1",
 )
+app.config["MAX_CONTENT_LENGTH"] = 60 * 1024 * 1024  # one request; larger uploads get a friendly error
 
 if __name__ == "__main__":
     app.run(debug=os.environ.get("FLASK_DEBUG") == "1", port=5000)

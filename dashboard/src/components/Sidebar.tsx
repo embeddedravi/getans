@@ -35,6 +35,7 @@ const roleLinks: Record<Role, { to: string; label: string; end?: boolean }[]> = 
   advertiser: [
     { to: "/", label: "Performance overview", end: true },
     { to: "/campaigns", label: "My campaigns" },
+    { to: "/media", label: "Media library" }
   ],
 };
 

@@ -37,6 +37,7 @@ class SelectedAd:
     click_url: str
     width: int
     height: int
+    format: str = "image"
 
 
 class NoEligibleCampaignError(Exception):
@@ -130,6 +131,7 @@ async def select_ad(
         click_url=creative.click_url,
         width=creative.width,
         height=creative.height,
+        format=creative.format.value,
     )
 
 

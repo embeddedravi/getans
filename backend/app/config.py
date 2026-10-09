@@ -71,6 +71,13 @@ class Settings(BaseSettings):
     require_verified_mobile: bool = False
     allow_self_signup: bool = True
 
+    # --- Media (images/videos in ads) ---
+    media_dir: Path = Path("media")
+    public_base_url: str = "http://localhost:8000"   # absolute URL publishers' visitors will load media from
+    media_max_image_mb: int = 5
+    media_max_video_mb: int = 50
+    media_max_video_seconds: int = 30
+
     @field_validator("jwt_secret")
     @classmethod
     def _strong_jwt_secret(cls, v: SecretStr) -> SecretStr:
@@ -92,6 +99,9 @@ class Settings(BaseSettings):
             return self
 
         problems: list[str] = []
+
+        if "localhost" in self.public_base_url:
+            problems.append("public_base_url must be your real public URL")
 
         if self.sms_backend == "console":
             problems.append("sms_backend='console' logs OTP codes; configure a real SMS backend")

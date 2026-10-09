@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "../lib/api";
-import type { Campaign, Creative, ReviewStatus } from "../types";
+import type { Campaign, Creative, MediaAsset, ReviewStatus } from "../types";
 
 const REVIEW_BADGE: Record<ReviewStatus, string> = {
     pending: "badge-warning",
@@ -28,6 +28,11 @@ export function CreativesModal({
     const [width, setWidth] = useState("300");
     const [height, setHeight] = useState("250");
 
+    const [media, setMedia] = useState<MediaAsset[]>([]);
+    const [mediaId, setMediaId] = useState("");
+    const [mediaClickUrl, setMediaClickUrl] = useState("");
+    useEffect(() => { api.listMedia().then(setMedia).catch(() => { }); }, []);
+
     function refresh() {
         setLoading(true);
         api
@@ -46,6 +51,20 @@ export function CreativesModal({
         } catch (e) {
             setError(e instanceof Error ? e.message : "Action failed");
         }
+    }
+
+    async function handleCreateFromMedia(e: FormEvent) {
+        e.preventDefault();
+        setSubmitting(true);
+        await run(async () => {
+            await api.createCreative({
+                campaign_id: campaign.id,
+                media_id: Number(mediaId),
+                click_url: mediaClickUrl,
+            });
+            setMediaId(""); setMediaClickUrl("");
+        });
+        setSubmitting(false);
     }
 
     async function handleCreate(e: FormEvent) {
@@ -178,6 +197,25 @@ export function CreativesModal({
                         </button>
                     </div>
                 </form>
+
+                <form onSubmit={handleCreateFromMedia} className="space-y-3 mb-6">
+                    <h3 className="text-sm font-medium">Create from media library</h3>
+                    <select required value={mediaId} onChange={(e) => setMediaId(e.target.value)}
+                        className="select select-bordered select-sm w-full bg-base-100">
+                        <option value="">Choose an image or video…</option>
+                        {media.map((m) => (
+                            <option key={m.id} value={m.id}>
+                                {m.original_filename} ({m.kind}, {m.width}×{m.height})
+                            </option>
+                        ))}
+                    </select>
+                    <input required type="url" value={mediaClickUrl} onChange={(e) => setMediaClickUrl(e.target.value)}
+                        placeholder="Click-through URL" className="input input-bordered input-sm w-full bg-base-100" />
+                    <div className="flex justify-end">
+                        <button type="submit" disabled={submitting} className="btn btn-primary btn-sm">Create ad</button>
+                    </div>
+                </form>
+
             </div>
         </div>
     );

@@ -52,6 +52,12 @@ class Creative(TimestampMixin, Base):
         nullable=False,
         index=True,
     )
+    media_asset_id: Mapped[Optional[int]] = mapped_column(
+        BigInteger,
+        ForeignKey("media_assets.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     # Core Asset Meta & URLs
     name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)

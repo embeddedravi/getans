@@ -8,8 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import get_db, require_role
 from app.models.campaign import Campaign
-from app.models.creative import Creative, ReviewStatus
+from app.models.creative import Creative, ReviewStatus, CreativeFormat
 from app.models.user import User
+from app.models.media_asset import MediaKind, MediaAsset
 from app.schemas.creative import CreativeCreate, CreativeOut, CreativeUpdate, CreativeReview
 
 router = APIRouter(prefix="/creatives", tags=["Creatives"])
@@ -39,15 +40,26 @@ async def create_creative(
             detail="Cannot add creatives to a campaign owned by another advertiser",
         )
 
+    asset_url, width, height, fmt = payload.asset_url, payload.width, payload.height, payload.format
+    media_asset_id = None
+    if payload.media_id is not None:
+        asset = await db.get(MediaAsset, payload.media_id)
+        if asset is None or asset.advertiser_id != campaign.advertiser_id:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Media asset not found")
+        asset_url, width, height = asset.url, asset.width, asset.height
+        fmt = CreativeFormat.VIDEO if asset.kind == MediaKind.VIDEO else CreativeFormat.IMAGE
+        media_asset_id = asset.id
+
     creative = Creative(
         campaign_id=payload.campaign_id,
+        media_asset_id=media_asset_id,
         name=payload.name,
-        asset_url=str(payload.asset_url),
+        asset_url=str(asset_url),
         click_url=str(payload.click_url),
         impression_tracker_url=str(payload.impression_tracker_url) if payload.impression_tracker_url else None,
-        format=payload.format,
-        width=payload.width,
-        height=payload.height,
+        format=fmt,
+        width=width,
+        height=height,
         html_snippet=payload.html_snippet,
         custom_attributes=payload.custom_attributes,
     )

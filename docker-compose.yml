@@ -26,9 +26,13 @@ services:
       ADPLATFORM_DATABASE_URL: mysql+aiomysql://${MYSQL_USER:-adplatform}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE:-adplatform}
     ports:
       - "8000:8000"
+    volumes:
+      - media_data:/app/media
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   db_data:
+  media_data:
+    

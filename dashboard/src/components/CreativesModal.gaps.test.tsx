@@ -7,6 +7,7 @@ import { CreativesModal } from "./CreativesModal";
 
 vi.mock("../lib/api", () => ({
     api: {
+        listMedia: vi.fn(),
         listCreativesForCampaign: vi.fn(),
         createCreative: vi.fn(),
         updateCreative: vi.fn(),
@@ -37,6 +38,7 @@ const creative = (o: Partial<Creative> = {}): Creative => ({
 
 beforeEach(() => {
     vi.resetAllMocks();
+    mocked.listMedia.mockResolvedValue([]);
 });
 
 describe("CreativesModal gaps", () => {

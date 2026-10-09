@@ -44,20 +44,28 @@ class ReviewStatus(str, Enum):
 
 class CreativeCreate(BaseModel):
     campaign_id: int
+    media_id: Optional[int] = None
     name: Optional[str] = Field(None, max_length=200)
-    asset_url: HttpUrl
+    asset_url: Optional[HttpUrl] = None
     click_url: HttpUrl
     impression_tracker_url: Optional[HttpUrl] = None
     format: CreativeFormat = CreativeFormat.IMAGE
-    width: PositiveInt
-    height: PositiveInt
+    width: Optional[PositiveInt] = None
+    height: Optional[PositiveInt] = None
     html_snippet: Optional[str] = None
     custom_attributes: Optional[Dict[str, Any]] = None
+
+    @model_validator(mode="after")
+    def _has_source(self):
+        if self.media_id is None and not (self.asset_url and self.width and self.height):
+            raise ValueError("Provide media_id, or asset_url with width and height")
+        return self
 
 
 class CreativeOut(BaseModel):
     id: int
     campaign_id: int
+    media_asset_id: Optional[int] = None
     name: Optional[str] = None
     asset_url: str
     click_url: str

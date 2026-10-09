@@ -29,7 +29,13 @@
         {% else %}
           {% for cr in creatives %}
             <tr class="border-b border-base-300 last:border-0 align-top">
-              <td><img src="{{ cr.asset_url }}" alt="creative" class="max-h-16 max-w-[96px] object-contain bg-base-100 rounded" /></td>
+              <td>
+                {% if cr.format == 'video' %}
+                  <video src="{{ cr.asset_url }}" muted preload="metadata" class="max-h-16 max-w-[96px] bg-base-100 rounded"></video>
+                {% else %}
+                  <img src="{{ cr.asset_url }}" alt="creative" class="max-h-16 max-w-[96px] object-contain bg-base-100 rounded" />
+                {% endif %}
+              </td>
               <td class="text-xs">
                 <div class="font-medium text-sm">{{ cr.name or ('Creative #' ~ cr.id) }}</div>
                 <div class="tabular-nums ">{{ cr.width }}×{{ cr.height }}</div>
@@ -94,9 +100,49 @@
       <p class="text-xs ">Dimensions must exactly match an ad slot for this creative to be selected.</p>
       <div class="flex justify-end gap-2 pt-2 border-t border-base-300">
         <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('modal-create-creative').close()">Cancel</button>
-        <button type="submit" class="btn btn-primary btn-sm">Add creative</button>
+        <div class="flex gap-2">
+          <button class="btn btn-primary btn-sm" onclick="document.getElementById('modal-create-from-media').showModal()">
+            Create from media
+          </button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('modal-create-creative').showModal()">
+            Add by URL
+          </button>
+        </div>
       </div>
     </form>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<dialog id="modal-create-from-media" class="modal">
+  <div class="modal-box bg-base-200 border border-base-300 max-w-md">
+    <form method="dialog" class="absolute top-4 right-4"><button class="btn btn-ghost btn-sm btn-circle">✕</button></form>
+    <h3 class="font-display text-lg font-semibold mb-5">Create from media library</h3>
+    {% if not media %}
+      <p class="text-sm">
+        No media found for this advertiser.
+        <a href="/media" class="link text-primary">Upload an image or video</a> first.
+      </p>
+    {% else %}
+      <form method="POST" action="{{ url_for('create_creative_from_media', campaign_id=campaign.id) }}" class="space-y-4">
+        <label class="block"><span class="block text-xs mb-1.5">Image or video</span>
+          <select name="media_id" required class="select select-bordered select-sm w-full bg-base-100">
+            <option value="">Choose…</option>
+            {% for m in media %}
+              <option value="{{ m.id }}">{{ m.original_filename }} ({{ m.kind }}, {{ m.width }}×{{ m.height }})</option>
+            {% endfor %}
+          </select></label>
+        <label class="block"><span class="block text-xs mb-1.5">Name (optional)</span>
+          <input name="name" maxlength="200" class="input input-bordered input-sm w-full bg-base-100" /></label>
+        <label class="block"><span class="block text-xs mb-1.5">Click-through URL</span>
+          <input name="click_url" type="url" required class="input input-bordered input-sm w-full bg-base-100" /></label>
+        <p class="text-xs">The creative takes its size from the file, and must match an ad slot's dimensions exactly to serve.</p>
+        <div class="flex justify-end gap-2 pt-2 border-t border-base-300">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('modal-create-from-media').close()">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Create ad</button>
+        </div>
+      </form>
+    {% endif %}
   </div>
   <form method="dialog" class="modal-backdrop"><button>close</button></form>
 </dialog>

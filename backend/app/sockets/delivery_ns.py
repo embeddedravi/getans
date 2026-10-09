@@ -91,6 +91,7 @@ class DeliveryNamespace(socketio.AsyncNamespace):
                 "click_url": ad.click_url,
                 "width": ad.width,
                 "height": ad.height,
+                "format": ad.format,
             },
             to=sid,
         )
@@ -99,10 +100,10 @@ class DeliveryNamespace(socketio.AsyncNamespace):
         metadata = await self._event_metadata(sid, data)
         await record_event(
             event_type="impression",
-            ad_unit_id=data.get("ad_unit_id"),
-            creative_id=data.get("creative_id"),
-            event_id=data.get("event_id"),
-            visitor_id=data.get("visitor_id"),
+            ad_unit_id=data.get("ad_unit_id", 0),
+            creative_id=data.get("creative_id", 0),
+            event_id=data.get("event_id", ""),
+            visitor_id=data.get("visitor_id", ""),
             **metadata,
         )
 
@@ -110,10 +111,10 @@ class DeliveryNamespace(socketio.AsyncNamespace):
         metadata = await self._event_metadata(sid, data)
         await record_event(
             event_type="click",
-            ad_unit_id=data.get("ad_unit_id"),
-            creative_id=data.get("creative_id"),
-            event_id=data.get("event_id"),
-            visitor_id=data.get("visitor_id"),
+            ad_unit_id=data.get("ad_unit_id", 0),
+            creative_id=data.get("creative_id", 0),
+            event_id=data.get("event_id", ""),
+            visitor_id=data.get("visitor_id", ""),
             **metadata,
         )
 
@@ -150,8 +151,8 @@ class DeliveryNamespace(socketio.AsyncNamespace):
         visitor_id = data.get("visitor_id")
         reason = data.get("reason")
         try:
-            ad_unit_id = int(data.get("ad_unit_id"))
-            creative_id = int(data.get("creative_id"))
+            ad_unit_id = int(data.get("ad_unit_id", 0))
+            creative_id = int(data.get("creative_id", 0))
         except (TypeError, ValueError):
             return {"ok": False, "message": "Invalid ad or slot."}
 

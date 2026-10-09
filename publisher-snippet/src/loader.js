@@ -3,7 +3,8 @@
  *
  * Usage:
  *   <div data-ad-unit-id="123"></div>
- *   <script src="https://your-ad-server.example.com/loader.min.js"
+ *   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+ *   <script src="https://your-cdn.example.com/loader.js"
  *           data-api-key="PUBLISHER_API_KEY"
  *           data-server="https://your-ad-server.example.com"></script>
  */
@@ -36,8 +37,8 @@
       device_type: /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop",
       page_keywords: keywords && keywords.content
         ? keywords.content.split(",").map(function (keyword) {
-            return keyword.trim();
-          })
+          return keyword.trim();
+        })
         : []
     };
   }
@@ -62,16 +63,28 @@
     link.target = "_blank";
     link.rel = "noopener sponsored";
 
-    var image = document.createElement("img");
-    image.src = ad.asset_url;
-    image.alt = ad.alt_text || "Advertisement";
-    image.loading = "lazy";
-    image.style.maxWidth = "100%";
-    image.style.height = "auto";
-    if (Number(ad.width) > 0) image.width = Number(ad.width);
-    if (Number(ad.height) > 0) image.height = Number(ad.height);
+    var media;
+    if (ad.format === "video") {
+      media = document.createElement("video");
+      media.src = ad.asset_url;
+      media.muted = true;          // required for autoplay
+      media.autoplay = true;
+      media.loop = true;
+      media.playsInline = true;
+      media.preload = "metadata";
+      media.setAttribute("aria-label", ad.alt_text || "Advertisement");
+    } else {
+      media = document.createElement("img");
+      media.src = ad.asset_url;
+      media.alt = ad.alt_text || "Advertisement";
+      media.loading = "lazy";
+    }
+    media.style.maxWidth = "100%";
+    media.style.height = "auto";
+    if (Number(ad.width) > 0) media.width = Number(ad.width);
+    if (Number(ad.height) > 0) media.height = Number(ad.height);
 
-    link.appendChild(image);
+    link.appendChild(media);
     creativeFrame.appendChild(link);
     container.appendChild(creativeFrame);
     if (ad.creative_id != null) container.dataset.creativeId = ad.creative_id;

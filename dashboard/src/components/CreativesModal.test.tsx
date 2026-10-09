@@ -8,6 +8,7 @@ import { CreativesModal } from "./CreativesModal";
 
 vi.mock("../lib/api", () => ({
     api: {
+        listMedia: vi.fn(),
         listCreativesForCampaign: vi.fn(),
         createCreative: vi.fn(),
         updateCreative: vi.fn(),
@@ -43,6 +44,7 @@ function renderModal(isAdmin = false) {
 
 beforeEach(() => {
     vi.resetAllMocks();
+    mocked.listMedia.mockResolvedValue([]);
     mocked.listCreativesForCampaign.mockResolvedValue([creative()]);
 });
 
@@ -186,7 +188,7 @@ describe("add creative form", () => {
         await screen.findByText("Banner A");
 
         fill(screen.getByPlaceholderText("Image URL"), "https://cdn.example.com/new.png");
-        fill(screen.getByPlaceholderText("Click-through URL"), "https://example.com/new");
+        fill(screen.getAllByPlaceholderText("Click-through URL")[0], "https://example.com/new");
         submitForm(screen.getByRole("button", { name: "Add creative" }));
 
         await waitFor(() =>
@@ -210,7 +212,7 @@ describe("add creative form", () => {
 
         fill(screen.getByPlaceholderText("Name (optional)"), "Leaderboard");
         fill(screen.getByPlaceholderText("Image URL"), "https://cdn.example.com/lb.png");
-        fill(screen.getByPlaceholderText("Click-through URL"), "https://example.com/lb");
+        fill(screen.getAllByPlaceholderText("Click-through URL")[0], "https://example.com/lb");
         fill(screen.getByPlaceholderText("Width"), "728");
         fill(screen.getByPlaceholderText("Height"), "90");
         submitForm(screen.getByRole("button", { name: "Add creative" }));
@@ -227,7 +229,7 @@ describe("add creative form", () => {
         renderModal();
         await screen.findByText("Banner A");
         fill(screen.getByPlaceholderText("Image URL"), "https://cdn.example.com/new.png");
-        fill(screen.getByPlaceholderText("Click-through URL"), "https://example.com/new");
+        fill(screen.getAllByPlaceholderText("Click-through URL")[0], "https://example.com/new");
 
         submitForm(screen.getByRole("button", { name: "Add creative" }));
 

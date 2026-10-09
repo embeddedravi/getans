@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+
+{% block title %}Media library{% endblock %}
+{% block description %}Upload and manage images and videos for your ads{% endblock %}
+{% block page_title %}Media library{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+  <section class="rounded-lg border border-base-300 bg-base-200 p-5">
+    <form method="POST" action="{{ url_for('media_upload') }}" enctype="multipart/form-data"
+          id="upload-form" class="space-y-3">
+      <div class="flex flex-wrap items-end justify-between gap-4">
+        <label class="flex-1 min-w-56">
+          <span class="mb-1 block text-xs">Choose images or videos</span>
+          <input id="files" name="files" type="file" multiple required
+                 accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/webm"
+                 class="file-input file-input-bordered file-input-sm w-full bg-base-100" />
+        </label>
+        <button id="upload-btn" type="submit" class="btn btn-primary btn-sm">Upload</button>
+      </div>
+      <p class="text-xs">
+        PNG, JPEG, GIF, WebP up to 5 MB · MP4, WebM up to 50 MB and 30 seconds.
+        Keep each upload request under 60 MB in total.
+      </p>
+      <details class="text-xs">
+        <summary class="cursor-pointer">Video size (only needed if upload says the server can't read it)</summary>
+        <div class="mt-2 grid grid-cols-2 gap-3 max-w-xs">
+          <input name="width" type="number" min="1" placeholder="Width" class="input input-bordered input-sm bg-base-100" />
+          <input name="height" type="number" min="1" placeholder="Height" class="input input-bordered input-sm bg-base-100" />
+        </div>
+      </details>
+    </form>
+  </section>
+
+  {% if not media %}
+    <div class="rounded-lg border border-base-300 bg-base-200 p-8 text-center text-sm">
+      No media yet. Upload an image or video to create your first ad.
+    </div>
+  {% else %}
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {% for m in media %}
+        <div class="rounded-lg border border-base-300 bg-base-200 p-3">
+          <div class="flex h-36 items-center justify-center overflow-hidden rounded bg-base-100">
+            {% if m.kind == 'video' %}
+              <video src="{{ m.url }}" muted controls preload="metadata" class="max-h-36 max-w-full"></video>
+            {% else %}
+              <img src="{{ m.url }}" alt="{{ m.original_filename }}" class="max-h-36 max-w-full object-contain" />
+            {% endif %}
+          </div>
+          <p class="mt-2 truncate text-sm font-medium" title="{{ m.original_filename }}">{{ m.original_filename }}</p>
+          <p class="tabular-nums text-xs">
+            {{ m.width }}×{{ m.height }} · {{ '%.2f'|format(m.size_bytes / 1048576) }} MB
+            {% if m.duration_seconds is not none %} · {{ '%.0f'|format(m.duration_seconds|float) }}s{% endif %}
+          </p>
+          <form method="POST" action="{{ url_for('media_delete', media_id=m.id) }}" class="mt-2"
+                data-confirm="Delete {{ m.original_filename }}?" onsubmit="return confirm(this.dataset.confirm)">
+            <button class="btn btn-ghost btn-xs text-error">Delete</button>
+          </form>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById('upload-form').addEventListener('submit', function () {
+    const btn = document.getElementById('upload-btn');
+    btn.disabled = true;
+    btn.textContent = 'Uploading…';
+  });
+</script>
+{% endblock %}

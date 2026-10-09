@@ -108,6 +108,24 @@ export const api = {
       body: JSON.stringify({ review_status, rejection_reason }),
     }),
 
+  listMedia: () => request<import("../types").MediaAsset[]>("/media"),
+  uploadMedia: async (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    const token = getToken();
+    const res = await fetch(`${BASE_URL}/media`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(errorMessage(body, res.status));
+    }
+    return res.json() as Promise<import("../types").MediaAsset>;
+  },
+  deleteMedia: (id: number) => request<void>(`/media/${id}`, { method: "DELETE" }),
+
   listPublishers: () => request("/publishers"),
   createPublisher: (payload: unknown) =>
     request("/publishers", { method: "POST", body: JSON.stringify(payload) }),

@@ -3,6 +3,7 @@ import { Fragment } from "react";
 import { Layout } from "../components/Layout";
 import { api } from "../lib/api";
 import type { AdUnit, Publisher } from "../types";
+import { useListingControls } from "../components/ListingControls";
 
 type SlotRow = AdUnit & { publisher_name: string };
 type AdUnitReport = { id: number; creative_id: number | null; reason: string; created_at: string };
@@ -15,6 +16,8 @@ export function AdminSlotsPage() {
   const [reportsSlot, setReportsSlot] = useState<number | null>(null);
   const [reports, setReports] = useState<AdUnitReport[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
+  const listing = useListingControls(slots, (slot) => `${slot.slot_name} ${slot.publisher_name} ${slot.format_type}`, (slot) => slot.status,
+    ["pending_review", "approved", "rejected"].map((value) => ({ value, label: value.replace(/_/g, " ") })));
 
   const loadSlots = useCallback(async () => {
     setLoading(true);
@@ -89,11 +92,12 @@ export function AdminSlotsPage() {
     <div className="space-y-4">
       <p className="text-sm ">Ad inventory across all publisher accounts.</p>
       {error && <div role="alert" className="alert alert-error py-2 text-sm">{error}</div>}
+      {listing.controls}
       <div className="overflow-x-auto rounded border border-base-300 bg-base-200">
         <table className="table">
           <thead><tr><th>Slot</th><th>Publisher</th><th>Format</th><th>Dimensions</th><th>Floor CPM</th><th>Status</th><th>Slot ID</th><th>Actions</th></tr></thead>
           <tbody>
-            {slots.map((slot) => <Fragment key={slot.id}><tr>
+            {listing.pageItems.map((slot) => <Fragment key={slot.id}><tr>
               <td className="font-medium">{slot.slot_name}</td>
               <td>{slot.publisher_name}</td>
               <td>{slot.format_type}</td>
@@ -121,7 +125,7 @@ export function AdminSlotsPage() {
                 )}
               </td></tr>}
             </Fragment>)}
-            {!loading && slots.length === 0 && <tr><td colSpan={8} className="py-8 text-center text-sm ">No ad slots found.</td></tr>}
+            {!loading && listing.filtered.length === 0 && <tr><td colSpan={8} className="py-8 text-center text-sm ">No ad slots found.</td></tr>}
             {loading && <tr><td colSpan={8} className="py-8 text-center text-sm ">Loading ad slots…</td></tr>}
           </tbody>
         </table>

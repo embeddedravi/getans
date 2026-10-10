@@ -8,7 +8,7 @@
   <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-200">
     <table class="table w-full">
       <thead><tr><th>Slot</th><th>Publisher</th><th>Format</th><th>Dimensions</th><th>Floor CPM</th><th>Status</th><th>Slot ID</th><th>Actions</th></tr></thead>
-      <tbody>
+      <tbody data-listing>
         {% for slot in slots %}
           <tr>
             <td class="font-medium">{{ slot.slot_name }}</td><td>{{ slot.publisher_name }}</td><td>{{ slot.format_type }}</td>

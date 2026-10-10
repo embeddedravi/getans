@@ -2,6 +2,7 @@ import { ChangeEvent, useEffect, useState } from "react";
 import { Layout } from "../components/Layout";
 import { api } from "../lib/api";
 import type { MediaAsset } from "../types";
+import { useListingControls } from "../components/ListingControls";
 
 const ACCEPT = "image/png,image/jpeg,image/gif,image/webp,video/mp4,video/webm";
 
@@ -9,6 +10,8 @@ export function MediaLibraryPage() {
     const [items, setItems] = useState<MediaAsset[]>([]);
     const [error, setError] = useState("");
     const [uploading, setUploading] = useState(false);
+    const listing = useListingControls(items, (item) => `${item.original_filename} ${item.kind}`,
+        (item) => item.kind, [{ value: "image", label: "Image" }, { value: "video", label: "Video" }]);
 
     const refresh = () => api.listMedia().then(setItems).catch((e) => setError(e.message));
     useEffect(() => { void refresh(); }, []);
@@ -46,14 +49,15 @@ export function MediaLibraryPage() {
                     </label>
                 </div>
                 {error && <div role="alert" className="alert alert-error py-2 text-sm">{error}</div>}
+                {listing.controls}
 
-                {items.length === 0 ? (
+                {listing.filtered.length === 0 ? (
                     <div className="rounded border border-base-300 bg-base-200 p-8 text-center text-sm">
                         No media yet. Upload an image or video to create your first ad.
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                        {items.map((m) => (
+                        {listing.pageItems.map((m) => (
                             <div key={m.id} className="rounded border border-base-300 bg-base-200 p-3">
                                 <div className="flex h-36 items-center justify-center overflow-hidden rounded bg-base-100">
                                     {m.kind === "video"

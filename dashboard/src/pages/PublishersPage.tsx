@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { Layout } from "../components/Layout";
 import { api } from "../lib/api";
 import type { AdFormatType, AdUnit, Publisher, PublisherStatus } from "../types";
+import { useListingControls } from "../components/ListingControls";
 
 const PUBLISHER_STATUS_BADGE: Record<PublisherStatus, string> = {
   pending_approval: "badge-warning",
@@ -21,6 +22,10 @@ export function PublishersPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [reviewError, setReviewError] = useState("");
+  const publisherListing = useListingControls(publishers, (publisher) => `${publisher.name} ${publisher.site_url} ${publisher.status} ${publisher.domain || ""} ${publisher.category || ""}`,
+    (publisher) => publisher.status, ["pending_approval", "active", "suspended", "rejected"].map((value) => ({ value, label: value.replace(/_/g, " ") })));
+  const adUnitListing = useListingControls(adUnits, (unit) => `${unit.slot_name} ${unit.format_type} ${unit.status}`,
+    (unit) => unit.status, ["pending_review", "approved", "rejected"].map((value) => ({ value, label: value.replace(/_/g, " ") })));
 
   function refreshPublishers() {
     api.listPublishers().then((data) => {
@@ -75,8 +80,9 @@ export function PublishersPage() {
               + Add
             </button>
           </div>
+          <div className="p-3">{publisherListing.controls}</div>
           <ul>
-            {publishers.map((p) => (
+            {publisherListing.pageItems.map((p) => (
               <li key={p.id}>
                 <button
                   onClick={() => setSelected(p)}
@@ -95,7 +101,7 @@ export function PublishersPage() {
                 </button>
               </li>
             ))}
-            {publishers.length === 0 && (
+            {publisherListing.filtered.length === 0 && (
               <li className="px-4 py-6 text-sm  text-center">
                 No publishers yet.
               </li>
@@ -165,6 +171,7 @@ export function PublishersPage() {
                 </button>
               </div>
 
+              {adUnitListing.controls}
               <div className="overflow-x-auto">
                 <table className="table">
                   <thead>
@@ -178,7 +185,7 @@ export function PublishersPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {adUnits.map((unit) => (
+                    {adUnitListing.pageItems.map((unit) => (
                       <tr key={unit.id} className="border-b border-base-300 last:border-0">
                         <td>{unit.slot_name}</td>
                         <td className="text-xs ">{unit.format_type}</td>
@@ -194,7 +201,7 @@ export function PublishersPage() {
                         <td className="tabular ">{unit.id}</td>
                       </tr>
                     ))}
-                    {adUnits.length === 0 && (
+                    {adUnitListing.filtered.length === 0 && (
                       <tr>
                         <td colSpan={6} className="text-center text-sm  py-6">
                           No ad slots yet for this publisher.

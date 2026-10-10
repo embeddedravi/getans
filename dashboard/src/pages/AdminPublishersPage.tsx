@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Layout } from "../components/Layout";
 import { api } from "../lib/api";
 import type { Publisher } from "../types";
+import { useListingControls } from "../components/ListingControls";
 
 const statusStyle: Record<Publisher["status"], string> = {
   pending_approval: "badge-warning",
@@ -14,6 +15,8 @@ export function AdminPublishersPage() {
   const [publishers, setPublishers] = useState<Publisher[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<number | null>(null);
+  const listing = useListingControls(publishers, (p) => `${p.name} ${p.site_url} ${p.payout_email} ${p.domain || ""}`, (p) => p.status,
+    ["pending_approval", "active", "suspended", "rejected"].map((value) => ({ value, label: value.replace(/_/g, " ") })));
 
   const refresh = useCallback(async () => {
     try {
@@ -53,11 +56,12 @@ export function AdminPublishersPage() {
     <div className="space-y-4">
       <p className="text-sm ">Review publisher accounts and manage their status, payout details, and inventory settings.</p>
       {error && <div role="alert" className="alert alert-error py-2 text-sm">{error}</div>}
+      {listing.controls}
       <div className="overflow-x-auto rounded border border-base-300 bg-base-200">
         <table className="table">
           <thead><tr><th>Publisher</th><th>Payout email</th><th>Revenue share</th><th>Unpaid earnings</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
-            {publishers.map((publisher) => <tr key={publisher.id}>
+            {listing.pageItems.map((publisher) => <tr key={publisher.id}>
               <td>
                 <div className="font-medium">{publisher.name}</div>
                 <a className="text-xs link link-hover " href={publisher.site_url} target="_blank" rel="noreferrer">{publisher.site_url}</a>
@@ -79,7 +83,7 @@ export function AdminPublishersPage() {
                 {(publisher.status === "suspended" || publisher.status === "rejected") && <button disabled={busy === publisher.id} className="btn btn-success btn-xs" onClick={() => void setStatus(publisher, "active")}>Activate</button>}
               </div></td>
             </tr>)}
-            {publishers.length === 0 && <tr><td colSpan={6} className="py-8 text-center text-sm ">No publishers found.</td></tr>}
+            {listing.filtered.length === 0 && <tr><td colSpan={6} className="py-8 text-center text-sm ">No publishers found.</td></tr>}
           </tbody>
         </table>
       </div>

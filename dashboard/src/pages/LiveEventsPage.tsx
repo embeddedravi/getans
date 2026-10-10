@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Layout } from "../components/Layout";
 import { api } from "../lib/api";
+import { useListingControls } from "../components/ListingControls";
 import { subscribeToLiveEvents } from "../lib/socket";
 import type { LiveEvent } from "../types";
 
@@ -49,6 +50,7 @@ export function LiveEventsPage() {
   }
 
   const visible = filter === "all" ? events : events.filter((e) => e.type === filter);
+  const listing = useListingControls(visible, (event) => `${event.type} ${event.campaign_name || ""} ${event.slot_name || ""} ${event.country_code || ""} ${event.creative_id}`);
 
   return (
     <Layout title="Live events">
@@ -73,6 +75,7 @@ export function LiveEventsPage() {
 
         {error && <div role="alert" className="alert alert-error py-2 text-sm">{error}</div>}
         {paused && <p className="text-xs text-warning">Paused. The feed is not updating.</p>}
+        {listing.controls}
 
         <div className="overflow-x-auto rounded border border-base-300 bg-base-200">
           <table className="table">
@@ -83,7 +86,7 @@ export function LiveEventsPage() {
               </tr>
             </thead>
             <tbody>
-              {visible.map((e) => (
+              {listing.pageItems.map((e) => (
                 <tr key={e.id} className="border-b border-base-300 last:border-0">
                   <td className="tabular text-xs">{new Date(e.timestamp).toLocaleTimeString()}</td>
                   <td>
@@ -98,7 +101,7 @@ export function LiveEventsPage() {
                   <td className="tabular text-right">₹{e.cost.toFixed(4)}</td>
                 </tr>
               ))}
-              {visible.length === 0 && (
+              {listing.filtered.length === 0 && (
                 <tr><td colSpan={7} className="py-8 text-center text-sm ">
                   No events yet. They'll appear here as ads are served.
                 </td></tr>

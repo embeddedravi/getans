@@ -14,7 +14,7 @@
       <thead>
         <tr><th>User</th><th>Role</th><th>Tenant</th><th>Status</th><th>Last login</th><th>Actions</th></tr>
       </thead>
-      <tbody>
+      <tbody data-listing>
         {% for user in users %}
           {% set locked = user.is_superuser or user.id == session.get('user_id') %}
           <tr class="border-b border-base-300 last:border-0 align-top">

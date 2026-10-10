@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Layout } from "../components/Layout";
 import { api } from "../lib/api";
 import type { AdminUser, Advertiser, Publisher, UserRole } from "../types";
+import { useListingControls } from "../components/ListingControls";
 
 type UserEdit = {
   role: UserRole;
@@ -35,6 +36,8 @@ export function AdminUsersPage() {
   const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const listing = useListingControls(users, (user) => `${user.first_name} ${user.last_name} ${user.mobile || ""} ${user.email || ""} ${user.role} ${user.is_active ? "active" : "inactive"}`,
+    (user) => user.is_active ? "active" : "inactive", [{ value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }]);
 
   useEffect(() => {
     Promise.all([api.listAdminUsers(), api.listPublishers(), api.listAdminAdvertisers(), api.me()])
@@ -100,6 +103,7 @@ export function AdminUsersPage() {
           <p className="mt-1 text-xs ">Superuser accounts and your own role or status are protected.</p>
         </div>
         {error && <div role="alert" className="alert alert-error py-2 text-sm"><span>{error}</span></div>}
+        {listing.controls}
 
         <div className="overflow-x-auto rounded border border-base-300 bg-base-200">
           <table className="table">
@@ -109,7 +113,7 @@ export function AdminUsersPage() {
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => {
+              {listing.pageItems.map((user) => {
                 const edit = edits[user.id] ?? editFromUser(user);
                 const locked = user.is_superuser || user.id === currentUserId;
                 const dirty = !sameEdit(edit, user);
@@ -207,7 +211,7 @@ export function AdminUsersPage() {
                   </tr>
                 );
               })}
-              {!loading && users.length === 0 && <tr><td colSpan={6} className="py-8 text-center text-sm ">No users found.</td></tr>}
+              {!loading && listing.filtered.length === 0 && <tr><td colSpan={6} className="py-8 text-center text-sm ">No users found.</td></tr>}
               {loading && <tr><td colSpan={6} className="py-8 text-center text-sm ">Loading users...</td></tr>}
             </tbody>
           </table>

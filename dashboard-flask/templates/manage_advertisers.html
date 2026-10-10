@@ -8,7 +8,7 @@
   <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-200">
     <table class="table w-full">
       <thead><tr><th>Advertiser</th><th>Billing email</th><th>Status</th><th>Balance</th><th>Credit limit</th><th>Actions</th></tr></thead>
-      <tbody>
+      <tbody data-listing>
         {% for advertiser in advertisers %}
           {% set status_class = {'pending_verification': 'badge-warning', 'active': 'badge-success', 'suspended': 'badge-error', 'rejected': 'badge-ghost', 'archived': 'badge-ghost'} %}
           <tr>

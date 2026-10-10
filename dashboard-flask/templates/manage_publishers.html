@@ -8,7 +8,7 @@
   <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-200">
     <table class="table w-full">
       <thead><tr><th>Publisher</th><th>Payout email</th><th>Revenue share</th><th>Unpaid earnings</th><th>Status</th><th>Actions</th></tr></thead>
-      <tbody>
+      <tbody data-listing>
         {% for publisher in publishers %}
           {% set status_class = {'pending_approval': 'badge-warning', 'active': 'badge-success', 'suspended': 'badge-error', 'rejected': 'badge-ghost'} %}
           <tr>

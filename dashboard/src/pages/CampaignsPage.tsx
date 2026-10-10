@@ -3,6 +3,7 @@ import { Layout } from "../components/Layout";
 import { api } from "../lib/api";
 import type { BiddingStrategy, Campaign, CampaignStatus } from "../types";
 import { CreativesModal } from "../components/CreativesModal";
+import { useListingControls } from "../components/ListingControls";
 
 const STATUS_BADGE: Record<CampaignStatus, string> = {
   draft: "badge-ghost",
@@ -27,6 +28,8 @@ export function CampaignsPage() {
   const [creativesFor, setCreativesFor] = useState<Campaign | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [publishingId, setPublishingId] = useState<number | null>(null);
+  const listing = useListingControls(campaigns, (c) => `${c.name} ${c.status} ${c.bidding_strategy}`, (c) => c.status,
+    ["draft", "scheduled", "active", "paused", "completed", "exhausted", "archived"].map((value) => ({ value, label: value })));
 
   useEffect(() => {
     api.me().then((u) => setIsAdmin((u as { role: string }).role === "admin")).catch(() => { });
@@ -81,6 +84,7 @@ export function CampaignsPage() {
         </button>
       </div>
 
+      {listing.controls}
       <div className="overflow-x-auto rounded border border-base-300 bg-base-200">
         <table className="table">
           <thead>
@@ -101,14 +105,14 @@ export function CampaignsPage() {
                   Loading...
                 </td>
               </tr>
-            ) : campaigns.length === 0 ? (
+            ) : listing.filtered.length === 0 ? (
               <tr>
                 <td colSpan={7} className="text-center text-sm  py-6">
                   No campaigns yet. Create one to start serving ads.
                 </td>
               </tr>
             ) : (
-              campaigns.map((c) => (
+              listing.pageItems.map((c) => (
                 <tr key={c.id} className="border-b border-base-300 last:border-0">
                   <td className="font-medium">
                     {c.name}

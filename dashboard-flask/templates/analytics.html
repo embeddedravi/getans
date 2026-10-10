@@ -87,7 +87,7 @@
           <th>CTR bar</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody data-listing>
         {% set max_ctr = stats | map(attribute='ctr') | max %}
         {% for s in stats %}
           <tr class="border-b border-base-300 last:border-0 hover:bg-base-300/30 transition-colors">

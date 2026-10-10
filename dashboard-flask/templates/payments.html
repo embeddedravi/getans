@@ -25,7 +25,7 @@
     <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-200">
       <table class="table">
         <thead><tr><th>Payment</th><th>Publisher</th><th>Amount</th><th>Method</th><th>Status</th><th>Submitted</th><th>Actions</th></tr></thead>
-        <tbody>
+        <tbody data-listing>
           {% for payment in payments %}
             <tr>
               <td class="font-mono text-xs">#{{ payment.id }}</td>

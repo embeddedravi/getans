@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import { Layout } from "../components/Layout";
 import { api } from "../lib/api";
 import type { Payout, PayoutStatus } from "../types";
+import { useListingControls } from "../components/ListingControls";
 
 const filters: { value: "all" | PayoutStatus; label: string }[] = [
   { value: "all", label: "All payouts" },
@@ -27,6 +28,7 @@ export function PaymentsPage() {
   const [filter, setFilter] = useState<"all" | PayoutStatus>("all");
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<number | null>(null);
+  const listing = useListingControls(payments, (payment) => `${payment.id} ${payment.publisher_id} ${payment.payout_email} ${payment.status} ${payment.reference || ""}`);
 
   const refresh = useCallback(async () => {
     try {
@@ -73,12 +75,13 @@ export function PaymentsPage() {
           {item.label}
         </button>)}
       </div>
-      {payments.length === 0 ? <div className="rounded border border-base-300 bg-base-200 p-8 text-center text-sm ">
+      {listing.controls}
+      {listing.filtered.length === 0 ? <div className="rounded border border-base-300 bg-base-200 p-8 text-center text-sm ">
         No payouts found.
       </div> : <div className="overflow-x-auto rounded border border-base-300 bg-base-200">
         <table className="table">
           <thead><tr><th>Payout</th><th>Publisher</th><th>Amount</th><th>Method</th><th>Status</th><th>Submitted</th><th>Actions</th></tr></thead>
-          <tbody>{payments.map((payment) => {
+          <tbody>{listing.pageItems.map((payment) => {
             const open = payment.status === "pending" || payment.status === "processing";
             const busy = busyId === payment.id;
             return <tr key={payment.id}>

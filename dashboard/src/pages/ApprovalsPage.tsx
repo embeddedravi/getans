@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import { Layout } from "../components/Layout";
 import { api } from "../lib/api";
 import type { PendingApprovals } from "../types";
+import { useListingControls } from "../components/ListingControls";
 
 type Tab = "publishers" | "advertisers" | "ad_units";
 
@@ -12,6 +13,8 @@ export function ApprovalsPage() {
   const [tab, setTab] = useState<Tab>("publishers");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const rows = items[tab] as Array<{ id: number; name?: string; slot_name?: string; site_url?: string; billing_email?: string; payout_email?: string; industry?: string | null; width?: number; height?: number; publisher_id?: number; created_at: string }>;
+  const listing = useListingControls(rows, (row) => `${row.name || row.slot_name || ""} ${row.site_url || ""} ${row.billing_email || ""} ${row.payout_email || ""} ${row.industry || ""} ${row.publisher_id || ""}`);
 
   async function refresh() {
     try {
@@ -59,8 +62,6 @@ export function ApprovalsPage() {
     { id: "advertisers", label: "Advertisers", count: items.advertisers.length },
     { id: "ad_units", label: "Ad units", count: items.ad_units.length },
   ];
-  const rows = items[tab] as Array<{ id: number; name?: string; slot_name?: string; site_url?: string; billing_email?: string; payout_email?: string; industry?: string | null; width?: number; height?: number; publisher_id?: number; created_at: string }>;
-
   return <Layout title="Pending approvals">
     <div className="space-y-5">
       <div><h2 className="text-lg font-semibold">Review new accounts and ad units</h2><p className="text-sm ">Approved items become eligible for the platform.</p></div>
@@ -68,8 +69,9 @@ export function ApprovalsPage() {
       <div role="tablist" className="tabs tabs-bordered">
         {tabs.map((item) => <button key={item.id} role="tab" aria-selected={tab === item.id} onClick={() => setTab(item.id)} className={`tab ${tab === item.id ? "tab-active" : ""}`}>{item.label}<span className="badge badge-sm ml-2">{item.count}</span></button>)}
       </div>
-      {rows.length === 0 ? <div className="rounded border border-base-300 bg-base-200 p-8 text-center text-sm ">Nothing is waiting for review.</div> : <div className="space-y-3">
-        {rows.map((row) => <article key={row.id} className="rounded border border-base-300 bg-base-200 p-4">
+      {listing.controls}
+      {listing.filtered.length === 0 ? <div className="rounded border border-base-300 bg-base-200 p-8 text-center text-sm ">Nothing is waiting for review.</div> : <div className="space-y-3">
+        {listing.pageItems.map((row) => <article key={row.id} className="rounded border border-base-300 bg-base-200 p-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div><h3 className="font-medium">{row.name || row.slot_name}</h3>
               {tab === "publishers" && <p className="text-sm ">{row.site_url} · {row.payout_email}</p>}

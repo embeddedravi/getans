@@ -32,7 +32,7 @@ fastapi_app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.api import analytics, auth, campaigns, creatives, payouts, publishers, otp, admin, advertiser_payments, media  # noqa: E402
+from app.api import analytics, auth, campaigns, creatives, payouts, publishers, otp, admin, advertiser_payments, media, delivery  # noqa: E402
 
 class MediaFiles(StaticFiles):
     async def get_response(self, path, scope):
@@ -46,6 +46,7 @@ fastapi_app.include_router(media.router, prefix="/api", tags=["media"])
 fastapi_app.mount("/uploads", MediaFiles(directory=settings.media_dir), name="uploads")       
 
 fastapi_app.include_router(auth.router, prefix="/api", tags=["auth"])
+fastapi_app.include_router(delivery.router, prefix="/api", tags=["delivery"])
 fastapi_app.include_router(publishers.router, prefix="/api", tags=["publishers"])
 fastapi_app.include_router(campaigns.router, prefix="/api", tags=["campaigns"])
 fastapi_app.include_router(creatives.router, prefix="/api", tags=["creatives"])

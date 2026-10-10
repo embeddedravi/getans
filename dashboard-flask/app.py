@@ -129,6 +129,16 @@ def advertiser_required(f):
         return f(*args, **kwargs)
     return decorated
 
+
+def publisher_required(f):
+    @wraps(f)
+    @login_required
+    def decorated(*args, **kwargs):
+        if session.get("role") != "publisher":
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated
+
 @app.context_processor
 def inject_current_path():
     pending_count = 0
@@ -474,6 +484,27 @@ def publishers():
         publishers=publishers_list,
         selected=selected,
         ad_units=ad_units,
+    )
+
+
+@app.route("/help")
+@publisher_required
+def publisher_help():
+    try:
+        publisher_rows = _api("GET", "/publishers")
+        publisher = publisher_rows[0] if publisher_rows else None
+        ad_units = _api("GET", f"/publishers/{publisher['id']}/ad-units") if publisher else []
+    except Exception as exc:
+        publisher = None
+        ad_units = []
+        flash(f"Could not load integration details: {exc}", "error")
+    socket_base = API_BASE[:-4] if API_BASE.endswith("/api") else API_BASE
+    return render_template(
+        "publisher_help.html",
+        publisher=publisher,
+        ad_units=ad_units,
+        api_base=API_BASE,
+        socket_base=socket_base,
     )
 
 

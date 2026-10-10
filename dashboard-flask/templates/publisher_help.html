@@ -1,0 +1,115 @@
+{% extends "layout.html" %}
+
+{% block title %}Publisher integration help{% endblock %}
+{% block description %}Connect an ad unit with Socket.IO or the REST API{% endblock %}
+{% block page_title %}Publisher integration help{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-5xl space-y-6">
+  <section class="rounded-lg border border-base-300 bg-base-200 p-5">
+    <h2 class="font-display text-lg font-semibold">Connect your ad slots</h2>
+    <p class="mt-2 text-sm">Choose Socket.IO for the real-time browser integration or use the REST GET endpoint from your own integration. Your publisher account and ad unit must be active and approved before ads can serve.</p>
+    {% if publisher %}
+      <div class="mt-4 grid gap-3 sm:grid-cols-2">
+        <div><p class="text-xs font-medium">Publisher API key</p><code class="mt-1 block break-all rounded bg-base-300 p-2 text-xs">{{ publisher.api_key }}</code></div>
+        <div><p class="text-xs font-medium">API base URL</p><code class="mt-1 block break-all rounded bg-base-300 p-2 text-xs">{{ api_base }}</code></div>
+      </div>
+    {% else %}
+      <p role="alert" class="mt-3 text-sm text-warning">Publisher integration details are not available.</p>
+    {% endif %}
+  </section>
+
+  <section class="rounded-lg border border-base-300 bg-base-200 p-5">
+    <h2 class="font-display text-lg font-semibold">Your ad units</h2>
+    {% if ad_units %}
+      <div class="mt-3 overflow-x-auto"><table class="table table-sm">
+        <thead><tr><th>Slot</th><th>Ad unit ID</th><th>Size</th><th>Status</th></tr></thead>
+        <tbody>{% for unit in ad_units %}<tr>
+          <td>{{ unit.slot_name }}</td><td class="font-mono">{{ unit.id }}</td>
+          <td>{{ unit.width }}×{{ unit.height }}</td><td>{{ unit.status|replace('_', ' ') }}</td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+    {% else %}
+      <p class="mt-2 text-sm">No ad units are attached to this publisher yet. Create one from <a class="link link-primary" href="{{ url_for('publishers') }}">My sites &amp; ad slots</a>.</p>
+    {% endif %}
+  </section>
+
+  <section class="space-y-3 rounded-lg border border-base-300 bg-base-200 p-5">
+    <h2 class="font-display text-lg font-semibold">Option 1: Socket.IO</h2>
+    <p class="text-sm">Load the Socket.IO client, connect to the <code>/delivery</code> namespace, then send <code>request_ad</code>. Listen for <code>serve_ad</code> or <code>no_fill</code>. The existing publisher loader in <code>publisher-snippet/src/loader.js</code> uses this flow.</p>
+    <pre class="overflow-x-auto rounded bg-base-300 p-4 text-xs"><code>&lt;script src="https://cdn.socket.io/4.8.1/socket.io.min.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+const socket = io("{{ socket_base }}" + "/delivery", { transports: ["websocket"] });
+const adUnitId = YOUR_AD_UNIT_ID;
+const publisherKey = "{{ publisher.api_key if publisher else 'YOUR_PUBLISHER_KEY' }}";
+
+socket.on("connect", () =&gt; socket.emit("request_ad", {
+  ad_unit_id: adUnitId,
+  api_key: publisherKey,
+  context: { country: "IN", device_type: "mobile", page_keywords: ["travel"] }
+}));
+socket.on("serve_ad", ad =&gt; {
+  const slot = document.querySelector("[data-ad-unit-id='" + adUnitId + "']");
+  const link = document.createElement("a");
+  link.href = ad.click_url;
+  const image = new Image(ad.width, ad.height);
+  image.src = ad.asset_url;
+  image.alt = "Advertisement";
+  link.appendChild(image);
+  slot.replaceChildren(link);
+  const visitorId = localStorage.getItem("ad-visitor-id") || crypto.randomUUID();
+  localStorage.setItem("ad-visitor-id", visitorId);
+  const eventData = () =&gt; ({ ad_unit_id: adUnitId, creative_id: ad.creative_id,
+    visitor_id: visitorId, event_id: crypto.randomUUID() });
+  socket.emit("impression", eventData());
+  link.addEventListener("click", () =&gt; socket.emit("click", eventData()));
+});
+socket.on("no_fill", info =&gt; console.log("No ad available", info.reason));
+&lt;/script&gt;</code></pre>
+    <p class="text-xs">For a click, emit <code>click</code> with the same fields as impression. Use a stable random visitor ID per browser; event IDs should be unique per event.</p>
+  </section>
+
+  <section class="space-y-3 rounded-lg border border-base-300 bg-base-200 p-5">
+    <h2 class="font-display text-lg font-semibold">Option 2: REST GET</h2>
+    <p class="text-sm">Request an ad from your browser or server. Send the key in the <code>X-Publisher-Key</code> header. A successful match returns an <code>ad</code>; otherwise <code>ad</code> is null and <code>reason</code> explains the no-fill.</p>
+    <pre class="overflow-x-auto rounded bg-base-300 p-4 text-xs"><code>const API_BASE = "{{ api_base }}";
+const publisherKey = "{{ publisher.api_key if publisher else 'YOUR_PUBLISHER_KEY' }}";
+const adUnitId = YOUR_AD_UNIT_ID;
+
+const response = await fetch(`${API_BASE}/delivery/ad/${adUnitId}?country=IN&amp;device_type=mobile`, {
+  headers: { "X-Publisher-Key": publisherKey }
+});
+const result = await response.json();
+if (result.ad) {
+  const ad = result.ad;
+  const slot = document.querySelector("[data-ad-unit-id='" + adUnitId + "']");
+  const link = document.createElement("a");
+  link.href = ad.click_url;
+  const image = new Image(ad.width, ad.height);
+  image.src = ad.asset_url;
+  image.alt = "Advertisement";
+  link.appendChild(image);
+  slot.replaceChildren(link);
+  const visitorId = localStorage.getItem("ad-visitor-id") || crypto.randomUUID();
+  localStorage.setItem("ad-visitor-id", visitorId);
+  const track = (type) =&gt; fetch(`${API_BASE}/delivery/events/${type}`, {
+    method: "POST", headers: { "Content-Type": "application/json", "X-Publisher-Key": publisherKey },
+    body: JSON.stringify({ ad_unit_id: adUnitId, creative_id: ad.creative_id,
+      visitor_id: visitorId, event_id: crypto.randomUUID() })
+  });
+  track("impression");
+  link.addEventListener("click", () =&gt; track("click"));
+} else {
+  console.log("No ad available", result.reason);
+}</code></pre>
+    <p class="text-sm">Record impressions and clicks with <code>POST {{ api_base }}/delivery/events/impression</code> or <code>/delivery/events/click</code>, using the same publisher-key header and a JSON body:</p>
+    <pre class="overflow-x-auto rounded bg-base-300 p-4 text-xs"><code>{
+  "ad_unit_id": YOUR_AD_UNIT_ID,
+  "creative_id": result.ad.creative_id,
+  "event_id": crypto.randomUUID(),
+  "visitor_id": "a-stable-random-browser-id"
+}</code></pre>
+    <p class="text-xs">Do not put your publisher key in a URL. For public client-side placements, use HTTPS and restrict where you embed your integration.</p>
+  </section>
+</div>
+{% endblock %}

@@ -8,7 +8,7 @@ from decimal import Decimal
 from typing import Dict, Optional
 
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.db.session import async_session_factory
 from app.models.ad_unit import AdUnit
@@ -75,6 +75,13 @@ async def record_event(
         )
         db.add(event)
         try:
+            # The reservation was removed from the available wallet when the
+            # campaign was created; billable delivery consumes that reserve.
+            await db.execute(
+                update(Campaign)
+                .where(Campaign.id == campaign_id)
+                .values(spent_amount=Campaign.spent_amount + cost)
+            )
             await db.commit()
         except IntegrityError:
             await db.rollback()

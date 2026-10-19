@@ -3,11 +3,12 @@ from __future__ import annotations
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import get_db, require_role
 from app.models.campaign import Campaign
+from app.models.advertiser import Advertiser
 from app.models.user import User
 from app.schemas.campaign import CampaignCreate, CampaignOut, CampaignUpdate
 
@@ -61,6 +62,22 @@ async def create_campaign(
             detail="end_date must be set after start_date",
         )
 
+    reservation = payload.total_budget or 0
+    if reservation > 0:
+        # Conditional UPDATE prevents concurrent campaign creations from
+        # reserving more than the available wallet balance.
+        result = await db.execute(
+            update(Advertiser)
+            .where(Advertiser.id == payload.advertiser_id, Advertiser.balance >= reservation)
+            .values(balance=Advertiser.balance - reservation)
+        )
+        if result.rowcount != 1:
+            await db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail="Insufficient available wallet balance for campaign budget",
+            )
+
     campaign = Campaign(
         advertiser_id=payload.advertiser_id,
         name=payload.name,
@@ -69,6 +86,7 @@ async def create_campaign(
         bid_amount=payload.bid_amount,
         daily_cap=payload.daily_cap,
         total_budget=payload.total_budget,
+        reserved_amount=reservation,
         start_date=payload.start_date,
         end_date=payload.end_date,
         targeting_rules=payload.targeting_rules,
@@ -137,6 +155,35 @@ async def update_campaign(
     for field, value in updates.items():
         setattr(campaign, field, value)
 
+    if "total_budget" in updates:
+        old_budget = campaign.reserved_amount
+        new_budget = updates["total_budget"] or 0
+        if new_budget < campaign.spent_amount:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="total_budget cannot be lower than campaign spend",
+            )
+        delta = new_budget - old_budget
+        if delta > 0:
+            result = await db.execute(
+                update(Advertiser)
+                .where(Advertiser.id == campaign.advertiser_id, Advertiser.balance >= delta)
+                .values(balance=Advertiser.balance - delta)
+            )
+            if result.rowcount != 1:
+                await db.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                    detail="Insufficient available wallet balance for increased campaign budget",
+                )
+        elif delta < 0:
+            await db.execute(
+                update(Advertiser)
+                .where(Advertiser.id == campaign.advertiser_id)
+                .values(balance=Advertiser.balance + abs(delta))
+            )
+        campaign.reserved_amount = new_budget
+
     await db.commit()
     await db.refresh(campaign)
     return campaign
@@ -154,5 +201,12 @@ async def delete_campaign(
 ) -> None:
     """Deletes a campaign and cascades associated records."""
     campaign = await _get_owned_campaign(db, campaign_id, user)
+    refundable = max(campaign.reserved_amount - campaign.spent_amount, 0)
+    if refundable:
+        await db.execute(
+            update(Advertiser)
+            .where(Advertiser.id == campaign.advertiser_id)
+            .values(balance=Advertiser.balance + refundable)
+        )
     await db.delete(campaign)
     await db.commit()

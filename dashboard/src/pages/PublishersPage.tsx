@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { Layout } from "../components/Layout";
 import { api } from "../lib/api";
 import type { AdFormatType, AdUnit, Publisher } from "../types";
@@ -7,6 +8,7 @@ import { useListingControls } from "../components/ListingControls";
 const AD_FORMATS: AdFormatType[] = ["display", "banner", "native", "video", "interstitial"];
 
 export function PublishersPage({ view = "sites" }: { view?: "sites" | "adslots" }) {
+  const [searchParams] = useSearchParams();
   const [publishers, setPublishers] = useState<Publisher[]>([]);
   const [selected, setSelected] = useState<Publisher | null>(null);
   const [adUnits, setAdUnits] = useState<AdUnit[]>([]);
@@ -19,15 +21,20 @@ export function PublishersPage({ view = "sites" }: { view?: "sites" | "adslots" 
 
   function refreshPublishers() {
     api.listPublishers().then((data) => {
-      const updated = data as Publisher[];
-      setPublishers(updated);
-      setSelected((current) => current ? updated.find((publisher) => publisher.id === current.id) || updated[0] || null : view === "adslots" ? updated[0] || null : null);
+      setPublishers(data as Publisher[]);
     });
   }
 
   useEffect(() => {
     refreshPublishers();
   }, []);
+
+  useEffect(() => {
+    if (view !== "adslots" || !publishers.length) return;
+    const requestedId = Number(searchParams.get("site") || searchParams.get("selected"));
+    const requestedPublisher = requestedId ? publishers.find((publisher) => publisher.id === requestedId) : null;
+    setSelected((current) => requestedPublisher || current && publishers.find((publisher) => publisher.id === current.id) || publishers[0] || null);
+  }, [view, publishers, searchParams]);
 
   useEffect(() => {
     if (selected && view === "adslots") {
@@ -48,14 +55,15 @@ export function PublishersPage({ view = "sites" }: { view?: "sites" | "adslots" 
           <div className="p-4">{publisherListing.controls}</div>
           <div className="overflow-x-auto">
             <table className="table table-zebra">
-              <thead><tr><th>Site</th><th>Website</th><th>Status</th></tr></thead>
+              <thead><tr><th>Site</th><th>Website</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
                 {publisherListing.pageItems.map((publisher) => <tr key={publisher.id}>
                   <td className="font-medium">{publisher.name}</td>
                   <td><a className="link link-hover" href={publisher.site_url} target="_blank" rel="noreferrer">{publisher.site_url}</a></td>
                   <td><span className={`badge badge-sm ${publisher.status === "active" ? "badge-success" : publisher.status === "rejected" ? "badge-error" : publisher.status === "suspended" ? "badge-ghost" : "badge-warning"}`}>{publisher.status.replace("_", " ")}</span></td>
+                  <td><Link className="link link-primary link-hover" to={`/adslots?site=${publisher.id}`}>Ad slots</Link></td>
                 </tr>)}
-                {!publisherListing.filtered.length && <tr><td colSpan={3} className="py-10 text-center"><p className="font-medium">{publishers.length ? "No sites match these filters" : "No sites added yet"}</p><p className="mt-1 text-sm">{publishers.length ? "Try a different search or status." : "Add a site to get started."}</p>{!publishers.length && <button className="btn btn-primary btn-xs mt-3" onClick={() => setShowCreatePublisher(true)}>Add site</button>}</td></tr>}
+                {!publisherListing.filtered.length && <tr><td colSpan={4} className="py-10 text-center"><p className="font-medium">{publishers.length ? "No sites match these filters" : "No sites added yet"}</p><p className="mt-1 text-sm">{publishers.length ? "Try a different search or status." : "Add a site to get started."}</p>{!publishers.length && <button className="btn btn-primary btn-xs mt-3" onClick={() => setShowCreatePublisher(true)}>Add site</button>}</td></tr>}
               </tbody>
             </table>
           </div>

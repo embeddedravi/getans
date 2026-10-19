@@ -100,8 +100,14 @@ class Campaign(TimestampMixin, Base):
         Numeric(precision=12, scale=2),
         nullable=True,
     )
-    spent_amount: Mapped[Decimal] = mapped_column(
+    # Funds transferred from the advertiser's available wallet balance at creation.
+    reserved_amount: Mapped[Decimal] = mapped_column(
         Numeric(precision=12, scale=2),
+        default=Decimal("0.00"),
+        nullable=False,
+    )
+    spent_amount: Mapped[Decimal] = mapped_column(
+        Numeric(precision=12, scale=6),
         default=Decimal("0.00"),
         nullable=False,
     )
@@ -133,6 +139,7 @@ class Campaign(TimestampMixin, Base):
         CheckConstraint("bid_amount > 0.0000", name="check_positive_bid_amount"),
         CheckConstraint("daily_cap IS NULL OR daily_cap >= 0.00", name="check_positive_daily_cap"),
         CheckConstraint("total_budget IS NULL OR total_budget >= 0.00", name="check_positive_total_budget"),
+        CheckConstraint("reserved_amount >= 0.00", name="check_nonnegative_reserved_amount"),
         # Compound index for hot-path ad decision engine queries
         Index(
             "ix_campaigns_ad_server_lookup",

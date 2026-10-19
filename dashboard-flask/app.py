@@ -478,7 +478,7 @@ def _publisher_workspace(view: str):
     except Exception:
         publishers_list = []
 
-    selected_id = request.args.get("selected", type=int)
+    selected_id = request.args.get("selected", type=int) or request.args.get("site", type=int)
     if view == "adslots" and selected_id is None and publishers_list:
         selected_id = publishers_list[0]["id"]
     selected = None

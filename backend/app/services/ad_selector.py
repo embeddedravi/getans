@@ -157,7 +157,9 @@ def _matches_targeting(campaign: Campaign, context: RequestContext) -> bool:
 
 
 def _has_remaining_budget(campaign: Campaign) -> bool:
-    """Validates campaign spend against daily cap limits."""
+    """Validates campaign spend against total and daily budget limits."""
+    if campaign.total_budget is not None and campaign.spent_amount >= campaign.total_budget:
+        return False
     if campaign.daily_cap is None:
         return True
 

@@ -16,16 +16,17 @@
   </header>
   <div class="overflow-x-auto">
     <table class="table table-zebra w-full">
-      <thead><tr><th>Site</th><th>Website</th><th>Status</th></tr></thead>
+      <thead><tr><th>Site</th><th>Website</th><th>Status</th><th>Actions</th></tr></thead>
       <tbody data-listing>
         {% for publisher in publishers %}
         <tr>
           <td class="font-medium">{{ publisher.name }}</td>
           <td><a class="link link-hover" href="{{ publisher.site_url }}" target="_blank" rel="noreferrer">{{ publisher.site_url }}</a></td>
           <td><span class="badge badge-sm {{ pub_status_badge.get(publisher.status, 'badge-ghost') }}">{{ publisher.status|replace('_', ' ') }}</span></td>
+          <td><a class="link link-primary link-hover" href="{{ url_for('publisher_adslots', selected=publisher.id) }}">Ad slots</a></td>
         </tr>
         {% else %}
-        <tr><td colspan="3" class="py-10 text-center"><p class="font-medium">No sites added yet</p><p class="mt-1 text-sm">Add a site to get started.</p><button class="btn btn-primary btn-xs mt-3" onclick="document.getElementById('modal-create-publisher').showModal()">Add site</button></td></tr>
+        <tr><td colspan="4" class="py-10 text-center"><p class="font-medium">No sites added yet</p><p class="mt-1 text-sm">Add a site to get started.</p><button class="btn btn-primary btn-xs mt-3" onclick="document.getElementById('modal-create-publisher').showModal()">Add site</button></td></tr>
         {% endfor %}
       </tbody>
     </table>

@@ -53,10 +53,12 @@ export function AdvertiserWallet({
   balance,
   creditLimit,
   onBalanceChange,
+  onPaymentSuccess,
 }: {
   balance: number;
   creditLimit: number;
   onBalanceChange: (wallet: Wallet) => void;
+  onPaymentSuccess?: () => void;
 }) {
   const [amount, setAmount] = useState("1000");
   const [busy, setBusy] = useState(false);
@@ -85,6 +87,7 @@ export function AdvertiserWallet({
           try {
             const wallet = await api.verifyAdvertiserTopUp(response);
             onBalanceChange(wallet);
+            onPaymentSuccess?.();
             setMessage(`${formatINR(Number(amount))} added to your wallet.`);
           } catch (verificationError) {
             setError(verificationError instanceof Error

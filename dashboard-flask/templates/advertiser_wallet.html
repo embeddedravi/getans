@@ -27,6 +27,35 @@
   <div id="payment-message" role="status" class="hidden rounded border border-success/30 bg-success/10 p-3 text-sm text-success"></div>
   <div id="payment-error" role="alert" class="hidden rounded border border-error/30 bg-error/10 p-3 text-sm text-error"></div>
   <p class="text-xs ">Payment confirmation is checked directly with Razorpay. No webhook is required.</p>
+
+  <section class="space-y-3">
+    <div>
+      <h2 class="font-display text-lg font-semibold">Transaction history</h2>
+      <p class="text-sm ">Wallet top-ups and their payment status.</p>
+    </div>
+    {% if history_error %}<div role="alert" class="alert alert-error py-2 text-sm">{{ history_error }}</div>{% endif %}
+    {% if transactions %}
+      <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-200">
+        <table class="table">
+          <thead><tr><th>Transaction</th><th>Amount</th><th>Status</th><th>Order ID</th><th>Payment ID</th><th>Date</th></tr></thead>
+          <tbody data-listing>
+            {% for transaction in transactions %}
+              <tr>
+                <td class="font-mono text-xs">#{{ transaction.id }}</td>
+                <td class="font-medium">₹{{ '{:,.2f}'.format(transaction.amount|float) }}</td>
+                <td><span class="badge {{ 'badge-success' if transaction.status == 'paid' else 'badge-warning' }}">{{ transaction.status }}</span></td>
+                <td class="font-mono text-xs">{{ transaction.order_id }}</td>
+                <td class="font-mono text-xs">{{ transaction.payment_id or '—' }}</td>
+                <td>{{ (transaction.paid_at or transaction.created_at)[:10] if (transaction.paid_at or transaction.created_at) else '—' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% elif not history_error %}
+      <div class="rounded-lg border border-base-300 bg-base-200 p-8 text-center text-sm">No wallet transactions yet.</div>
+    {% endif %}
+  </section>
 </div>
 {% endblock %}
 

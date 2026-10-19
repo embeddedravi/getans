@@ -17,6 +17,8 @@ import { AdminUsersPage } from "./pages/AdminUsersPage";
 import { LiveEventsPage } from "./pages/LiveEventsPage";
 import { MediaLibraryPage } from "./pages/MediaLibraryPage";
 import { PublisherHelpPage } from "./pages/PublisherHelpPage";
+import { AdvertiserWalletPage } from "./pages/AdvertiserWalletPage";
+import { PublisherEarningsPage } from "./pages/PublisherEarningsPage";
 import { api } from "./lib/api";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -69,6 +71,8 @@ export default function App() {
         />
         <Route path="/approvals" element={<RequireAuth><ApprovalsPage /></RequireAuth>} />
         <Route path="/payments" element={<RequireAuth><AdvertiserPaymentsPage /></RequireAuth>} />
+        <Route path="/wallet" element={<RequireAuth><AdvertiserWalletPage /></RequireAuth>} />
+        <Route path="/earnings" element={<RequireAuth><PublisherEarningsPage /></RequireAuth>} />
         <Route path="/payouts" element={<RequireAuth><PaymentsPage /></RequireAuth>} />
         <Route path="/manage-advertiser" element={<RequireAuth><RequireAdmin><AdminAdvertisersPage /></RequireAdmin></RequireAuth>} />
         <Route path="/manage-publisher" element={<RequireAuth><RequireAdmin><AdminPublishersPage /></RequireAdmin></RequireAuth>} />

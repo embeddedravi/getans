@@ -140,6 +140,7 @@ export const api = {
     request(`/analytics/campaigns?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),
 
   advertiserWallet: () => request<import("../types").AdvertiserWallet>("/payments/wallet"),
+  advertiserTopUpHistory: () => request<import("../types").AdvertiserTopUp[]>("/payments/history"),
   createAdvertiserTopUpOrder: (amount: number) =>
     request<import("../types").RazorpayTopUpOrder>("/payments/orders", {
       method: "POST",

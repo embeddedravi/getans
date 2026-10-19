@@ -88,6 +88,36 @@ async def get_wallet(
     return _wallet(await _advertiser_for_user(db, user))
 
 
+@router.get("/history", summary="List the current advertiser's wallet top-ups")
+async def advertiser_topup_history(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role("advertiser")),
+):
+    advertiser = await _advertiser_for_user(db, user)
+    rows = (
+        await db.execute(
+            select(AdvertiserTopUp)
+            .where(AdvertiserTopUp.advertiser_id == user.advertiser_id)
+            .order_by(AdvertiserTopUp.created_at.desc())
+        )
+    ).scalars().all()
+    return [
+        {
+            "id": topup.id,
+            "advertiser_id": topup.advertiser_id,
+            "advertiser_name": advertiser.name,
+            "billing_email": advertiser.billing_email,
+            "amount": topup.amount,
+            "status": topup.status.value,
+            "order_id": topup.order_id,
+            "payment_id": topup.payment_id,
+            "paid_at": topup.paid_at,
+            "created_at": topup.created_at,
+        }
+        for topup in rows
+    ]
+
+
 @router.post("/orders", response_model=AdvertiserTopUpOrderOut)
 async def create_topup_order(
     payload: AdvertiserTopUpOrderCreate,

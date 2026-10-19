@@ -30,11 +30,13 @@ const roleLinks: Record<Role, { to: string; label: string; end?: boolean }[]> = 
   ],
   publisher: [
     { to: "/", label: "Earnings overview", end: true },
+    { to: "/earnings", label: "Earnings & payouts" },
     { to: "/publishers", label: "My sites & ad slots" },
     { to: "/help", label: "Integration help" },
   ],
   advertiser: [
     { to: "/", label: "Performance overview", end: true },
+    { to: "/wallet", label: "Wallet" },
     { to: "/campaigns", label: "My campaigns" },
     { to: "/media", label: "Media library" }
   ],

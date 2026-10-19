@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+
+{% block title %}Earnings & payouts{% endblock %}
+{% block description %}Review publisher earnings and payout history{% endblock %}
+{% block page_title %}Earnings & payouts{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <section>
+    <p class="text-xs font-medium uppercase tracking-widest text-primary">Publisher account</p>
+    <h2 class="mt-2 font-display text-2xl font-semibold">Earnings & payouts</h2>
+    <p class="mt-1 text-sm">Review your unpaid earnings and payout history.</p>
+  </section>
+
+  {% set unpaid_total = publishers | sum(attribute='unpaid_earnings') %}
+  <section class="max-w-sm rounded-lg border border-base-300 bg-base-200 p-5">
+    <p class="text-xs">Unpaid earnings</p>
+    <p class="mt-2 tabular-nums text-3xl font-medium text-success">{{ unpaid_total | inr }}</p>
+    <p class="mt-1 text-xs">Across {{ publishers | length }} {{ 'publisher account' if publishers | length == 1 else 'publisher accounts' }}</p>
+  </section>
+
+  <section class="space-y-3">
+    <div>
+      <h2 class="font-display text-lg font-semibold">Payout history</h2>
+      <p class="text-sm">Payout status, method, and reference details.</p>
+    </div>
+    {% if error %}<div role="alert" class="alert alert-error py-2 text-sm">{{ error }}</div>{% endif %}
+    {% if payouts %}
+      <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-200">
+        <table class="table">
+          <thead><tr><th>Payout</th><th>Amount</th><th>Method</th><th>Status</th><th>Reference</th><th>Submitted</th><th>Paid</th></tr></thead>
+          <tbody data-listing>
+            {% for payout in payouts %}
+              {% set badge_classes = {'pending': 'badge-warning', 'processing': 'badge-info', 'paid': 'badge-success', 'failed': 'badge-error', 'cancelled': 'badge-ghost'} %}
+              <tr>
+                <td class="font-mono text-xs">#{{ payout.id }}</td>
+                <td class="font-medium">{{ payout.amount | inr }}</td>
+                <td>{{ payout.payment_method | replace('_', ' ') if payout.payment_method else '—' }}</td>
+                <td><span class="badge {{ badge_classes.get(payout.status, 'badge-ghost') }}">{{ payout.status }}</span></td>
+                <td class="font-mono text-xs">{{ payout.reference or '—' }}</td>
+                <td>{{ payout.created_at[:10] if payout.created_at else '—' }}</td>
+                <td>{{ payout.paid_at[:10] if payout.paid_at else '—' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% elif not error %}
+      <div class="rounded-lg border border-base-300 bg-base-200 p-8 text-center text-sm">No payouts found.</div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

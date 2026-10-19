@@ -508,6 +508,20 @@ def publisher_help():
     )
 
 
+@app.route("/earnings")
+@publisher_required
+def publisher_earnings():
+    try:
+        publisher_rows = _api("GET", "/publishers")
+        payouts = _api("GET", "/payouts")
+        error = None
+    except Exception as exc:
+        publisher_rows = []
+        payouts = []
+        error = f"Could not load earnings and payouts: {exc}"
+    return render_template("publisher_earnings.html", publishers=publisher_rows, payouts=payouts, error=error)
+
+
 @app.route("/manage-advertiser")
 @admin_required
 def manage_advertisers():
@@ -647,9 +661,17 @@ def render_wallet(order=None, checkout_error=None):
         wallet = {"balance": 0, "credit_limit": 0, "currency": "INR"}
         if checkout_error is None:
             checkout_error = f"Could not load wallet: {exc}"
+    try:
+        transactions = _api("GET", "/payments/history")
+        history_error = None
+    except Exception as exc:
+        transactions = []
+        history_error = f"Could not load transaction history: {exc}"
     return render_template(
         "advertiser_wallet.html",
         wallet=wallet,
+        transactions=transactions,
+        history_error=history_error,
         checkout_order=order,
         checkout_error=checkout_error,
     )

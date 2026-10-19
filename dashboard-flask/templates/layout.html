@@ -37,8 +37,13 @@
       {% else %}
         {% set nav_links = nav_links + [
           ('/campaigns', 'Campaigns', 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'),
-          ('/publishers', 'Publishers & Slots', 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9')
         ] %}
+        {% if session.get('role') == 'publisher' %}
+          {% set nav_links = nav_links + [
+            ('/publishers', 'My sites', 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9-3-9m-9 9a9 9 0 019-9'),
+            ('/adslots', 'Ad slots', 'M4 6h16M4 12h16M4 18h16')
+          ] %}
+        {% endif %}
         {% if session.get('role') == 'advertiser' %}
           {% set nav_links = nav_links + [
             ('/media', 'Media library', 'M4 16l4-4a3 3 0 014 0l4 4m-2-2l1-1a3 3 0 014 0l2 2M4 6h16a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1z'),

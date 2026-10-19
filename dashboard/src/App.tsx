@@ -69,6 +69,7 @@ export default function App() {
             </RequireAuth>
           }
         />
+        <Route path="/adslots" element={<RequireAuth><PublishersPage view="adslots" /></RequireAuth>} />
         <Route path="/approvals" element={<RequireAuth><ApprovalsPage /></RequireAuth>} />
         <Route path="/payments" element={<RequireAuth><AdvertiserPaymentsPage /></RequireAuth>} />
         <Route path="/wallet" element={<RequireAuth><AdvertiserWalletPage /></RequireAuth>} />

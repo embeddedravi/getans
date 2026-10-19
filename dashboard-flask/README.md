@@ -68,5 +68,6 @@ dashboard-flask/
 | `/login` | Sign in (proxies to FastAPI JWT) |
 | `/` | Analytics — live counters + bar chart |
 | `/campaigns` | Campaign list, create, toggle, delete |
-| `/publishers` | Publisher list + ad slot management |
+| `/publishers` | My sites and publisher configuration |
+| `/adslots` | Ad slot management for a selected site |
 | `/logout` | Clears session |

@@ -463,27 +463,41 @@ def delete_campaign(campaign_id: int):
 @app.route("/publishers")
 @login_required
 def publishers():
+    return _publisher_workspace("sites")
+
+
+@app.route("/adslots")
+@login_required
+def publisher_adslots():
+    return _publisher_workspace("adslots")
+
+
+def _publisher_workspace(view: str):
     try:
         publishers_list = _api("GET", "/publishers")
     except Exception:
         publishers_list = []
 
     selected_id = request.args.get("selected", type=int)
+    if view == "adslots" and selected_id is None and publishers_list:
+        selected_id = publishers_list[0]["id"]
     selected = None
     ad_units = []
     if selected_id:
         selected = next((p for p in publishers_list if p["id"] == selected_id), None)
         if selected:
-            try:
-                ad_units = _api("GET", f"/publishers/{selected_id}/ad-units")
-            except Exception:
-                ad_units = []
+            if view == "adslots":
+                try:
+                    ad_units = _api("GET", f"/publishers/{selected_id}/ad-units")
+                except Exception:
+                    ad_units = []
 
     return render_template(
         "publishers.html",
         publishers=publishers_list,
         selected=selected,
         ad_units=ad_units,
+        view=view,
     )
 
 
@@ -818,7 +832,7 @@ def create_ad_unit(publisher_id: int):
         flash("Ad slot created.", "success")
     except Exception as exc:
         flash(f"Failed: {exc}", "error")
-    return redirect(url_for("publishers", selected=publisher_id))
+    return redirect(url_for("publisher_adslots", selected=publisher_id))
 
 # ── Media library (advertisers) ───────────────────────────────────────────────
 

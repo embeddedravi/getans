@@ -1,27 +1,17 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Layout } from "../components/Layout";
 import { api } from "../lib/api";
-import type { AdFormatType, AdUnit, Publisher, PublisherStatus } from "../types";
+import type { AdFormatType, AdUnit, Publisher } from "../types";
 import { useListingControls } from "../components/ListingControls";
-
-const PUBLISHER_STATUS_BADGE: Record<PublisherStatus, string> = {
-  pending_approval: "badge-warning",
-  active: "badge-success",
-  suspended: "badge-error",
-  rejected: "badge-ghost",
-};
 
 const AD_FORMATS: AdFormatType[] = ["display", "banner", "native", "video", "interstitial"];
 
-export function PublishersPage() {
+export function PublishersPage({ view = "sites" }: { view?: "sites" | "adslots" }) {
   const [publishers, setPublishers] = useState<Publisher[]>([]);
   const [selected, setSelected] = useState<Publisher | null>(null);
   const [adUnits, setAdUnits] = useState<AdUnit[]>([]);
   const [showCreatePublisher, setShowCreatePublisher] = useState(false);
   const [showCreateAdUnit, setShowCreateAdUnit] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState("");
-  const [reviewError, setReviewError] = useState("");
   const publisherListing = useListingControls(publishers, (publisher) => `${publisher.name} ${publisher.site_url} ${publisher.status} ${publisher.domain || ""} ${publisher.category || ""}`,
     (publisher) => publisher.status, ["pending_approval", "active", "suspended", "rejected"].map((value) => ({ value, label: value.replace(/_/g, " ") })));
   const adUnitListing = useListingControls(adUnits, (unit) => `${unit.slot_name} ${unit.format_type} ${unit.status}`,
@@ -31,190 +21,73 @@ export function PublishersPage() {
     api.listPublishers().then((data) => {
       const updated = data as Publisher[];
       setPublishers(updated);
-      setSelected((current) => current ? updated.find((publisher) => publisher.id === current.id) || current : current);
+      setSelected((current) => current ? updated.find((publisher) => publisher.id === current.id) || updated[0] || null : view === "adslots" ? updated[0] || null : null);
     });
   }
 
   useEffect(() => {
     refreshPublishers();
-    api.me().then((user) => setIsAdmin((user as { role?: string }).role === "admin")).catch(() => setIsAdmin(false));
   }, []);
 
-  async function reviewSelectedPublisher(status: "active" | "suspended" | "rejected") {
-    if (!selected) return;
-    const reason = rejectionReason.trim();
-    if (status === "rejected" && !reason) {
-      setReviewError("Enter a reason before rejecting this publisher.");
-      return;
-    }
-    const action = status === "active" ? (selected.status === "pending_approval" ? "Approve" : "Activate") : status === "suspended" ? "Suspend" : "Reject";
-    if (!window.confirm(`${action} publisher “${selected.name}”?`)) return;
-    try {
-      await api.reviewPublisher(selected.id, status, reason || undefined);
-      setRejectionReason("");
-      setReviewError("");
-      refreshPublishers();
-    } catch (err) {
-      setReviewError(err instanceof Error ? err.message : "Publisher review failed");
-    }
-  }
-
   useEffect(() => {
-    if (selected) {
-      api.listAdUnits(selected.id).then((data) => setAdUnits(data as AdUnit[]));
+    if (selected && view === "adslots") {
+      api.listAdUnits(selected.id).then((data) => setAdUnits(data as AdUnit[])).catch(() => setAdUnits([]));
     } else {
       setAdUnits([]);
     }
-  }, [selected]);
+  }, [selected, view]);
 
   return (
-    <Layout title="Publishers & ad slots">
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
-        <div className="border border-base-300 bg-base-200 rounded">
-          <div className="flex justify-between items-center px-4 py-3 border-b border-base-300">
-            <span className="text-sm font-medium">Publishers</span>
-            <button
-              className="btn btn-ghost btn-xs"
-              onClick={() => setShowCreatePublisher(true)}
-            >
-              + Add
-            </button>
+    <Layout title={view === "sites" ? "My sites" : "Ad slots"}>
+      {view === "sites" ? (
+        <section className="rounded border border-base-300 bg-base-200">
+          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-base-300 px-4 py-3">
+            <div><h2 className="font-medium">My sites</h2><p className="mt-0.5 text-xs">{publishers.length} {publishers.length === 1 ? "site" : "sites"}</p></div>
+            <button className="btn btn-primary btn-sm" onClick={() => setShowCreatePublisher(true)}>Add site</button>
+          </header>
+          <div className="p-4">{publisherListing.controls}</div>
+          <div className="overflow-x-auto">
+            <table className="table table-zebra">
+              <thead><tr><th>Site</th><th>Website</th><th>Status</th></tr></thead>
+              <tbody>
+                {publisherListing.pageItems.map((publisher) => <tr key={publisher.id}>
+                  <td className="font-medium">{publisher.name}</td>
+                  <td><a className="link link-hover" href={publisher.site_url} target="_blank" rel="noreferrer">{publisher.site_url}</a></td>
+                  <td><span className={`badge badge-sm ${publisher.status === "active" ? "badge-success" : publisher.status === "rejected" ? "badge-error" : publisher.status === "suspended" ? "badge-ghost" : "badge-warning"}`}>{publisher.status.replace("_", " ")}</span></td>
+                </tr>)}
+                {!publisherListing.filtered.length && <tr><td colSpan={3} className="py-10 text-center"><p className="font-medium">{publishers.length ? "No sites match these filters" : "No sites added yet"}</p><p className="mt-1 text-sm">{publishers.length ? "Try a different search or status." : "Add a site to get started."}</p>{!publishers.length && <button className="btn btn-primary btn-xs mt-3" onClick={() => setShowCreatePublisher(true)}>Add site</button>}</td></tr>}
+              </tbody>
+            </table>
           </div>
-          <div className="p-3">{publisherListing.controls}</div>
-          <ul>
-            {publisherListing.pageItems.map((p) => (
-              <li key={p.id}>
-                <button
-                  onClick={() => setSelected(p)}
-                  className={`w-full text-left px-4 py-3 text-sm border-b border-base-300 last:border-0 transition-colors ${selected?.id === p.id
-                      ? "bg-base-300"
-                      : "hover:bg-base-300/50"
-                    }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium truncate">{p.name}</span>
-                    <span className={`badge badge-xs ${PUBLISHER_STATUS_BADGE[p.status]}`}>
-                      {p.status.replace("_", " ")}
-                    </span>
-                  </div>
-                  <div className="text-xs  truncate">{p.site_url}</div>
-                </button>
-              </li>
-            ))}
-            {publisherListing.filtered.length === 0 && (
-              <li className="px-4 py-6 text-sm  text-center">
-                No publishers yet.
-              </li>
-            )}
-          </ul>
-        </div>
-
-        <div className="border border-base-300 bg-base-200 rounded p-5">
-          {!selected ? (
-            <p className="text-sm ">
-              Select a publisher to view their ad slots and API key.
-            </p>
-          ) : (
-            <>
-              <div className="flex justify-between items-start mb-5">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="font-display text-lg font-semibold">{selected.name}</h2>
-                    <span className={`badge badge-sm ${PUBLISHER_STATUS_BADGE[selected.status]}`}>
-                      {selected.status.replace("_", " ")}
-                    </span>
-                    {selected.ads_txt_verified && (
-                      <span className="badge badge-sm badge-outline badge-success">
-                        ads.txt verified
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs  mt-1">
-                    API key:{" "}
-                    <span className="tabular bg-base-300 px-1.5 py-0.5 rounded">
-                      {selected.api_key}
-                    </span>
-                  </p>
-                  {selected.status === "rejected" && selected.rejection_reason && <p className="text-xs text-error mt-1">Rejection reason: {selected.rejection_reason}</p>}
-                  {isAdmin && selected.status === "pending_approval" && <div className="mt-3 flex flex-wrap gap-2">
-                    <button onClick={() => reviewSelectedPublisher("active")} className="btn btn-success btn-xs">Approve publisher</button>
-                    <input value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} maxLength={500} placeholder="Reason required to reject" aria-label="Publisher rejection reason" className="input input-bordered input-xs" />
-                    <button onClick={() => reviewSelectedPublisher("rejected")} className="btn btn-error btn-outline btn-xs">Reject</button>
-                    {reviewError && <p role="alert" className="w-full text-xs text-error">{reviewError}</p>}
-                  </div>}
-                  {isAdmin && selected.status !== "pending_approval" && selected.status !== "rejected" && <div className="mt-3 flex gap-2">
-                    <button onClick={() => reviewSelectedPublisher(selected.status === "active" ? "suspended" : "active")} className={`btn btn-xs ${selected.status === "active" ? "btn-warning" : "btn-success"}`}>
-                      {selected.status === "active" ? "Suspend publisher" : "Activate publisher"}
-                    </button>
-                  </div>}
-                  {isAdmin && selected.status === "rejected" && <div className="mt-3">
-                    <button onClick={() => reviewSelectedPublisher("active")} className="btn btn-success btn-xs">Reactivate publisher</button>
-                  </div>}
-                  <p className="text-xs  mt-1">
-                    Payout: {selected.payout_email} · {Number(selected.revenue_share_percentage)}% share
-                    {" · "}
-                    <span className="tabular">
-                      ₹{Number(selected.unpaid_earnings).toFixed(2)} unpaid
-                    </span>
-                  </p>
-                  {(selected.domain || selected.category) && (
-                    <p className="text-xs  mt-1">
-                      {[selected.domain, selected.category].filter(Boolean).join(" · ")}
-                    </p>
-                  )}
-                </div>
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={() => setShowCreateAdUnit(true)}
-                >
-                  New ad slot
-                </button>
-              </div>
-
-              {adUnitListing.controls}
-              <div className="overflow-x-auto">
-                <table className="table">
-                  <thead>
-                    <tr className="text-xs  border-b border-base-300">
-                      <th>Slot name</th>
-                      <th>Format</th>
-                      <th>Dimensions</th>
-                      <th>Reserve</th>
-                      <th>Status</th>
-                      <th>Ad unit ID</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {adUnitListing.pageItems.map((unit) => (
-                      <tr key={unit.id} className="border-b border-base-300 last:border-0">
-                        <td>{unit.slot_name}</td>
-                        <td className="text-xs ">{unit.format_type}</td>
-                        <td className="tabular">
-                          {unit.width}×{unit.height}
-                        </td>
-                        <td className="tabular">
-                          {Number(unit.reserve_price) > 0
-                            ? `₹${Number(unit.reserve_price).toFixed(4)}`
-                            : "—"}
-                        </td>
-                        <td><span className={`badge badge-xs ${unit.status === "approved" ? "badge-success" : unit.status === "rejected" ? "badge-error" : "badge-warning"}`}>{unit.status.replace("_", " ")}</span></td>
-                        <td className="tabular ">{unit.id}</td>
-                      </tr>
-                    ))}
-                    {adUnitListing.filtered.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="text-center text-sm  py-6">
-                          No ad slots yet for this publisher.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+        </section>
+      ) : (
+        <section className="rounded border border-base-300 bg-base-200">
+          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-base-300 px-4 py-3">
+            <label className="flex items-center gap-3 text-sm font-medium">Site
+              <select aria-label="Select site for ad slots" className="select select-bordered select-sm max-w-xs" value={selected?.id ?? ""} onChange={(event) => setSelected(publishers.find((publisher) => publisher.id === Number(event.target.value)) || null)}>
+                {publishers.map((publisher) => <option key={publisher.id} value={publisher.id}>{publisher.name}</option>)}
+              </select>
+            </label>
+            <button className="btn btn-primary btn-sm" disabled={!selected} onClick={() => setShowCreateAdUnit(true)}>Add ad slot</button>
+          </header>
+          {selected ? <>
+            <div className="p-4">{adUnitListing.controls}</div>
+            <div className="overflow-x-auto">
+              <table className="table table-zebra">
+                <thead><tr><th>Slot name</th><th>Format</th><th>Dimensions</th><th>Reserve</th><th>Status</th><th>Ad unit ID</th></tr></thead>
+                <tbody>
+                  {adUnitListing.pageItems.map((unit) => <tr key={unit.id}>
+                    <td className="font-medium">{unit.slot_name}</td><td><span className="badge badge-outline badge-sm">{unit.format_type}</span></td><td className="tabular">{unit.width} × {unit.height} px</td>
+                    <td className="tabular">{Number(unit.reserve_price) > 0 ? `₹${Number(unit.reserve_price).toFixed(4)}` : "—"}</td>
+                    <td><span className={`badge badge-xs ${unit.status === "approved" ? "badge-success" : unit.status === "rejected" ? "badge-error" : "badge-warning"}`}>{unit.status.replace("_", " ")}</span></td><td className="tabular">#{unit.id}</td>
+                  </tr>)}
+                  {!adUnitListing.filtered.length && <tr><td colSpan={6} className="py-10 text-center"><p className="font-medium">{adUnits.length ? "No slots match these filters" : "No ad slots yet"}</p><p className="mt-1 text-sm">{adUnits.length ? "Try a different search or status." : "Add an ad slot to get started."}</p>{!adUnits.length && <button className="btn btn-primary btn-xs mt-3" onClick={() => setShowCreateAdUnit(true)}>Add ad slot</button>}</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </> : <p className="p-10 text-center text-sm">{publishers.length ? "Select a site to see its ad slots." : "Add a site before creating ad slots."}</p>}
+        </section>
+      )}
 
       {showCreatePublisher && (
         <CreatePublisherModal

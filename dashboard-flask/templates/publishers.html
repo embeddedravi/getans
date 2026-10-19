@@ -1,189 +1,75 @@
 {% extends "layout.html" %}
 
-{% block title %}Publishers & Slots{% endblock %}
-{% block description %}Manage publishers and their ad slots{% endblock %}
-{% block page_title %}Publishers & Ad Slots{% endblock %}
+{% block title %}{{ 'My sites' if view == 'sites' else 'Ad slots' }}{% endblock %}
+{% block description %}{{ 'Manage your publisher sites' if view == 'sites' else 'Manage your site ad slots' }}{% endblock %}
+{% block page_title %}{{ 'My sites' if view == 'sites' else 'Ad slots' }}{% endblock %}
 
 {% block content %}
 
-{% set pub_status_badge = {
-  'pending_approval': 'badge-warning',
-  'active': 'badge-success',
-  'suspended': 'badge-error',
-  'rejected': 'badge-ghost',
-} %}
+{% set pub_status_badge = {'pending_approval': 'badge-warning', 'active': 'badge-success', 'suspended': 'badge-ghost', 'rejected': 'badge-error'} %}
 
-<div class="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
-
-  <!-- Publisher list column -->
-  <div class="border border-base-300 bg-base-200 rounded-lg overflow-hidden flex flex-col h-fit">
-    <div class="flex items-center justify-between px-4 py-3 border-b border-base-300">
-      <span class="text-sm font-semibold">Publishers</span>
-      <button class="btn btn-ghost btn-xs gap-1" onclick="document.getElementById('modal-create-publisher').showModal()">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-        </svg>
-        Add
-      </button>
-    </div>
-
-    <ul data-listing class="flex-1 overflow-y-auto divide-y divide-base-300 max-h-[600px]">
-      {% if not publishers %}
-        <li class="px-4 py-8 text-sm  text-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto mb-2 /30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-          </svg>
-          No publishers created.
-        </li>
-      {% else %}
-        {% for p in publishers %}
-          <li data-listing-item>
-            <a href="/publishers?selected={{ p.id }}"
-               class="block px-4 py-3 text-sm transition-all duration-100
-                      {% if selected and selected.id == p.id %}
-                        bg-primary/10 border-l-2 border-primary
-                      {% else %}
-                        hover:bg-base-300/50 border-l-2 border-transparent
-                      {% endif %}">
-              <div class="flex items-center justify-between gap-2">
-                <div class="font-medium text-base-content truncate">{{ p.name }}</div>
-                <div class="badge badge-xs {{ pub_status_badge.get(p.status, 'badge-ghost') }}">
-                  {{ p.status | replace('_', ' ') }}
-                </div>
-              </div>
-              <div class="text-xs  mt-0.5 truncate">{{ p.site_url }}</div>
-            </a>
-          </li>
+{% if view == 'sites' %}
+<section class="rounded-lg border border-base-300 bg-base-200">
+  <header class="flex flex-wrap items-center justify-between gap-3 border-b border-base-300 px-4 py-3">
+    <div><h2 class="font-medium">My sites</h2><p class="mt-0.5 text-xs">{{ publishers|length }} {{ 'site' if publishers|length == 1 else 'sites' }}</p></div>
+    <button class="btn btn-primary btn-sm" onclick="document.getElementById('modal-create-publisher').showModal()">Add site</button>
+  </header>
+  <div class="overflow-x-auto">
+    <table class="table table-zebra w-full">
+      <thead><tr><th>Site</th><th>Website</th><th>Status</th></tr></thead>
+      <tbody data-listing>
+        {% for publisher in publishers %}
+        <tr>
+          <td class="font-medium">{{ publisher.name }}</td>
+          <td><a class="link link-hover" href="{{ publisher.site_url }}" target="_blank" rel="noreferrer">{{ publisher.site_url }}</a></td>
+          <td><span class="badge badge-sm {{ pub_status_badge.get(publisher.status, 'badge-ghost') }}">{{ publisher.status|replace('_', ' ') }}</span></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="py-10 text-center"><p class="font-medium">No sites added yet</p><p class="mt-1 text-sm">Add a site to get started.</p><button class="btn btn-primary btn-xs mt-3" onclick="document.getElementById('modal-create-publisher').showModal()">Add site</button></td></tr>
         {% endfor %}
-      {% endif %}
-    </ul>
+      </tbody>
+    </table>
   </div>
-
-  <!-- Detail panel column -->
-  <div class="border border-base-300 bg-base-200 rounded-lg p-5 min-h-[400px]">
-    {% if not selected %}
-      <div class="flex flex-col items-center justify-center h-full py-16 text-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 /30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-        </svg>
-        <p class="text-sm ">Select a publisher to manage ad slots and API configuration.</p>
-      </div>
-    {% else %}
-      <!-- Publisher metadata bar -->
-      <div class="flex items-start justify-between mb-6">
-        <div>
-          <div class="flex items-center gap-2 mb-1">
-            <h2 class="font-display text-xl font-semibold">{{ selected.name }}</h2>
-            <span class="badge badge-sm {{ pub_status_badge.get(selected.status, 'badge-ghost') }}">
-              {{ selected.status | replace('_', ' ') }}
-            </span>
-            {% if selected.ads_txt_verified %}
-              <span class="badge badge-sm badge-outline badge-success">ads.txt verified</span>
-            {% endif %}
-          </div>
-          {% if selected.status == 'rejected' and selected.rejection_reason %}
-            <p class="text-xs text-error mt-1">Rejection reason: {{ selected.rejection_reason }}</p>
-          {% endif %}
-          {% if session.get('role') == 'admin' and selected.status == 'pending_approval' %}
-            <div class="flex gap-2 mt-2">
-              <form method="POST" action="{{ url_for('review_approval', kind='publishers', item_id=selected.id) }}">
-                <input type="hidden" name="decision" value="approve" />
-                <button class="btn btn-success btn-xs">Approve publisher</button>
-              </form>
-              <form method="POST" action="{{ url_for('review_approval', kind='publishers', item_id=selected.id) }}" class="flex gap-1">
-                <input type="hidden" name="decision" value="reject" />
-                <input name="rejection_reason" required maxlength="500" placeholder="Rejection reason" class="input input-bordered input-xs" />
-                <button class="btn btn-error btn-outline btn-xs">Reject</button>
-              </form>
-            </div>
-          {% endif %}
-          <a href="{{ selected.site_url }}" target="_blank" rel="noopener noreferrer"
-             class="text-xs  hover:text-secondary transition-colors inline-flex items-center gap-1">
-            {{ selected.site_url }}
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          </a>
-          <p class="text-xs  mt-1.5">
-            Payout: {{ selected.payout_email }} · {{ selected.revenue_share_percentage }}% share
-            · <span class="tabular-nums">{{ selected.unpaid_earnings | inr }} unpaid</span>
-          </p>
-          {% if selected.domain or selected.category %}
-            <p class="text-xs  mt-1">
-              {{ [selected.domain, selected.category] | select | join(' · ') }}
-            </p>
-          {% endif %}
-        </div>
-        <button class="btn btn-primary btn-sm gap-2" onclick="document.getElementById('modal-create-ad-unit').showModal()">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          New ad slot
-        </button>
-      </div>
-
-      <!-- API Key token holder -->
-      <div class="bg-base-300/50 rounded-lg p-3 mb-5 flex items-center justify-between gap-3">
-        <div>
-          <p class="text-xs  mb-1">Publisher API Key</p>
-          <code class="tabular-nums text-xs text-base-content select-all font-mono" id="api-key-value">{{ selected.api_key }}</code>
-        </div>
-        <button class="btn btn-ghost btn-xs" onclick="copyApiKey(event)" title="Copy API key">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-        </button>
-      </div>
-
-      <!-- Ad Slots table -->
-      <div class="border border-base-300 rounded-lg overflow-hidden">
-        <div class="px-4 py-2.5 border-b border-base-300 bg-base-300/20 flex items-center justify-between">
-          <span class="text-xs font-semibold  uppercase tracking-wider">Ad Slots</span>
-          <span class="text-xs ">({{ ad_units | length if ad_units else 0 }})</span>
-        </div>
-        <div class="overflow-x-auto">
-        <table class="table w-full">
-          <thead>
-            <tr class="text-xs  border-b border-base-300">
-              <th>Slot name</th>
-              <th>Format</th>
-              <th class="tabular-nums">Dimensions</th>
-              <th class="tabular-nums">Reserve</th>
-              <th>Status</th>
-              <th class="tabular-nums">Unit ID</th>
-            </tr>
-          </thead>
-          <tbody data-listing>
-            {% if not ad_units %}
-              <tr>
-                <td colspan="6" class="py-8 text-center text-sm ">
-                  No ad slots registered for this publisher.
-                </td>
-              </tr>
-            {% else %}
-              {% for unit in ad_units %}
-                <tr class="border-b border-base-300 last:border-0 hover:bg-base-300/20 transition-colors">
-                  <td class="font-medium">{{ unit.slot_name }}</td>
-                  <td class="text-xs ">{{ unit.format_type }}</td>
-                  <td class="tabular-nums text-sm">{{ unit.width }}×{{ unit.height }}</td>
-                  <td class="tabular-nums text-sm">
-                    {{ unit.reserve_price | inr(4) if unit.reserve_price|float > 0 else '—' }}
-                  </td>
-                  <td><span class="badge badge-xs {{ 'badge-success' if unit.status == 'approved' else 'badge-error' if unit.status == 'rejected' else 'badge-warning' }}">{{ unit.status | replace('_', ' ') }}</span></td>
-                  <td class="tabular-nums  text-sm">#{{ unit.id }}</td>
-                </tr>
-              {% endfor %}
-            {% endif %}
-          </tbody>
-        </table>
-        </div>
-      </div>
-    {% endif %}
+</section>
+{% else %}
+<section class="rounded-lg border border-base-300 bg-base-200">
+  <header class="flex flex-wrap items-center justify-between gap-3 border-b border-base-300 px-4 py-3">
+    <form method="GET" action="{{ url_for('publisher_adslots') }}" class="flex items-center gap-3 text-sm font-medium">
+      <label for="slot-site">Site</label>
+      <select id="slot-site" name="selected" class="select select-bordered select-sm max-w-xs" onchange="this.form.submit()" {% if not publishers %}disabled{% endif %}>
+        {% for publisher in publishers %}<option value="{{ publisher.id }}" {% if selected and selected.id == publisher.id %}selected{% endif %}>{{ publisher.name }}</option>{% endfor %}
+      </select>
+    </form>
+    <button class="btn btn-primary btn-sm" onclick="document.getElementById('modal-create-ad-unit').showModal()" {% if not selected %}disabled{% endif %}>Add ad slot</button>
+  </header>
+  {% if selected %}
+  <div class="overflow-x-auto">
+    <table class="table table-zebra w-full">
+      <thead><tr><th>Slot name</th><th>Format</th><th>Dimensions</th><th>Reserve</th><th>Status</th><th>Ad unit ID</th></tr></thead>
+      <tbody data-listing>
+        {% for unit in ad_units %}
+        <tr>
+          <td class="font-medium">{{ unit.slot_name }}</td>
+          <td><span class="badge badge-outline badge-sm">{{ unit.format_type }}</span></td>
+          <td class="tabular-nums">{{ unit.width }} × {{ unit.height }} px</td>
+          <td class="tabular-nums">{{ unit.reserve_price | inr(4) if unit.reserve_price|float > 0 else '—' }}</td>
+          <td><span class="badge badge-sm {{ 'badge-success' if unit.status == 'approved' else 'badge-error' if unit.status == 'rejected' else 'badge-warning' }}">{{ unit.status|replace('_', ' ') }}</span></td>
+          <td class="tabular-nums">#{{ unit.id }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="py-10 text-center"><p class="font-medium">No ad slots yet</p><p class="mt-1 text-sm">Add an ad slot to get started.</p><button class="btn btn-primary btn-xs mt-3" onclick="document.getElementById('modal-create-ad-unit').showModal()">Add ad slot</button></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
-</div>
+  {% else %}
+  <p class="p-10 text-center text-sm">{{ 'Add a site before creating ad slots.' if not publishers else 'Select a site to see its ad slots.' }}</p>
+  {% endif %}
+</section>
+{% endif %}
 
 <!-- Modal: New Publisher -->
-<dialog id="modal-create-publisher" class="modal">
+{% if view == 'sites' %}<dialog id="modal-create-publisher" class="modal">
   <div class="modal-box bg-base-200 border border-base-300 max-w-sm">
     <form method="dialog" class="absolute top-4 right-4">
       <button class="btn btn-ghost btn-sm btn-circle">✕</button>
@@ -220,9 +106,10 @@
   </div>
   <form method="dialog" class="modal-backdrop"><button>close</button></form>
 </dialog>
+{% endif %}
 
 <!-- Modal: New Ad Unit -->
-{% if selected %}
+{% if selected and view == 'adslots' %}
 <dialog id="modal-create-ad-unit" class="modal">
   <div class="modal-box bg-base-200 border border-base-300 max-w-sm">
     <form method="dialog" class="absolute top-4 right-4">
@@ -268,22 +155,4 @@
 </dialog>
 {% endif %}
 
-{% endblock %}
-
-{% block scripts %}
-<script>
-function copyApiKey(evt) {
-  const keyEl = document.getElementById('api-key-value');
-  if (!keyEl) return;
-
-  const btn = evt.currentTarget;
-  navigator.clipboard.writeText(keyEl.textContent.trim()).then(() => {
-    const originalSvg = btn.innerHTML;
-    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`;
-    setTimeout(() => {
-      btn.innerHTML = originalSvg;
-    }, 2000);
-  });
-}
-</script>
 {% endblock %}

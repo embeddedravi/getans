@@ -33,9 +33,9 @@ async def get_current_user(
     try:
         payload = decode_access_token(token)
         user_id = payload.get("sub")
-        if user_id is None:
+        if not isinstance(user_id, (str, int)) or not str(user_id).isdigit():
             raise credentials_error
-    except jwt.PyJWTError:
+    except (jwt.PyJWTError, TypeError, ValueError):
         raise credentials_error
 
     user = await db.get(User, int(user_id))

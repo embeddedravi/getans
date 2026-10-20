@@ -62,10 +62,13 @@ socket.emit("request_ad", {
 });
 socket.on("serve_ad", ad => {
   // Render ad.asset_url linked to ad.click_url at ad.width × ad.height.
-  // Then emit "impression" with ad_unit_id, ad.creative_id, visitor_id, event_id.
+  const eventData = () => ({ ad_unit_id: YOUR_AD_UNIT_ID, creative_id: ad.creative_id,
+    visitor_id: ad.visitor_id, serve_token: ad.serve_token, event_id: crypto.randomUUID() });
+  socket.emit("impression", eventData());
+  // On click: socket.emit("click", eventData());
 });
 socket.on("no_fill", ({ reason }) => console.log("No ad", reason));`}</code></pre>
-        <p className="text-xs">Emit <code>click</code> with the same fields as <code>impression</code> when a visitor clicks the creative. Use a stable random visitor ID and a unique event ID for each event.</p>
+        <p className="text-xs">Use the returned <code>visitor_id</code> and <code>serve_token</code> on impression and click events. Tokens expire after five minutes; use a unique event ID for each event.</p>
       </section>
 
       <section className="space-y-3 rounded border border-base-300 bg-base-200 p-5">
@@ -77,11 +80,12 @@ socket.on("no_fill", ({ reason }) => console.log("No ad", reason));`}</code></pr
 const result = await response.json();
 if (result.ad) {
   // Render result.ad.asset_url linked to result.ad.click_url.
-  // result.ad includes campaign_id, creative_id, width, height and format.
+  // result.ad includes campaign_id, creative_id, width, height, format,
+  // visitor_id and serve_token. Send both tracking fields with each event.
 } else {
   console.log("No ad available", result.reason);
 }`}</code></pre>
-        <p className="text-sm">Track impressions and clicks using <code>POST {apiBase}/delivery/events/impression</code> or <code>/delivery/events/click</code> with the publisher-key header and JSON fields <code>ad_unit_id</code>, <code>creative_id</code>, <code>event_id</code>, and optional <code>visitor_id</code>.</p>
+        <p className="text-sm">Track impressions and clicks using <code>POST {apiBase}/delivery/events/impression</code> or <code>/delivery/events/click</code> with the publisher-key header and JSON fields <code>ad_unit_id</code>, <code>creative_id</code>, <code>event_id</code>, plus the returned <code>visitor_id</code> and short lived <code>serve_token</code>. Tokens expire after five minutes.</p>
       </section>
     </div>
   </Layout>;

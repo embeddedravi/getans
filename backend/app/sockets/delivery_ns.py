@@ -30,6 +30,7 @@ from app.services.ad_selector import (
 )
 from app.services.budget_tracker import BudgetExceededError, record_event
 from app.services.publisher_auth import authenticate_publisher
+from app.services.serve_token import issue_serve_token, verify_serve_token
 
 logger = logging.getLogger(__name__)
 AD_REPORT_THRESHOLD = 3
@@ -44,6 +45,9 @@ class DeliveryNamespace(socketio.AsyncNamespace):
         logger.debug("Delivery client disconnected: %s", sid)
 
     async def on_request_ad(self, sid: str, data: dict) -> None:
+        if not isinstance(data, dict):
+            await self.emit("no_fill", {"reason": "invalid_params"}, to=sid)
+            return
         ad_unit_id = data.get("ad_unit_id")
         api_key = data.get("api_key")
 
@@ -56,16 +60,29 @@ class DeliveryNamespace(socketio.AsyncNamespace):
             await self.emit("no_fill", {"reason": "unauthorized"}, to=sid)
             return
 
-        context = RequestContext(
-            country=data.get("context", {}).get("country"),
-            device_type=data.get("context", {}).get("device_type"),
-            page_keywords=data.get("context", {}).get("page_keywords"),
-        )
+        environ = self.server.get_environ(sid, namespace=self.namespace) or {}
+        origin = environ.get("HTTP_ORIGIN")
+        site_url = getattr(publisher, "site_url", None)
+        if origin and site_url:
+            from urllib.parse import urlsplit
+            if (urlsplit(origin).hostname or "").lower() != (urlsplit(site_url).hostname or site_url).lower():
+                await self.emit("no_fill", {"reason": "origin_mismatch"}, to=sid)
+                return
+
+        client_context = data.get("context")
+        if not isinstance(client_context, dict):
+            client_context = {}
+        country = environ.get("HTTP_CF_IPCOUNTRY") or environ.get("HTTP_CLOUDFRONT_VIEWER_COUNTRY") or environ.get("HTTP_X_COUNTRY_CODE")
+        context = RequestContext(country=country, device_type=client_context.get("device_type"), page_keywords=client_context.get("page_keywords"))
         session = await self.get_session(sid)
-        session["country_code"] = _normalize_country(context.country)
+        session["country_code"] = _normalize_country(country)
         await self.save_session(sid, session)
 
         async for db in get_session():
+            owned = await db.scalar(select(AdUnit.id).where(AdUnit.id == ad_unit_id, AdUnit.publisher_id == publisher.id))
+            if owned is None:
+                await self.emit("no_fill", {"reason": "ad_unit_not_found"}, to=sid)
+                return
             await self._serve(db, sid, ad_unit_id, context)
 
     async def _serve(
@@ -82,6 +99,7 @@ class DeliveryNamespace(socketio.AsyncNamespace):
             await self.emit("no_fill", {"reason": str(exc)}, to=sid)
             return
 
+        token, visitor = issue_serve_token(ad_unit_id, ad.creative_id)
         await self.emit(
             "serve_ad",
             {
@@ -92,11 +110,17 @@ class DeliveryNamespace(socketio.AsyncNamespace):
                 "width": ad.width,
                 "height": ad.height,
                 "format": ad.format,
+                "serve_token": token,
+                "visitor_id": visitor,
             },
             to=sid,
         )
 
     async def on_impression(self, sid: str, data: dict) -> None:
+        visitor = verify_serve_token(str(data.get("serve_token", "")), data.get("ad_unit_id", 0), data.get("creative_id", 0)) if isinstance(data, dict) else None
+        if visitor is None:
+            await self.emit("event_rejected", {"reason": "invalid_or_expired_serve_token"}, to=sid)
+            return
         metadata = await self._event_metadata(sid, data)
         try:
             await record_event(
@@ -104,13 +128,19 @@ class DeliveryNamespace(socketio.AsyncNamespace):
                 ad_unit_id=data.get("ad_unit_id", 0),
                 creative_id=data.get("creative_id", 0),
                 event_id=data.get("event_id", ""),
-                visitor_id=data.get("visitor_id", ""),
+                visitor_id=visitor,
                 **metadata,
             )
         except BudgetExceededError as exc:
             await self.emit("event_rejected", {"reason": str(exc)}, to=sid)
+        except ValueError as exc:
+            await self.emit("event_rejected", {"reason": str(exc)}, to=sid)
 
     async def on_click(self, sid: str, data: dict) -> None:
+        visitor = verify_serve_token(str(data.get("serve_token", "")), data.get("ad_unit_id", 0), data.get("creative_id", 0)) if isinstance(data, dict) else None
+        if visitor is None:
+            await self.emit("event_rejected", {"reason": "invalid_or_expired_serve_token"}, to=sid)
+            return
         metadata = await self._event_metadata(sid, data)
         try:
             await record_event(
@@ -118,10 +148,12 @@ class DeliveryNamespace(socketio.AsyncNamespace):
                 ad_unit_id=data.get("ad_unit_id", 0),
                 creative_id=data.get("creative_id", 0),
                 event_id=data.get("event_id", ""),
-                visitor_id=data.get("visitor_id", ""),
+                visitor_id=visitor,
                 **metadata,
             )
         except BudgetExceededError as exc:
+            await self.emit("event_rejected", {"reason": str(exc)}, to=sid)
+        except ValueError as exc:
             await self.emit("event_rejected", {"reason": str(exc)}, to=sid)
 
     async def _event_metadata(self, sid: str, data: dict) -> dict[str, str | None]:
@@ -129,12 +161,11 @@ class DeliveryNamespace(socketio.AsyncNamespace):
         environ = self.server.get_environ(sid, namespace=self.namespace) or {}
         session = await self.get_session(sid)
         country = _normalize_country(
-            data.get("country_code")
-            or session.get("country_code")
-            or environ.get("HTTP_CF_IPCOUNTRY")
+            environ.get("HTTP_CF_IPCOUNTRY")
             or environ.get("HTTP_CLOUDFRONT_VIEWER_COUNTRY")
             or environ.get("HTTP_X_COUNTRY_CODE")
             or environ.get("GEOIP_COUNTRY_CODE")
+            or session.get("country_code")
         )
 
         user_ip = environ.get("REMOTE_ADDR")
@@ -153,6 +184,8 @@ class DeliveryNamespace(socketio.AsyncNamespace):
 
     async def on_report_ad(self, sid: str, data: dict) -> dict:
         """Record one report per distinct visitor in the current review round."""
+        if not isinstance(data, dict):
+            return {"ok": False, "message": "Invalid report details."}
         api_key = data.get("api_key")
         visitor_id = data.get("visitor_id")
         reason = data.get("reason")
@@ -176,6 +209,22 @@ class DeliveryNamespace(socketio.AsyncNamespace):
         if publisher is None:
             return {"ok": False, "message": "Publisher authentication failed."}
 
+        environ = self.server.get_environ(sid, namespace=self.namespace) or {}
+        origin = environ.get("HTTP_ORIGIN")
+        if origin:
+            from urllib.parse import urlsplit
+            supplied_host = (urlsplit(origin).hostname or "").lower()
+            allowed_hosts = {(urlsplit(publisher.site_url).hostname or publisher.site_url).lower()}
+            if getattr(publisher, "domain", None):
+                allowed_hosts.add(publisher.domain.lower())
+            if supplied_host not in allowed_hosts:
+                return {"ok": False, "message": "Origin does not match publisher site."}
+
+        visitor_from_token = verify_serve_token(str(data.get("serve_token", "")), ad_unit_id, creative_id)
+        if visitor_from_token is None:
+            return {"ok": False, "message": "A valid served ad token is required."}
+        visitor_id = visitor_from_token
+
         visitor_hash = hashlib.sha256(visitor_id.encode("utf-8")).hexdigest()
         async for db in get_session():
             unit_result = await db.execute(
@@ -192,6 +241,8 @@ class DeliveryNamespace(socketio.AsyncNamespace):
                 creative is None
                 or creative.width != ad_unit.width
                 or creative.height != ad_unit.height
+                or not creative.is_active
+                or creative.review_status.value != "approved"
             ):
                 return {"ok": False, "message": "The reported creative does not match this slot."}
 

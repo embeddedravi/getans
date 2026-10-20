@@ -7,6 +7,7 @@ Include in main.py *without* an internal prefix, e.g.:
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
+import logging
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,6 +20,7 @@ from app.services.otp import OTPRateLimitError, issue_otp, verify_otp
 from app.services.sms import send_sms
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 async def _get_user(db: AsyncSession, mobile: str) -> User | None:
@@ -45,10 +47,11 @@ async def request_otp(payload: OTPRequest, db: AsyncSession = Depends(get_db)) -
                 headers={"Retry-After": str(exc.retry_after)},
             )
         minutes = max(1, settings.otp_ttl_seconds // 60)
-        await send_sms(
-            payload.mobile,
-            f"{code} is your GetANS verification code. It expires in {minutes} minutes.",
-        )
+        try:
+            await send_sms(payload.mobile, f"{code} is your GetANS verification code. It expires in {minutes} minutes.")
+        except Exception:
+            logger.exception("OTP delivery failed")
+            # Keep the response indistinguishable from an unregistered number.
     return OTPRequestResponse(
         message="If this number is registered, a code has been sent",
         expires_in=settings.otp_ttl_seconds,

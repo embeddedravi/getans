@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
+import hmac
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +16,7 @@ from app.models.creative import Creative, ReviewStatus
 from app.services.ad_selector import NoEligibleCampaignError, RequestContext, select_ad
 from app.services.budget_tracker import BudgetExceededError, record_event
 from app.services.publisher_auth import authenticate_publisher
+from app.services.serve_token import issue_serve_token, verify_serve_token
 
 router = APIRouter(prefix="/delivery", tags=["Publisher Ad Delivery"])
 
@@ -27,6 +29,8 @@ class ServedAd(BaseModel):
     width: int
     height: int
     format: str
+    serve_token: str
+    visitor_id: str
 
 
 class AdRequestResponse(BaseModel):
@@ -38,12 +42,14 @@ class AdEvent(BaseModel):
     ad_unit_id: int
     creative_id: int
     event_id: str = Field(min_length=1, max_length=36)
-    visitor_id: str | None = Field(default=None, max_length=128)
+    visitor_id: str = Field(min_length=16, max_length=128)
+    serve_token: str = Field(min_length=20, max_length=1024)
 
 
 @router.get("/ad/{ad_unit_id}", response_model=AdRequestResponse, summary="Request an ad for an ad unit")
 async def request_ad(
     ad_unit_id: int,
+    request: Request,
     response: Response,
     publisher_key: str = Header(alias="X-Publisher-Key"),
     country: str | None = Query(default=None, max_length=2),
@@ -62,13 +68,15 @@ async def request_ad(
     if belongs_to_publisher is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ad unit not found")
 
+    country = (request.headers.get("cf-ipcountry") or request.headers.get("cloudfront-viewer-country") or request.headers.get("x-country-code") or "")[:2].upper() or None
     context = RequestContext(country=country, device_type=device_type, page_keywords=page_keywords)
     try:
         selected = await select_ad(db, ad_unit_id, context)
     except NoEligibleCampaignError as exc:
         return AdRequestResponse(ad=None, reason=str(exc))
 
-    return AdRequestResponse(ad=ServedAd(**selected.__dict__))
+    token, visitor = issue_serve_token(ad_unit_id, selected.creative_id)
+    return AdRequestResponse(ad=ServedAd(**selected.__dict__, serve_token=token, visitor_id=visitor))
 
 
 @router.post(
@@ -90,6 +98,9 @@ async def track_ad_event(
     unit = await db.get(AdUnit, payload.ad_unit_id)
     if unit is None or unit.publisher_id != publisher.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ad unit not found")
+    visitor = verify_serve_token(payload.serve_token, payload.ad_unit_id, payload.creative_id)
+    if visitor is None or not hmac.compare_digest(visitor, payload.visitor_id):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired serve token")
     creative_matches_unit = await db.scalar(
         select(Creative.id).where(
             Creative.id == payload.creative_id,
@@ -118,3 +129,5 @@ async def track_ad_event(
         )
     except BudgetExceededError as exc:
         raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc

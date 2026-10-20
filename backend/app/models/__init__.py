@@ -12,6 +12,7 @@ from app.models.media_asset import MediaAsset  # noqa: F401
 from app.models.publisher import Publisher  # noqa: F401
 from app.models.user import User  # noqa: F401
 from app.models.payment import AdvertiserTopUp, Payout  # noqa: F401
+from app.models.otp import OTPCode  # noqa: F401
 
 __all__ = [
     "AdUnit",
@@ -24,4 +25,5 @@ __all__ = [
     "User",
     "Payout",
     "AdvertiserTopUp",
+    "OTPCode",
 ]

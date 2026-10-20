@@ -6,7 +6,6 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
-from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -106,10 +105,6 @@ async def list_ad_unit_reports(
         }
         for report in result.scalars().all()
     ]
-
-
-class AdUnitActivation(BaseModel):
-    is_active: bool
 
 
 class AdUnitActivation(BaseModel):
@@ -264,27 +259,6 @@ async def set_ad_unit_active(
     await db.refresh(ad_unit)
     return ad_unit
 
-
-@router.patch(
-    "/ad-units/{ad_unit_id}/active",
-    response_model=AdUnitOut,
-    summary="Activate or deactivate an approved ad unit",
-)
-async def set_ad_unit_active(
-    ad_unit_id: int,
-    payload: AdUnitActivation,
-    db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_role("admin")),
-) -> AdUnit:
-    ad_unit = await db.get(AdUnit, ad_unit_id)
-    if ad_unit is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Ad unit not found")
-    if ad_unit.status != AdUnitStatus.APPROVED and payload.is_active:
-        raise HTTPException(status.HTTP_409_CONFLICT, "Only approved ad units can be activated")
-    ad_unit.is_active = payload.is_active
-    await db.commit()
-    await db.refresh(ad_unit)
-    return ad_unit
 
 @router.get("/events/recent", summary="Most recent tracking events (admin)")
 async def recent_events(

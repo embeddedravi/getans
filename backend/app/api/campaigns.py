@@ -7,7 +7,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import get_db, require_role
-from app.models.campaign import Campaign
+from app.models.campaign import Campaign, CampaignStatus
 from app.models.advertiser import Advertiser
 from app.models.user import User
 from app.schemas.campaign import CampaignCreate, CampaignOut, CampaignUpdate
@@ -204,7 +204,7 @@ async def delete_campaign(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "advertiser")),
 ) -> None:
-    """Deletes a campaign and cascades associated records."""
+    """Archives a campaign while preserving its financial and event audit trail."""
     campaign = await _get_owned_campaign(db, campaign_id, user)
     refundable = max(campaign.reserved_amount - campaign.spent_amount, 0)
     if refundable:
@@ -213,5 +213,6 @@ async def delete_campaign(
             .where(Advertiser.id == campaign.advertiser_id)
             .values(balance=Advertiser.balance + refundable)
         )
-    await db.delete(campaign)
+    campaign.status = CampaignStatus.ARCHIVED
+    campaign.is_active = False
     await db.commit()

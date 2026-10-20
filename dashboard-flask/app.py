@@ -458,6 +458,26 @@ def create_creative_from_media(campaign_id: int):
         flash(f"Failed: {exc}", "error")
     return redirect(url_for("creatives", campaign_id=campaign_id))
 
+@app.route("/campaigns/<int:campaign_id>/creatives/create", methods=["POST"])
+@login_required
+def create_creative_by_url(campaign_id: int):
+    payload = {
+        "campaign_id": campaign_id,
+        "asset_url": request.form.get("asset_url"),
+        "click_url": request.form.get("click_url"),
+        "name": request.form.get("name") or None,
+        "width": request.form.get("width"),
+        "height": request.form.get("height"),
+    }
+    try:
+        _api("POST", "/creatives", json=payload)
+        flash("Creative created. It will serve once approved.", "success")
+    except requests.HTTPError as exc:
+        flash(f"Failed: {_detail_from(exc.response)}", "error")
+    except Exception as exc:
+        flash(f"Failed: {exc}", "error")
+    return redirect(url_for("creatives", campaign_id=campaign_id))
+
 @app.route("/campaigns/<int:campaign_id>/creatives/<int:creative_id>/toggle", methods=["POST"])
 @login_required
 def toggle_creative(campaign_id: int, creative_id: int):

@@ -57,16 +57,14 @@ socket.on("serve_ad", ad =&gt; {
   image.alt = "Advertisement";
   link.appendChild(image);
   slot.replaceChildren(link);
-  const visitorId = localStorage.getItem("ad-visitor-id") || crypto.randomUUID();
-  localStorage.setItem("ad-visitor-id", visitorId);
   const eventData = () =&gt; ({ ad_unit_id: adUnitId, creative_id: ad.creative_id,
-    visitor_id: visitorId, event_id: crypto.randomUUID() });
+    visitor_id: ad.visitor_id, serve_token: ad.serve_token, event_id: crypto.randomUUID() });
   socket.emit("impression", eventData());
   link.addEventListener("click", () =&gt; socket.emit("click", eventData()));
 });
 socket.on("no_fill", info =&gt; console.log("No ad available", info.reason));
 &lt;/script&gt;</code></pre>
-    <p class="text-xs">For a click, emit <code>click</code> with the same fields as impression. Use a stable random visitor ID per browser; event IDs should be unique per event.</p>
+    <p class="text-xs">Include the returned <code>visitor_id</code> and <code>serve_token</code> on impressions and clicks. The token expires after five minutes; event IDs should be unique per event.</p>
   </section>
 
   <section class="space-y-3 rounded-lg border border-base-300 bg-base-200 p-5">
@@ -90,12 +88,10 @@ if (result.ad) {
   image.alt = "Advertisement";
   link.appendChild(image);
   slot.replaceChildren(link);
-  const visitorId = localStorage.getItem("ad-visitor-id") || crypto.randomUUID();
-  localStorage.setItem("ad-visitor-id", visitorId);
   const track = (type) =&gt; fetch(`${API_BASE}/delivery/events/${type}`, {
     method: "POST", headers: { "Content-Type": "application/json", "X-Publisher-Key": publisherKey },
     body: JSON.stringify({ ad_unit_id: adUnitId, creative_id: ad.creative_id,
-      visitor_id: visitorId, event_id: crypto.randomUUID() })
+      visitor_id: ad.visitor_id, serve_token: ad.serve_token, event_id: crypto.randomUUID() })
   });
   track("impression");
   link.addEventListener("click", () =&gt; track("click"));
@@ -107,7 +103,8 @@ if (result.ad) {
   "ad_unit_id": YOUR_AD_UNIT_ID,
   "creative_id": result.ad.creative_id,
   "event_id": crypto.randomUUID(),
-  "visitor_id": "a-stable-random-browser-id"
+  "visitor_id": result.ad.visitor_id,
+  "serve_token": result.ad.serve_token
 }</code></pre>
     <p class="text-xs">Do not put your publisher key in a URL. For public client-side placements, use HTTPS and restrict where you embed your integration.</p>
   </section>

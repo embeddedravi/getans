@@ -11,8 +11,6 @@
 (function () {
   "use strict";
 
-  var memoryVisitorId = null;
-
   var currentScript = document.currentScript;
   if (!currentScript) {
     var scripts = document.getElementsByTagName("script");
@@ -92,24 +90,6 @@
     return { link: link, frame: creativeFrame };
   }
 
-  function getVisitorId() {
-    var storageKey = "ad-platform-reporter-id";
-    try {
-      var existing = window.localStorage.getItem(storageKey);
-      if (existing) return existing;
-      var visitorId = window.crypto && window.crypto.randomUUID
-        ? window.crypto.randomUUID()
-        : "visitor-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
-      window.localStorage.setItem(storageKey, visitorId);
-      return visitorId;
-    } catch (error) {
-      if (!memoryVisitorId) {
-        memoryVisitorId = "visitor-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
-      }
-      return memoryVisitorId;
-    }
-  }
-
   function createEventId() {
     if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (char) {
@@ -186,7 +166,8 @@
         ad_unit_id: adUnitId,
         creative_id: ad.creative_id,
         api_key: apiKey,
-        visitor_id: getVisitorId(),
+        visitor_id: ad.visitor_id,
+        serve_token: ad.serve_token,
         reason: reason.value
       }, function (response) {
         message.textContent = response && response.message
@@ -230,6 +211,10 @@
     function onServeAd(ad) {
       cleanup();
       container.removeAttribute("data-ad-loading");
+      if (!ad || !ad.serve_token || !ad.visitor_id) {
+        console.error("[ad-loader] Ad response is missing its tracking token or visitor ID.");
+        return;
+      }
       var rendered = renderCreative(container, ad);
       if (!rendered) return;
 
@@ -237,14 +222,16 @@
         socket.emit("click", {
           ad_unit_id: adUnitId,
           creative_id: ad.creative_id,
-          visitor_id: getVisitorId(),
+          visitor_id: ad.visitor_id,
+          serve_token: ad.serve_token,
           event_id: createEventId()
         });
       });
       socket.emit("impression", {
         ad_unit_id: adUnitId,
         creative_id: ad.creative_id,
-        visitor_id: getVisitorId(),
+        visitor_id: ad.visitor_id,
+        serve_token: ad.serve_token,
         event_id: createEventId()
       });
       addReportControl(rendered.frame, socket, adUnitId, ad);

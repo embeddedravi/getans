@@ -30,7 +30,8 @@ def _aware(dt: datetime) -> datetime:
 
 
 def _hash(mobile: str, code: str) -> str:
-    key = settings.jwt_secret.get_secret_value().encode()
+    # Domain separate OTP hashes from JWT signing even when one configured root secret is used.
+    key = hmac.new(settings.jwt_secret.get_secret_value().encode(), b"getans:otp-hmac:v1", hashlib.sha256).digest()
     return hmac.new(key, f"{mobile}:{code}".encode(), hashlib.sha256).hexdigest()
 
 
@@ -89,9 +90,16 @@ async def verify_otp(db: AsyncSession, mobile: str, code: str) -> bool:
     if otp is None or _aware(otp.expires_at) <= now or otp.attempts >= settings.otp_max_attempts:
         return False
 
-    otp.attempts += 1
-    if hmac.compare_digest(otp.code_hash, _hash(mobile, code)):
-        otp.consumed_at = now
+    matched = hmac.compare_digest(otp.code_hash, _hash(mobile, code))
+    changed = await db.execute(
+        update(OTPCode)
+        .where(OTPCode.id == otp.id, OTPCode.attempts < settings.otp_max_attempts, OTPCode.consumed_at.is_(None))
+        .values(attempts=OTPCode.attempts + 1, consumed_at=now if matched else OTPCode.consumed_at)
+    )
+    if changed.rowcount != 1:
+        await db.rollback()
+        return False
+    if matched:
         await db.commit()
         return True
 

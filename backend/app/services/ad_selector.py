@@ -6,21 +6,18 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal
 import random
-from typing import Dict, List, Optional
+from typing import List, Optional
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.ad_unit import AdUnit, AdUnitStatus
 from app.models.advertiser import AccountStatus, Advertiser
-from app.models.campaign import Campaign, CampaignStatus
+from app.models.campaign import BiddingStrategy, Campaign, CampaignStatus
 from app.models.creative import Creative, ReviewStatus
+from app.models.event import Event, EventType
 from app.models.publisher import PublisherStatus
-
-# In-memory spend cache: {"campaign_id:YYYY-MM-DD": Decimal("spend_so_far")}
-_spend_cache: Dict[str, Decimal] = {}
-
 
 @dataclass
 class RequestContext:
@@ -101,7 +98,10 @@ async def select_ad(
     # 2. Filter by reserve floor price and remaining budget
     eligible = [
         c for c in targeted
-        if c.bid_amount >= ad_unit.reserve_price and _has_remaining_budget(c)
+        if (
+            (c.bidding_strategy != BiddingStrategy.CPM or c.bid_amount >= ad_unit.reserve_price)
+            and await _has_remaining_budget(db, c)
+        )
     ]
     if not eligible:
         raise NoEligibleCampaignError("No campaigns satisfy budget or floor price constraints")
@@ -156,22 +156,34 @@ def _matches_targeting(campaign: Campaign, context: RequestContext) -> bool:
     return True
 
 
-def _has_remaining_budget(campaign: Campaign) -> bool:
+async def _has_remaining_budget(db: AsyncSession, campaign: Campaign) -> bool:
     """Validates campaign spend against total and daily budget limits."""
     if campaign.total_budget is not None and campaign.spent_amount >= campaign.total_budget:
         return False
+    if campaign.total_budget is None:
+        # Uncapped campaigns spend directly from the available wallet on their
+        # billable event. Require enough wallet for at least one event.
+        if campaign.bidding_strategy == BiddingStrategy.CPM:
+            required = campaign.bid_amount / Decimal("1000")
+        else:
+            required = campaign.bid_amount
+        if campaign.advertiser.balance < required:
+            return False
+
     if campaign.daily_cap is None:
         return True
 
-    key = f"{campaign.id}:{_today_key()}"
-    spend = _spend_cache.get(key, Decimal("0.00"))
+    start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    spend = await db.scalar(
+        select(func.coalesce(func.sum(Event.cost), 0)).where(
+            Event.campaign_id == campaign.id,
+            Event.type.in_([EventType.IMPRESSION, EventType.CLICK, EventType.CONVERSION]),
+            Event.is_valid.is_(True),
+            Event.timestamp >= start,
+        )
+    )
+    spend = Decimal(str(spend or 0))
     return spend < campaign.daily_cap
-
-
-def record_spend(campaign_id: int, amount: Decimal) -> None:
-    """Updates campaign spend tracking cache."""
-    key = f"{campaign_id}:{_today_key()}"
-    _spend_cache[key] = _spend_cache.get(key, Decimal("0.00")) + amount
 
 
 def _rank_and_pick(campaigns: List[Campaign]) -> Campaign:
@@ -179,7 +191,3 @@ def _rank_and_pick(campaigns: List[Campaign]) -> Campaign:
     max_priority = max(c.priority for c in campaigns)
     top_tier = [c for c in campaigns if c.priority == max_priority]
     return random.choice(top_tier)
-
-
-def _today_key() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d")

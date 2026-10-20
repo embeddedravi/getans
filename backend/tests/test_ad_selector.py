@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+from decimal import Decimal
 
 import pytest
 
@@ -9,7 +11,7 @@ from app.models.advertiser import AccountStatus
 from app.models.campaign import Campaign, CampaignStatus
 from app.models.creative import Creative, ReviewStatus
 from app.models.publisher import PublisherStatus
-from app.services.ad_selector import NoEligibleCampaignError, RequestContext, select_ad, _spend_cache
+from app.services.ad_selector import NoEligibleCampaignError, RequestContext, select_ad
 
 
 async def _make_ad_unit(db, publisher, width=300, height=250) -> AdUnit:
@@ -35,6 +37,7 @@ async def _make_campaign(
     height=250,
 ) -> Campaign:
     advertiser.status = AccountStatus.ACTIVE
+    advertiser.balance = Decimal("100.000000")
     now = datetime.now(timezone.utc)
     campaign = Campaign(
         advertiser_id=advertiser.id,
@@ -141,16 +144,23 @@ async def test_daily_cap_exhausted_excludes_campaign(db, publisher, advertiser):
     ad_unit = await _make_ad_unit(db, publisher)
     campaign = await _make_campaign(db, advertiser, daily_cap=1.0)
 
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    _spend_cache[f"{campaign.id}:{today}"] = 1.50
+    from app.models.event import Event, EventType
+    db.add(Event(ad_unit_id=ad_unit.id, campaign_id=campaign.id, creative_id=campaign.creatives[0].id, type=EventType.IMPRESSION, cost=Decimal("1.50"), timestamp=datetime.now(timezone.utc)))
+    await db.commit()
 
     with pytest.raises(NoEligibleCampaignError):
         await select_ad(db, ad_unit.id)
 
 
-@pytest.fixture(autouse=True)
-def _clear_spend_cache():
-    from app.services.ad_selector import _spend_cache
-    _spend_cache.clear()
-    yield
-    _spend_cache.clear()
+
+
+@pytest.mark.asyncio
+async def test_total_budget_exhausted_excludes_campaign(db, publisher, advertiser):
+    ad_unit = await _make_ad_unit(db, publisher)
+    campaign = await _make_campaign(db, advertiser)
+    campaign.total_budget = 10
+    campaign.spent_amount = 10
+    await db.commit()
+
+    with pytest.raises(NoEligibleCampaignError, match="budget or floor"):
+        await select_ad(db, ad_unit.id)

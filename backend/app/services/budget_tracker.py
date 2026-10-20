@@ -5,23 +5,24 @@ from __future__ import annotations
 import hashlib
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Dict, Optional
+from typing import Optional
 
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import select, update
+from sqlalchemy import func, select
 
 from app.db.session import async_session_factory
 from app.models.ad_unit import AdUnit
-from app.models.campaign import Campaign
+from app.models.campaign import BiddingStrategy, Campaign
 from app.models.creative import Creative
 from app.models.event import Event, EventType
-from app.services.ad_selector import record_spend
+from app.models.advertiser import Advertiser
+from app.models.publisher import Publisher
 
-_COST_PER_EVENT: Dict[EventType, Decimal] = {
-    EventType.IMPRESSION: Decimal("0.001000"),  # ₹1.00 CPM
-    EventType.CLICK: Decimal("0.100000"),       # ₹0.10 CPC
-    EventType.CONVERSION: Decimal("1.000000"),   # ₹1.00 CPA
-}
+_BILLABLE_TYPES = {EventType.IMPRESSION, EventType.CLICK, EventType.CONVERSION}
+
+
+class BudgetExceededError(Exception):
+    """Raised when an event would exceed a campaign cap or available funds."""
 
 
 async def record_event(
@@ -43,10 +44,9 @@ async def record_event(
     else:
         enum_event_type = event_type
 
-    if enum_event_type not in _COST_PER_EVENT:
+    if enum_event_type not in _BILLABLE_TYPES | {EventType.VIEWABLE_IMPRESSION}:
         raise ValueError(f"Unsupported tracking cost type: {enum_event_type}")
 
-    cost = _COST_PER_EVENT[enum_event_type]
     timestamp = datetime.now(timezone.utc)
     dedupe_key = None
     if isinstance(visitor_id, str) and 1 <= len(visitor_id) <= 128:
@@ -56,8 +56,41 @@ async def record_event(
 
     live = None
     async with async_session_factory() as db:
-        campaign_id, advertiser_id = await _campaign_for_creative(db, creative_id)
-        publisher_id = await db.scalar(select(AdUnit.publisher_id).where(AdUnit.id == ad_unit_id))
+        campaign = await _campaign_for_creative(db, creative_id, lock=True)
+        campaign_id, advertiser_id = campaign.id, campaign.advertiser_id
+        advertiser = None
+        if campaign.total_budget is None:
+            advertiser = await db.scalar(
+                select(Advertiser).where(Advertiser.id == advertiser_id).with_for_update()
+            )
+        publisher = await db.scalar(
+            select(Publisher).join(AdUnit, AdUnit.publisher_id == Publisher.id)
+            .where(AdUnit.id == ad_unit_id).with_for_update()
+        )
+        if publisher is None:
+            raise ValueError(f"Unknown ad_unit_id: {ad_unit_id}")
+        publisher_id = publisher.id
+
+        cost = _event_cost(campaign, enum_event_type)
+        if cost:
+            if campaign.total_budget is not None and campaign.spent_amount + cost > campaign.total_budget:
+                raise BudgetExceededError("Campaign total budget is exhausted")
+            if advertiser is not None:
+                if advertiser.balance < cost:
+                    raise BudgetExceededError("Advertiser wallet has insufficient funds")
+                advertiser.balance -= cost
+            if campaign.daily_cap is not None:
+                day_start = timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
+                daily_spend = await db.scalar(
+                    select(func.coalesce(func.sum(Event.cost), 0)).where(
+                        Event.campaign_id == campaign_id,
+                        Event.type.in_(_BILLABLE_TYPES),
+                        Event.is_valid.is_(True),
+                        Event.timestamp >= day_start,
+                    )
+                )
+                if Decimal(str(daily_spend or 0)) + cost > campaign.daily_cap:
+                    raise BudgetExceededError("Campaign daily cap is exhausted")
 
         event = Event(
             event_id=event_id,
@@ -75,13 +108,8 @@ async def record_event(
         )
         db.add(event)
         try:
-            # The reservation was removed from the available wallet when the
-            # campaign was created; billable delivery consumes that reserve.
-            await db.execute(
-                update(Campaign)
-                .where(Campaign.id == campaign_id)
-                .values(spent_amount=Campaign.spent_amount + cost)
-            )
+            campaign.spent_amount += cost
+            publisher.unpaid_earnings += (cost * publisher.revenue_share_percentage / Decimal("100"))
             await db.commit()
         except IntegrityError:
             await db.rollback()
@@ -100,7 +128,6 @@ async def record_event(
             "timestamp": timestamp.isoformat(),
         }
 
-    record_spend(campaign_id, cost)
     await _emit_dashboard_update(enum_event_type.value, campaign_id, ad_unit_id, advertiser_id, publisher_id)
     await _emit_live_event(live)
 
@@ -110,19 +137,29 @@ async def _emit_live_event(payload: dict) -> None:
     await emit_live_event(payload)
 
 
-async def _campaign_for_creative(db, creative_id: int) -> tuple[int, int]:
-    """Returns (campaign_id, advertiser_id) for a creative."""
-    row = (
-        await db.execute(
-            select(Campaign.id, Campaign.advertiser_id)
-            .join(Creative, Creative.campaign_id == Campaign.id)
-            .where(Creative.id == creative_id)
-        )
-    ).first()
-    if row is None:
+def _event_cost(campaign: Campaign, event_type: EventType) -> Decimal:
+    """Compute the contracted cost from the campaign's bidding strategy."""
+    if event_type == EventType.VIEWABLE_IMPRESSION:
+        return Decimal("0.000000")
+    if campaign.bidding_strategy == BiddingStrategy.CPM and event_type == EventType.IMPRESSION:
+        amount = campaign.bid_amount / Decimal("1000")
+    elif campaign.bidding_strategy == BiddingStrategy.CPC and event_type == EventType.CLICK:
+        amount = campaign.bid_amount
+    elif campaign.bidding_strategy == BiddingStrategy.CPA and event_type == EventType.CONVERSION:
+        amount = campaign.bid_amount
+    else:
+        return Decimal("0.000000")
+    return amount.quantize(Decimal("0.000001"))
+
+
+async def _campaign_for_creative(db, creative_id: int, lock: bool = False) -> Campaign:
+    stmt = select(Campaign).join(Creative, Creative.campaign_id == Campaign.id).where(Creative.id == creative_id)
+    if lock:
+        stmt = stmt.with_for_update()
+    campaign = await db.scalar(stmt)
+    if campaign is None:
         raise ValueError(f"Unknown creative_id: {creative_id}")
-    campaign_id, advertiser_id = row
-    return campaign_id, advertiser_id
+    return campaign
 
 
 async def _emit_dashboard_update(

@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../lib/api";
@@ -70,7 +70,7 @@ describe("campaign list", () => {
         expect(screen.getByText("Loading...")).toBeInTheDocument();
 
         expect(await screen.findByText("Autumn sale")).toBeInTheDocument();
-        expect(screen.getByText("active")).toBeInTheDocument();
+        expect(within(screen.getByRole("row", { name: /Autumn sale/ })).getByText("active")).toBeInTheDocument();
         expect(screen.getByText("CPM · ₹1.5000")).toBeInTheDocument();
         expect(screen.getByText("No daily cap")).toBeInTheDocument();
         expect(screen.getByText("₹0.00 spent")).toBeInTheDocument();

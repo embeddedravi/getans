@@ -28,7 +28,7 @@ from app.services.ad_selector import (
     RequestContext,
     select_ad,
 )
-from app.services.budget_tracker import record_event
+from app.services.budget_tracker import BudgetExceededError, record_event
 from app.services.publisher_auth import authenticate_publisher
 
 logger = logging.getLogger(__name__)
@@ -98,25 +98,31 @@ class DeliveryNamespace(socketio.AsyncNamespace):
 
     async def on_impression(self, sid: str, data: dict) -> None:
         metadata = await self._event_metadata(sid, data)
-        await record_event(
-            event_type="impression",
-            ad_unit_id=data.get("ad_unit_id", 0),
-            creative_id=data.get("creative_id", 0),
-            event_id=data.get("event_id", ""),
-            visitor_id=data.get("visitor_id", ""),
-            **metadata,
-        )
+        try:
+            await record_event(
+                event_type="impression",
+                ad_unit_id=data.get("ad_unit_id", 0),
+                creative_id=data.get("creative_id", 0),
+                event_id=data.get("event_id", ""),
+                visitor_id=data.get("visitor_id", ""),
+                **metadata,
+            )
+        except BudgetExceededError as exc:
+            await self.emit("event_rejected", {"reason": str(exc)}, to=sid)
 
     async def on_click(self, sid: str, data: dict) -> None:
         metadata = await self._event_metadata(sid, data)
-        await record_event(
-            event_type="click",
-            ad_unit_id=data.get("ad_unit_id", 0),
-            creative_id=data.get("creative_id", 0),
-            event_id=data.get("event_id", ""),
-            visitor_id=data.get("visitor_id", ""),
-            **metadata,
-        )
+        try:
+            await record_event(
+                event_type="click",
+                ad_unit_id=data.get("ad_unit_id", 0),
+                creative_id=data.get("creative_id", 0),
+                event_id=data.get("event_id", ""),
+                visitor_id=data.get("visitor_id", ""),
+                **metadata,
+            )
+        except BudgetExceededError as exc:
+            await self.emit("event_rejected", {"reason": str(exc)}, to=sid)
 
     async def _event_metadata(self, sid: str, data: dict) -> dict[str, str | None]:
         """Extract client metadata from the socket request and ad request context."""

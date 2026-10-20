@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export function ThemeToggle() {
+export function ThemeToggle({ placement = "fixed", className = "" }: { placement?: "fixed" | "inline"; className?: string }) {
   const [theme, setTheme] = useState<"light" | "dark">(() =>
     localStorage.getItem("dashboard-theme") === "dark" ? "dark" : "light",
   );
@@ -13,7 +13,7 @@ export function ThemeToggle() {
   return (
     <button
       type="button"
-      className="btn btn-ghost btn-square btn-sm fixed right-4 top-4 z-20"
+      className={`btn btn-ghost btn-square btn-sm ${placement === "fixed" ? "fixed right-4 top-4 z-20" : ""} ${className}`}
       aria-label={`Switch to ${theme === "light" ? "dark" : "light"} theme`}
       title={`Switch to ${theme === "light" ? "dark" : "light"} theme`}
       onClick={() => setTheme(theme === "light" ? "dark" : "light")}

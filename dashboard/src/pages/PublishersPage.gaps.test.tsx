@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../lib/api";
 import type { Publisher } from "../types";
-import { fill, submitForm } from "../tests/utils";
+import { fill, renderWithRouter, submitForm } from "../tests/utils";
 import { PublishersPage } from "./PublishersPage";
 
 vi.mock("../components/Layout", () => ({
@@ -56,9 +56,9 @@ afterEach(() => vi.restoreAllMocks());
 describe("PublishersPage gaps", () => {
     it("uses a generic message when creating a publisher rejects with a non-Error", async () => {
         mocked.createPublisher.mockRejectedValue("boom");
-        render(<PublishersPage />);
+        renderWithRouter(<PublishersPage />);
         await screen.findByText("Global Tech Media");
-        fireEvent.click(screen.getByRole("button", { name: "+ Add" }));
+        fireEvent.click(screen.getByRole("button", { name: "Add site" }));
         fill(screen.getByLabelText("Name"), "New Site");
         fill(screen.getByLabelText("Site URL"), "https://new.example.com");
         fill(screen.getByLabelText("Payout email"), "money@new.example.com");
@@ -70,10 +70,9 @@ describe("PublishersPage gaps", () => {
 
     it("uses a generic message when creating an ad slot rejects with a non-Error", async () => {
         mocked.createAdUnit.mockRejectedValue("boom");
-        render(<PublishersPage />);
-        fireEvent.click(await screen.findByRole("button", { name: /Global Tech Media/ }));
-        await screen.findByRole("heading", { name: "Global Tech Media" });
-        fireEvent.click(screen.getByRole("button", { name: "New ad slot" }));
+        renderWithRouter(<PublishersPage view="adslots" />);
+        await screen.findByText("No ad slots yet");
+        fireEvent.click(screen.getAllByRole("button", { name: "Add ad slot" })[0]);
         fill(screen.getByLabelText("Slot name"), "x");
 
         submitForm(screen.getByRole("button", { name: "Create slot" }));

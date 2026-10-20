@@ -26,7 +26,7 @@ export function LoginPage() {
     try {
       const { access_token } = await api.login(mobile, password);
       localStorage.setItem("access_token", access_token);
-      navigate("/");
+      navigate("/home");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 import pytest
 
 from tests.conftest import auth_headers, campaign_window
@@ -153,3 +155,35 @@ async def test_update_and_delete_campaign(client, admin_user, advertiser):
 
     get_res = await client.get(f"/api/campaigns/{campaign_id}", headers=headers)
     assert get_res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_wallet_funded_campaign_cannot_reserve_budget_after_spending(client, admin_user, advertiser, db):
+    from decimal import Decimal
+    from app.models.campaign import Campaign
+
+    advertiser.balance = Decimal("100.000000")
+    start, end = campaign_window()
+    campaign = Campaign(
+        advertiser_id=advertiser.id,
+        name="Wallet funded",
+        start_date=datetime.fromisoformat(start),
+        end_date=datetime.fromisoformat(end),
+        total_budget=None,
+        spent_amount=Decimal("5.000000"),
+        reserved_amount=Decimal("0.000000"),
+    )
+    db.add(campaign)
+    await db.commit()
+    headers = await auth_headers(client, "9876543210", "adminpass123")
+
+    response = await client.patch(
+        f"/api/campaigns/{campaign.id}",
+        json={"total_budget": "10.00"},
+        headers=headers,
+    )
+
+    assert response.status_code == 400
+    assert "cannot add a reserved total budget" in response.json()["detail"]
+    await db.refresh(advertiser)
+    assert advertiser.balance == Decimal("100.000000")

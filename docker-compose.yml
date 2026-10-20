@@ -1,6 +1,7 @@
 services:
   db:
     image: mysql:8.4
+    restart: unless-stopped
     command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-adplatform}
@@ -19,20 +20,26 @@ services:
 
   backend:
     build: ./backend
+    restart: unless-stopped
     env_file: ./backend/.env
     environment:
       # Overrides backend/.env so both containers share one password.
       # URL-encode MYSQL_PASSWORD if it contains special characters.
       ADPLATFORM_DATABASE_URL: mysql+aiomysql://${MYSQL_USER:-adplatform}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE:-adplatform}
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - media_data:/app/media
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
 volumes:
   db_data:
   media_data:
-    

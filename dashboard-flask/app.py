@@ -120,6 +120,17 @@ def admin_required(f):
     return decorated
 
 
+def reviewer_required(f):
+    """Allow admins and staff to work the approval queue."""
+    @wraps(f)
+    @login_required
+    def decorated(*args, **kwargs):
+        if session.get("role") not in {"admin", "staff"}:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated
+
+
 def advertiser_required(f):
     @wraps(f)
     @login_required
@@ -162,7 +173,7 @@ def inject_current_path():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if "access_token" in session:
-        return redirect(url_for("analytics"))
+        return redirect(url_for("home"))
 
     error = None
     if request.method == "POST":
@@ -179,7 +190,7 @@ def login():
                 session["role"] = None
                 session.pop("user_id", None)
 
-            return redirect(url_for("analytics"))
+            return redirect(url_for("home"))
         except requests.HTTPError as exc:
             try:
                 detail = exc.response.json().get("detail", "Login failed")
@@ -280,7 +291,45 @@ def logout():
 # ── Main pages ────────────────────────────────────────────────────────────────
 
 
+@app.route("/home")
+@login_required
+def home():
+    role = session.get("role") or "advertiser"
+    name = session.get("user_name") or "there"
+    snapshot = {"campaigns": [], "publishers": [], "approvals": 0, "balance": None, "impressions": 0, "clicks": 0}
+    try:
+        if role in ("admin", "advertiser"):
+            campaigns = _api("GET", "/campaigns")
+            snapshot["campaigns"] = campaigns if isinstance(campaigns, list) else []
+            end = datetime.now(timezone.utc)
+            start = end - timedelta(days=7)
+            stats = _api("GET", f"/analytics/campaigns?start={quote(start.isoformat())}&end={quote(end.isoformat())}")
+            snapshot["impressions"] = sum(row.get("impressions", 0) for row in stats)
+            snapshot["clicks"] = sum(row.get("clicks", 0) for row in stats)
+        if role == "publisher":
+            publishers = _api("GET", "/publishers")
+            snapshot["publishers"] = publishers if isinstance(publishers, list) else []
+        if role in ("admin", "staff"):
+            pending = _api("GET", "/admin/approvals/pending")
+            snapshot["approvals"] = sum(len(pending.get(key, [])) for key in ("publishers", "advertisers", "ad_units"))
+        if role == "advertiser":
+            wallet = _api("GET", "/payments/wallet")
+            snapshot["balance"] = wallet.get("balance")
+    except Exception:
+        # Keep the home page useful when an optional dashboard endpoint is unavailable.
+        pass
+    active_campaigns = sum(1 for campaign in snapshot["campaigns"] if campaign.get("is_active"))
+    unpaid = sum(float(publisher.get("unpaid_earnings") or 0) for publisher in snapshot["publishers"])
+    return render_template("home.html", role=role, user_name=name, snapshot=snapshot,
+                           active_campaigns=active_campaigns, unpaid=unpaid)
+
+
 @app.route("/")
+def public_index():
+    return render_template("public_index.html", signed_in="access_token" in session)
+
+
+@app.route("/analytics")
 @login_required
 def analytics():
     end = datetime.now(timezone.utc)
@@ -726,7 +775,7 @@ def advertiser_wallet_verify():
 
 
 @app.route("/approvals")
-@admin_required
+@reviewer_required
 def approvals():
     tab = request.args.get("tab", "publishers")
     if tab not in {"publishers", "advertisers", "ad_units"}:
@@ -772,7 +821,7 @@ def update_payment_status(payment_id: int):
 
 
 @app.route("/approvals/<kind>/<int:item_id>/review", methods=["POST"])
-@admin_required
+@reviewer_required
 def review_approval(kind: str, item_id: int):
     endpoints = {"publishers": "publishers", "advertisers": "advertisers", "ad_units": "ad-units"}
     if kind not in endpoints:

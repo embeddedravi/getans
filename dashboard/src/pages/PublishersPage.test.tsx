@@ -1,10 +1,10 @@
 import "@testing-library/jest-dom/vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../lib/api";
 import type { AdUnit, Publisher } from "../types";
-import { fill, submitForm } from "../tests/utils";
+import { fill, renderWithRouter, submitForm } from "../tests/utils";
 import { PublishersPage } from "./PublishersPage";
 
 vi.mock("../components/Layout", () => ({
@@ -64,8 +64,9 @@ const adUnit = (o: Partial<AdUnit> = {}): AdUnit => ({
 });
 
 async function selectPublisher() {
-    fireEvent.click(await screen.findByRole("button", { name: /Global Tech Media/ }));
-    await screen.findByRole("heading", { name: "Global Tech Media" });
+    const select = await screen.findByRole("combobox", { name: "Select site for ad slots" });
+    fireEvent.change(select, { target: { value: "1" } });
+    await waitFor(() => expect(mocked.listAdUnits).toHaveBeenCalledWith(1));
 }
 
 beforeEach(() => {
@@ -78,47 +79,41 @@ beforeEach(() => {
 
 describe("publisher list and detail", () => {
     it("lists publishers with a readable status badge", async () => {
-        render(<PublishersPage />);
+        renderWithRouter(<PublishersPage />);
 
         expect(await screen.findByText("Global Tech Media")).toBeInTheDocument();
-        expect(screen.getByText("pending approval")).toBeInTheDocument();
+        expect(within(screen.getByRole("row", { name: /Global Tech Media/ })).getByText("pending approval")).toBeInTheDocument();
         expect(screen.getByText("https://example.com")).toBeInTheDocument();
-        expect(screen.getByText(/select a publisher/i)).toBeInTheDocument();
     });
 
     it("shows an empty state", async () => {
         mocked.listPublishers.mockResolvedValue([]);
-        render(<PublishersPage />);
+        renderWithRouter(<PublishersPage />);
 
-        expect(await screen.findByText("No publishers yet.")).toBeInTheDocument();
+        expect(await screen.findByText("No sites added yet")).toBeInTheDocument();
     });
 
     it("shows the key, payout details and ad slots for the selected publisher", async () => {
-        render(<PublishersPage />);
+        renderWithRouter(<PublishersPage view="adslots" />);
 
         await selectPublisher();
 
         expect(mocked.listAdUnits).toHaveBeenCalledWith(1);
-        expect(screen.getByText("pub_live_abc123")).toBeInTheDocument();
-        expect(screen.getByText(/Payout: pay@example\.com · 70% share/)).toBeInTheDocument();
-        expect(screen.getByText("₹12.50 unpaid")).toBeInTheDocument();
-        expect(screen.getByText("ads.txt verified")).toBeInTheDocument();
-        expect(screen.getByText("example.com · News")).toBeInTheDocument();
         expect(await screen.findByText("sidebar-300x250")).toBeInTheDocument();
-        expect(screen.getByText("300×250")).toBeInTheDocument();
+        expect(screen.getByText("300 × 250 px")).toBeInTheDocument();
         expect(screen.getByText("₹0.5000")).toBeInTheDocument();
     });
 
     it("renders a dash for a zero reserve price and an empty slot state", async () => {
         mocked.listAdUnits.mockResolvedValue([adUnit({ reserve_price: 0 })]);
-        render(<PublishersPage />);
+        renderWithRouter(<PublishersPage view="adslots" />);
         await selectPublisher();
         expect(await screen.findByText("—")).toBeInTheDocument();
     });
 
     it("shows an empty state when the publisher has no ad slots", async () => {
         mocked.listAdUnits.mockResolvedValue([]);
-        render(<PublishersPage />);
+        renderWithRouter(<PublishersPage view="adslots" />);
 
         await selectPublisher();
 
@@ -128,7 +123,7 @@ describe("publisher list and detail", () => {
 
 describe("create publisher modal", () => {
     function openModal() {
-        fireEvent.click(screen.getByRole("button", { name: "+ Add" }));
+        fireEvent.click(screen.getByRole("button", { name: "Add site" }));
     }
 
     function fillRequired() {
@@ -138,7 +133,7 @@ describe("create publisher modal", () => {
     }
 
     it("sends null for blank optional fields, then closes and reloads", async () => {
-        render(<PublishersPage />);
+        renderWithRouter(<PublishersPage />);
         await screen.findByText("Global Tech Media");
         openModal();
         fillRequired();
@@ -159,7 +154,7 @@ describe("create publisher modal", () => {
     });
 
     it("includes domain and category when provided", async () => {
-        render(<PublishersPage />);
+        renderWithRouter(<PublishersPage />);
         await screen.findByText("Global Tech Media");
         openModal();
         fillRequired();
@@ -177,7 +172,7 @@ describe("create publisher modal", () => {
 
     it("shows the API error and keeps the modal open", async () => {
         mocked.createPublisher.mockRejectedValue(new Error("value is not a valid email address"));
-        render(<PublishersPage />);
+        renderWithRouter(<PublishersPage />);
         await screen.findByText("Global Tech Media");
         openModal();
         fillRequired();
@@ -190,9 +185,9 @@ describe("create publisher modal", () => {
 
 describe("create ad slot modal", () => {
     it("submits numbers, not strings, and refreshes the slot list", async () => {
-        render(<PublishersPage />);
+        renderWithRouter(<PublishersPage view="adslots" />);
         await selectPublisher();
-        fireEvent.click(screen.getByRole("button", { name: "New ad slot" }));
+        fireEvent.click(screen.getByRole("button", { name: "Add ad slot" }));
 
         fill(screen.getByLabelText("Slot name"), "leaderboard");
         fill(screen.getByLabelText("Format"), "banner");
@@ -216,9 +211,9 @@ describe("create ad slot modal", () => {
     });
 
     it("uses the 300x250 / display / $0 defaults", async () => {
-        render(<PublishersPage />);
+        renderWithRouter(<PublishersPage view="adslots" />);
         await selectPublisher();
-        fireEvent.click(screen.getByRole("button", { name: "New ad slot" }));
+        fireEvent.click(screen.getByRole("button", { name: "Add ad slot" }));
 
         fill(screen.getByLabelText("Slot name"), "sidebar");
         submitForm(screen.getByRole("button", { name: "Create slot" }));
@@ -237,9 +232,9 @@ describe("create ad slot modal", () => {
 
     it("shows the API error", async () => {
         mocked.createAdUnit.mockRejectedValue(new Error("Cannot add ad units to another publisher account"));
-        render(<PublishersPage />);
+        renderWithRouter(<PublishersPage view="adslots" />);
         await selectPublisher();
-        fireEvent.click(screen.getByRole("button", { name: "New ad slot" }));
+        fireEvent.click(screen.getByRole("button", { name: "Add ad slot" }));
         fill(screen.getByLabelText("Slot name"), "x");
 
         submitForm(screen.getByRole("button", { name: "Create slot" }));

@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
 import pytest
 from sqlalchemy import select
 
 from app.config import settings
 from app.models.ad_unit import AdUnit
-from app.models.campaign import Campaign
+from app.models.campaign import BiddingStrategy, Campaign
 from app.models.creative import Creative
 from app.models.event import Event, EventType
 from app.models.publisher import PublisherStatus
@@ -19,6 +20,7 @@ from tests.conftest import campaign_window
 @pytest.mark.asyncio
 async def test_record_event_stores_metadata_emits_updates_and_deduplicates(db, advertiser, publisher, monkeypatch):
     publisher.status = PublisherStatus.ACTIVE
+    advertiser.balance = Decimal("10.000000")
     await db.commit()
     start, end = campaign_window()
     campaign = Campaign(advertiser_id=advertiser.id, name="Tracking", start_date=datetime.fromisoformat(start), end_date=datetime.fromisoformat(end))
@@ -31,10 +33,8 @@ async def test_record_event_stores_metadata_emits_updates_and_deduplicates(db, a
     db.add(creative)
     await db.commit()
 
-    spend = []
     updates = []
     live = []
-    monkeypatch.setattr(budget_tracker, "record_spend", lambda campaign_id, cost: spend.append((campaign_id, cost)))
     async def update(*args, **kwargs): updates.append((args, kwargs))
     async def live_event(payload): live.append(payload)
     monkeypatch.setattr(budget_tracker, "_emit_dashboard_update", update)
@@ -44,9 +44,15 @@ async def test_record_event_stores_metadata_emits_updates_and_deduplicates(db, a
     await budget_tracker.record_event(EventType.IMPRESSION, unit.id, creative.id, visitor_id="anon-visitor")
     rows = (await db.execute(select(Event))).scalars().all()
     assert len(rows) == 1
-    assert rows[0].cost == budget_tracker._COST_PER_EVENT[EventType.IMPRESSION]
+    assert rows[0].cost == Decimal("0.001000")
     assert rows[0].country_code == "US" and rows[0].user_ip == "192.0.2.4"
-    assert len(spend) == len(updates) == len(live) == 1
+    await db.refresh(campaign)
+    await db.refresh(publisher)
+    assert campaign.spent_amount == Decimal("0.001000")
+    assert publisher.unpaid_earnings == Decimal("0.000700")
+    await db.refresh(advertiser)
+    assert advertiser.balance == Decimal("9.999000")
+    assert len(updates) == len(live) == 1
     assert live[0]["campaign_name"] == "Tracking" and live[0]["slot_name"] == "tracking"
 
 
@@ -54,8 +60,6 @@ async def test_record_event_stores_metadata_emits_updates_and_deduplicates(db, a
 async def test_record_event_validates_type_and_creative(db):
     with pytest.raises(ValueError, match="Unknown event type"):
         await budget_tracker.record_event("bogus", 1, 1)
-    with pytest.raises(ValueError, match="Unsupported tracking cost type"):
-        await budget_tracker.record_event(EventType.VIEWABLE_IMPRESSION, 1, 1)
     with pytest.raises(ValueError, match="Unknown creative_id"):
         await budget_tracker.record_event("click", 1, 999)
 
@@ -71,13 +75,32 @@ async def test_publishers_authentication_requires_active_approved_account(db, pu
 
 
 @pytest.mark.asyncio
-async def test_console_sms_and_unimplemented_provider(monkeypatch, caplog):
+async def test_console_sms_and_twilio_provider(monkeypatch, caplog):
     monkeypatch.setattr(settings, "sms_backend", "console")
     await sms.send_sms("+919876543210", "OTP 123456")
     assert "OTP 123456" in caplog.text
     monkeypatch.setattr(settings, "sms_backend", "twilio")
-    with pytest.raises(NotImplementedError, match="twilio"):
-        await sms.send_sms("+919876543210", "OTP 123456")
+    monkeypatch.setattr(settings, "twilio_account_sid", "AC123")
+    monkeypatch.setattr(settings, "twilio_auth_token", type("Secret", (), {"get_secret_value": lambda self: "token"})())
+    monkeypatch.setattr(settings, "twilio_from_number", "+15005550006")
+
+    class Response:
+        def raise_for_status(self):
+            pass
+
+    class Client:
+        def __init__(self, **kwargs):
+            pass
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *args):
+            pass
+        async def post(self, url, **kwargs):
+            assert "AC123" in url and kwargs["data"]["To"] == "+919876543210"
+            return Response()
+
+    monkeypatch.setattr(sms.httpx, "AsyncClient", Client)
+    await sms.send_sms("+919876543210", "OTP 123456")
 
 
 def test_event_schemas_validate_cost_and_round_trip_event():
@@ -93,3 +116,16 @@ def test_event_schemas_validate_cost_and_round_trip_event():
         country_code="US", meta={"source": "socket"},
     )
     assert event.type.value == "impression" and event.country_code == "US"
+
+
+def test_event_costs_follow_campaign_bidding_strategy():
+    from app.services.budget_tracker import _event_cost
+
+    campaign = Campaign(advertiser_id=1, name="CPM", start_date=datetime.now(timezone.utc),
+                        bidding_strategy=BiddingStrategy.CPM, bid_amount=Decimal("5.0000"))
+    assert budget_tracker._event_cost(campaign, EventType.IMPRESSION) == Decimal("0.005000")
+    assert budget_tracker._event_cost(campaign, EventType.CLICK) == 0
+    campaign.bidding_strategy = BiddingStrategy.CPC
+    assert budget_tracker._event_cost(campaign, EventType.CLICK) == Decimal("5.000000")
+    campaign.bidding_strategy = BiddingStrategy.CPA
+    assert budget_tracker._event_cost(campaign, EventType.CONVERSION) == Decimal("5.000000")

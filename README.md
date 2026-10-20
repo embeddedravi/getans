@@ -37,7 +37,7 @@ Four account roles use the platform:
 | **Staff** | Reviews pending publishers, advertisers, and ad units. |
 | **Admin** | Everything staff can do, plus user management, creative review, payouts, advertiser payment history, ad slot activation, and a live event feed. |
 
-Ad selection, budget enforcement, and event tracking happen server-side. Daily-cap spend tracking uses a fast in-process counter (`_spend_cache` in `app/services/ad_selector.py`); durable event records are written to MySQL.
+Ad selection, budget enforcement, and event tracking happen server-side. Billable event records and campaign spend are stored in MySQL, so daily budget checks survive restarts and work across backend workers.
 
 ## Architecture
 
@@ -83,6 +83,8 @@ Ad selection, budget enforcement, and event tracking happen server-side. Daily-c
 │   └── static/css/
 │
 ├── docker-compose.yml           MySQL 8.4 + backend
+├── docker-compose.prod.yml      Caddy HTTPS reverse proxy overlay
+├── Caddyfile                    HTTPS routing for the production host
 └── README.md
 ```
 
@@ -95,11 +97,11 @@ Ad selection, budget enforcement, and event tracking happen server-side. Daily-c
    - Advertiser account status `active`.
    - Has an **active, approved** creative matching the slot's exact width and height.
    - Passes **targeting rules** (countries, device types, keywords).
-   - `bid_amount >= reserve_price` and daily cap not exhausted.
+   - For CPM, `bid_amount >= reserve_price`; daily and total budgets must have room for spend.
    - Highest **priority** tier wins; ties are broken randomly.
 4. The winner is emitted as `serve_ad`; otherwise `no_fill` with a reason (`missing_params`, `unauthorized`, or the selector's message).
 5. The loader renders the creative, emits `impression` immediately and `click` on click, and adds a **report** control (⚑) so visitors can flag the ad.
-6. `budget_tracker.py` records each event with a fixed per-event cost, **deduplicated per visitor, ad unit, event type, and UTC day** (`dedupe_key`), updates the in-memory spend counter, and pushes `metric_update` and `live_event` messages to dashboards.
+6. `budget_tracker.py` records events at the campaign's CPM/CPC/CPA bid, **deduplicated per visitor, ad unit, event type, and UTC day** (`dedupe_key`), enforces campaign budgets from persisted events, and pushes `metric_update` and `live_event` messages to dashboards.
 
 ## Data model
 
@@ -142,13 +144,25 @@ cp backend/.env.example backend/.env
 # and ADPLATFORM_ENVIRONMENT=development for local use
 
 docker compose up --build
-docker compose exec backend alembic upgrade heads
+docker compose exec backend alembic upgrade head
 ```
 
 - Swagger UI: http://localhost:8000/docs
 - Health check: http://localhost:8000/health
 
-The compose file overrides `ADPLATFORM_DATABASE_URL` so both containers share one password. Dashboards are not containerized.
+The compose file overrides `ADPLATFORM_DATABASE_URL` so both containers share one password. The backend is bound to host loopback; dashboards are not containerized. The production overlay and `PUBLIC_HOSTNAME` are only needed for a public HTTPS deployment.
+
+
+### Production deployment
+
+Set DNS for `PUBLIC_HOSTNAME` to this server and allow inbound TCP ports 80 and 443 (and UDP 443 for HTTP/3). Put MySQL credentials in the root `.env`, and production backend settings and Twilio credentials in `backend/.env`. Set the dashboard's HTTPS origin in `ADPLATFORM_CORS_ORIGINS`, set the public ad/media origin in `ADPLATFORM_PUBLIC_BASE_URL`, and use a strong random JWT secret. Then run:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+docker compose exec backend alembic upgrade head
+```
+
+Caddy terminates TLS and proxies REST, media, and Socket.IO traffic to the backend. The backend port is only bound to host loopback. Keep the database and media volumes backed up. Deploy the React build or Flask dashboard separately behind HTTPS; run Flask with Gunicorn (`gunicorn --bind 0.0.0.0:5000 app:app`), not its development server. Production startup requires the implemented Twilio SMS provider, rejects localhost CORS and missing Razorpay credentials, and validates database/JWT settings.
 
 ### Running the backend locally
 
@@ -159,7 +173,8 @@ source zenv/bin/activate        # Windows: zenv\Scripts\activate
 
 pip install -e ".[dev]"
 cp .env.example .env            # edit values (see Configuration)
-alembic upgrade heads
+cp alembic.ini.example alembic.ini
+alembic upgrade head
 uvicorn app.main:asgi_app --reload
 ```
 
@@ -221,14 +236,18 @@ Secrets have **no defaults**, and the app refuses to start with a missing or wea
 | `ADPLATFORM_SOCKETIO_CORS_ALLOWED_ORIGINS` | Socket.IO CORS (publisher sites vary; auth is by API key) | `*` |
 | `ADPLATFORM_OTP_LENGTH` / `_TTL_SECONDS` / `_MAX_ATTEMPTS` | OTP format, expiry (300 s), attempts (5) | `6` / `300` / `5` |
 | `ADPLATFORM_OTP_RESEND_COOLDOWN_SECONDS` / `_MAX_PER_HOUR` | OTP rate limits | `60` / `5` |
-| `ADPLATFORM_SMS_BACKEND` | `console` logs the OTP (dev only); anything else must be implemented in `app/services/sms.py` | `console` |
+| `ADPLATFORM_SMS_BACKEND` | `console` (development) or `twilio` | `console` |
+| `ADPLATFORM_TWILIO_ACCOUNT_SID` / `_AUTH_TOKEN` / `_FROM_NUMBER` | Twilio credentials and sender number when SMS backend is `twilio` | unset |
 | `ADPLATFORM_REQUIRE_VERIFIED_MOBILE` | Block login and live sockets until the mobile is verified | `false` |
-| `ADPLATFORM_ALLOW_SELF_SIGNUP` | Enable `/api/auth/signup` | `true` |
+| `ADPLATFORM_ALLOW_SELF_SIGNUP` | Enable public account creation at `/api/auth/signup` | `true` |
+| `ADPLATFORM_PUBLIC_BASE_URL` | Public base URL used when generating absolute media asset URLs; use the HTTPS origin visitors can reach | `http://localhost:8000` |
 | `ADPLATFORM_RAZORPAY_KEY_ID` / `_KEY_SECRET` | Required for wallet top-ups | unset |
 
-**Production guards:** with `ENVIRONMENT=production` the app refuses to start if `SMS_BACKEND=console`, if `CORS_ORIGINS` contains `*`, or if the database password is empty or a known weak value. The shipped `.env.example` has a placeholder JWT secret that will fail validation, and it does not set `ENVIRONMENT`, so add `ADPLATFORM_ENVIRONMENT=development` for local work.
+**Production guards:** with `ENVIRONMENT=production` the app refuses to start if the public base URL is localhost, SMS is not configured to use Twilio, CORS contains `*` or localhost, Razorpay credentials are missing, the database password is empty or a known weak value, or the JWT secret is weak. The shipped `backend/.env.example` has a placeholder JWT secret and opts into development mode for local work.
 
-**SMS:** implement a real provider (MSG91, Twilio, etc.) in `send_sms()` before going to production.
+**SMS:** Twilio is implemented. Production startup requires `ADPLATFORM_SMS_BACKEND=twilio` and all three Twilio settings above. Console delivery logs OTPs and is for development only.
+
+**Public signup:** self signup is enabled by default. Set `ADPLATFORM_ALLOW_SELF_SIGNUP=false` to disable new public account creation while keeping sign-in available.
 
 **Flask dashboard** (`dashboard-flask/.env`): `FLASK_SECRET_KEY`, `API_BASE_URL` (default `http://localhost:8000/api`), plus the optional `FLASK_INSECURE_COOKIES` and `FLASK_DEBUG` flags above.
 
@@ -286,6 +305,8 @@ Key request rules:
 | client → server | `impression` / `click` | `{ ad_unit_id, creative_id, visitor_id, event_id }` |
 | client → server | `report_ad` (ack) | `{ api_key, ad_unit_id, creative_id, visitor_id, reason }` |
 
+CPA conversions are reported server-to-server with the publisher key to `POST /api/delivery/events/conversion`.
+
 Report reasons: `misleading`, `adult_content`, `inappropriate`, `scam`, `other`.
 
 **`/dashboard`** (dashboards)
@@ -325,9 +346,11 @@ The Flask live-events page polls `/proxy/live-events` every 2 seconds instead of
 
 | Feature | React SPA | Flask |
 |---|---|---|
+| Public landing page with sign-in and signup links | ✔ (`/`) | ✔ (`/`) |
+| Role-specific Home workspace | ✔ (`/home`) | ✔ (`/home`) |
 | Login, signup, mobile verification, forgot password | ✔ | ✔ |
 | Role-based navigation (admin / staff / publisher / advertiser) | ✔ | ✔ |
-| Analytics (live counters + 7-day chart) | ✔ (role-specific overview) | ✔ |
+| Analytics (live counters + 7-day chart) | ✔ (`/analytics`) | ✔ (`/analytics`) |
 | Campaigns: create, publish draft, pause/activate, delete | ✔ | ✔ (no publish button) |
 | Creatives: add, toggle, review (admin), delete | ✔ (modal) | ✔ (page) |
 | Publishers and ad slots | ✔ | ✔ |
@@ -335,11 +358,11 @@ The Flask live-events page polls `/proxy/live-events` every 2 seconds instead of
 | Manage advertisers / publishers / ad slots / users (admin) | ✔ | ✔ |
 | Visitor reports per ad slot | ✔ | ✘ |
 | Live events feed (admin) | ✔ (sockets) | ✔ (polling) |
-| Advertiser wallet top-up | ✔ (on overview) | ✔ (`/wallet`) |
+| Advertiser wallet top-up | ✔ (`/wallet`) | ✔ (`/wallet`) |
 | Admin view of advertiser top-ups | ✔ (`/payments`) | ✘ |
 | Publisher payouts (admin) | ✔ (`/payouts`) | ✔ (`/payments`) |
 
-Route names differ: in the React app `/payments` is advertiser top-ups and `/payouts` is publisher payouts; in Flask `/payments` is publisher payouts.
+Route names differ: in the React app `/payments` is advertiser top-ups and `/payouts` is publisher payouts; in Flask `/payments` is publisher payouts. Both dashboards use `/` for the public landing page and `/home` for the authenticated workspace.
 
 ## Testing
 
@@ -361,18 +384,24 @@ npm test
 npm run test:coverage
 ```
 
+**Flask dashboard** (pytest):
+
+```bash
+cd dashboard-flask
+python -m pytest -q
+```
+
 > The `dev` extra in `pyproject.toml` doesn't list `fakeredis`, which `egg-info` mentions from an older build. Redis is no longer used.
 
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| App exits at startup with a secret/production error | Weak or placeholder `JWT_SECRET`, `SMS_BACKEND=console`, `*` in CORS, or weak DB password under `ENVIRONMENT=production` | Set real values, or `ADPLATFORM_ENVIRONMENT=development` locally |
-| `alembic upgrade head` reports multiple heads | `4b77b00f4152` and `a1b2c3d4e5f6` both descend from `9d4e1f2a3b44` | Run `alembic upgrade heads`, or create a merge revision with `alembic merge` |
-| Docker build fails on `COPY alembic.ini` | `backend/alembic.ini` is git-ignored | Create it locally before building |
+| App exits at startup with a secret/production error | Weak or placeholder JWT secret, console SMS, local or wildcard CORS, missing Razorpay credentials, or weak DB password under production | Set production values, or use `ADPLATFORM_ENVIRONMENT=development` locally |
+| Alembic cannot find its config | Copy `alembic.ini.example` to `alembic.ini` locally; Docker builds include the template automatically |
 | Flask login works but session is lost on `http://localhost` | Secure cookies | Set `FLASK_INSECURE_COOKIES=1` for dev |
 | Flask refuses to start | `FLASK_SECRET_KEY` shorter than 32 chars or contains "change" | Generate: `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
-| No OTP arrives | `SMS_BACKEND=console` | Read the code from the backend log, or implement a real provider |
+| No OTP arrives | `SMS_BACKEND=console` or invalid Twilio settings | Use console only in development, or configure Twilio credentials and sender |
 | `403 Mobile number not verified` | `REQUIRE_VERIFIED_MOBILE=true` | Complete verification at `/verify` |
 | Ads never render, `no_fill` always | Publisher not active, ad unit not approved/active, no approved creative of the exact size, targeting mismatch, `bid_amount < reserve_price`, or cap exhausted | Check each in turn; the `no_fill` reason is logged server-side |
 | Ad slot suddenly stops serving | 3 visitor reports moved it to `pending_review` | Review the reports in the admin slots page |
@@ -383,11 +412,7 @@ npm run test:coverage
 
 ## Known gaps
 
-These are current behaviors worth knowing before relying on the platform for billing:
+Known business limitations:
 
-- **Event cost is fixed.** `budget_tracker.py` charges constant per-event amounts (impression ₹0.001, click ₹0.10, conversion ₹1.00) rather than the campaign's `bid_amount` and strategy.
-- **Spend isn't persisted to balances.** Events update only the in-memory daily-cap counter. `campaigns.spent_amount`, advertiser `balance`, and publisher `unpaid_earnings` are not updated by event tracking, and the counter resets on restart and isn't shared between workers.
-- **`total_budget` isn't enforced** during selection (only `daily_cap`).
-- **`viewable_impression` events** are accepted by the schema but have no cost mapping and can't be recorded.
-- **Payout payment methods** (`stripe`, `paypal`, `wire_transfer`) are labels only; no payout gateway is integrated.
-- **`admin.py` defines `AdUnitActivation` and `set_ad_unit_active` twice**; harmless but worth cleaning up.
+- **Payout payment methods** (`stripe`, `paypal`, `wire_transfer`) are labels only; payouts are recorded and reconciled by an admin, with no payout gateway integrated.
+- Campaign spend is attributed from the bid strategy (CPM impressions, CPC clicks, CPA conversions); publishers send conversions to `POST /api/delivery/events/conversion`. Publisher earnings accrue at the configured revenue share. Daily and total caps are checked against persisted event spend; unbudgeted campaigns debit the wallet per billable event, and budgeted campaigns spend from their reserved total. The HTTP event endpoint returns `402` when an event exceeds a cap or wallet funds; Socket.IO sends `event_rejected` for that event.

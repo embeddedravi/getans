@@ -13,7 +13,8 @@ const roleLabels: Record<Role, string> = {
 
 const roleLinks: Record<Role, { to: string; label: string; end?: boolean }[]> = {
   admin: [
-    { to: "/", label: "Overview", end: true },
+    { to: "/home", label: "Home", end: true },
+    { to: "/analytics", label: "Analytics" },
     { to: "/manage-advertiser", label: "Advertisers" },
     { to: "/manage-publisher", label: "Publishers" },
     { to: "/manage-campaign", label: "Campaigns" },
@@ -25,18 +26,20 @@ const roleLinks: Record<Role, { to: string; label: string; end?: boolean }[]> = 
     { to: "/payouts", label: "Payouts" },
   ],
   staff: [
-    { to: "/", label: "Operations overview", end: true },
+    { to: "/home", label: "Home", end: true },
     { to: "/approvals", label: "Review queue" },
   ],
   publisher: [
-    { to: "/", label: "Earnings overview", end: true },
+    { to: "/home", label: "Home", end: true },
+    { to: "/analytics", label: "Analytics" },
     { to: "/earnings", label: "Earnings & payouts" },
     { to: "/publishers", label: "My sites", end: true },
     { to: "/adslots", label: "Ad slots", end: true },
     { to: "/help", label: "Integration help" },
   ],
   advertiser: [
-    { to: "/", label: "Performance overview", end: true },
+    { to: "/home", label: "Home", end: true },
+    { to: "/analytics", label: "Analytics" },
     { to: "/wallet", label: "Wallet" },
     { to: "/campaigns", label: "My campaigns" },
     { to: "/media", label: "Media library" }

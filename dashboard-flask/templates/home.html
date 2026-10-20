@@ -1,0 +1,81 @@
+{% extends "layout.html" %}
+
+{% block title %}Home{% endblock %}
+{% block description %}Your GetANS advertising workspace at a glance{% endblock %}
+{% block page_title %}Home{% endblock %}
+
+{% block content %}
+{% set is_admin = role == 'admin' %}
+{% set is_staff = role == 'staff' %}
+{% set is_publisher = role == 'publisher' %}
+<div class="mx-auto max-w-7xl space-y-6">
+  <section class="relative overflow-hidden rounded-2xl border border-base-300 bg-base-200 p-6 sm:p-9">
+    <div class="pointer-events-none absolute -right-12 -top-20 h-72 w-72 rounded-full bg-primary/10 blur-3xl"></div>
+    <div class="relative grid gap-8 lg:grid-cols-[1.4fr_.6fr] lg:items-end">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[.2em] text-primary">
+          {% if is_admin %}Network control room{% elif is_staff %}Operations desk{% elif is_publisher %}Publisher workspace{% else %}Advertiser workspace{% endif %}
+        </p>
+        <h2 class="mt-4 max-w-2xl font-display text-3xl font-semibold tracking-tight sm:text-5xl">
+          {% if is_admin %}A clearer view of your ad network.{% elif is_staff %}Your review queue, at a glance.{% elif is_publisher %}Build inventory that earns.{% else %}Make every campaign count.{% endif %}
+        </h2>
+        <p class="mt-4 max-w-xl text-sm leading-6 text-base-content/70 sm:text-base">
+          {% if is_admin %}Keep campaigns moving, review new accounts, and follow delivery from one place.{% elif is_staff %}Stay on top of account and inventory reviews that keep the network healthy.{% elif is_publisher %}Bring your sites and ad slots online, then keep an eye on your network earnings.{% else %}Check campaign activity, manage your creative, and keep your balance ready.{% endif %}
+        </p>
+        <p class="mt-6 text-sm text-base-content/60">Welcome back, <span class="font-medium text-base-content">{{ user_name }}</span></p>
+      </div>
+      <div class="rounded-xl border border-base-300 bg-base-100/80 p-5">
+        <div class="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-base-content/60"><span class="h-2 w-2 animate-pulse rounded-full bg-success"></span>Your workspace</div>
+        <p class="mt-3 font-display text-xl font-semibold">{% if is_admin %}Network overview{% elif is_staff %}Review operations{% elif is_publisher %}Publisher center{% else %}Campaign center{% endif %}</p>
+        <p class="mt-2 text-sm text-base-content/60">Your latest workspace snapshot.</p>
+        <a class="btn btn-primary btn-sm mt-5" href="{% if is_admin or is_staff %}/approvals{% elif is_publisher %}/publishers{% else %}/analytics{% endif %}">{% if is_admin or is_staff %}Open review queue{% elif is_publisher %}Manage inventory{% else %}View analytics{% endif %}<span aria-hidden="true">→</span></a>
+      </div>
+    </div>
+  </section>
+
+  <section aria-label="Workspace summary" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    {% if is_admin %}
+      {% set metrics = [('Campaigns', snapshot.campaigns|length, 'Across the network'), ('Awaiting review', snapshot.approvals, 'Accounts and ad units'), ('7-day impressions', snapshot.impressions|format_num, (snapshot.clicks|format_num ~ ' clicks in the last 7 days'))] %}
+    {% elif is_staff %}
+      {% set metrics = [('Items awaiting review', snapshot.approvals, 'Accounts and ad units'), ('Review types', 3, 'Publishers · advertisers · slots'), ('Queue status', 'Ready', 'Current workspace')] %}
+    {% elif is_publisher %}
+      {% set active_sites = snapshot.publishers|selectattr('is_active')|list|length %}
+      {% set metrics = [('Your sites', snapshot.publishers|length, 'Registered publisher sites'), ('Active sites', active_sites, 'Currently enabled'), ('Unpaid earnings', unpaid|inr, 'Accumulated on your account')] %}
+    {% else %}
+      {% set metrics = [('Your campaigns', snapshot.campaigns|length, 'Current workspace'), ('Currently active', active_campaigns, 'Current workspace'), ('Wallet balance', snapshot.balance|inr if snapshot.balance is not none else '—', 'Available balance')] %}
+    {% endif %}
+    {% for label, value, note in metrics %}
+      <div class="rounded-xl border border-base-300 bg-base-200 p-5">
+        <p class="text-sm text-base-content/60">{{ label }}</p>
+        <p class="mt-3 font-display text-3xl font-semibold tabular-nums {% if label == 'Awaiting review' and value|int > 0 %}text-warning{% endif %}">{{ value }}</p>
+        <p class="mt-2 text-xs text-base-content/50">{{ note }}</p>
+      </div>
+    {% endfor %}
+  </section>
+
+  <section>
+    <div class="mb-3 flex items-end justify-between gap-3">
+      <div><p class="text-xs font-semibold uppercase tracking-[.16em] text-primary">Get things done</p><h2 class="mt-1 font-display text-xl font-semibold">Quick actions</h2></div>
+      {% if not is_staff %}<a href="/analytics" class="link link-hover text-sm">Explore analytics →</a>{% endif %}
+    </div>
+    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {% if is_admin %}
+        {% set actions = [('/approvals', 'Review approvals', 'Move new accounts and inventory forward', '✓'), ('/manage-campaign', 'Manage campaigns', 'See delivery across the network', '↗'), ('/live-events', 'Live events', 'Watch incoming ad activity', '◉')] %}
+      {% elif is_staff %}
+        {% set actions = [('/approvals', 'Open review queue', 'Review accounts and ad units', '✓')] %}
+      {% elif is_publisher %}
+        {% set actions = [('/publishers', 'Add your site', 'Register inventory for review', '+'), ('/adslots', 'Create an ad slot', 'Prepare placements on your site', '▤'), ('/earnings', 'View earnings', 'Track earnings and payout status', '₹')] %}
+      {% else %}
+        {% set actions = [('/campaigns', 'Create a campaign', 'Set up your next campaign', '+'), ('/wallet', 'Add funds', 'Keep your wallet ready for delivery', '₹'), ('/media', 'Upload creative', 'Organize assets for your campaigns', '▧')] %}
+      {% endif %}
+      {% for href, label, note, icon in actions %}
+        <a href="{{ href }}" class="group flex items-start gap-4 rounded-xl border border-base-300 bg-base-200 p-5 transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-lg">
+          <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 font-display text-xl font-semibold text-primary">{{ icon }}</span>
+          <span class="min-w-0 flex-1"><span class="block font-semibold group-hover:text-primary">{{ label }}</span><span class="mt-1 block text-sm leading-5 text-base-content/60">{{ note }}</span></span>
+          <span aria-hidden="true" class="text-base-content/40 transition group-hover:translate-x-1 group-hover:text-primary">→</span>
+        </a>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

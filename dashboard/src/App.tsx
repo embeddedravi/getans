@@ -1,6 +1,8 @@
 import { Navigate, Route, BrowserRouter, Routes } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { AnalyticsPage } from "./pages/AnalyticsPage";
+import { HomePage } from "./pages/HomePage";
+import { PublicIndexPage } from "./pages/PublicIndexPage";
 import { CampaignsPage } from "./pages/CampaignsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
@@ -32,7 +34,7 @@ function RequireAdmin({ children }: { children: JSX.Element }) {
     api.me().then((user) => setIsAdmin((user as { role?: string }).role === "admin")).catch(() => setIsAdmin(false));
   }, []);
   if (isAdmin === null) return <div className="p-6 text-sm ">Checking access…</div>;
-  return isAdmin ? children : <Navigate to="/" replace />;
+  return isAdmin ? children : <Navigate to="/home" replace />;
 }
 
 export default function App() {
@@ -45,14 +47,9 @@ export default function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/media" element={<RequireAuth><MediaLibraryPage /></RequireAuth>} />
         <Route path="/help" element={<RequireAuth><PublisherHelpPage /></RequireAuth>} />
-        <Route
-          path="/"
-          element={
-            <RequireAuth>
-              <AnalyticsPage />
-            </RequireAuth>
-          }
-        />
+        <Route path="/" element={<PublicIndexPage />} />
+        <Route path="/home" element={<RequireAuth><HomePage /></RequireAuth>} />
+        <Route path="/analytics" element={<RequireAuth><AnalyticsPage /></RequireAuth>} />
         <Route
           path="/campaigns"
           element={

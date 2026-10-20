@@ -1,4 +1,10 @@
-import { fireEvent } from "@testing-library/react";
+import { createElement, type ReactElement } from "react";
+import { fireEvent, render, type RenderOptions } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+
+export function renderWithRouter(ui: ReactElement, options?: RenderOptions) {
+    return render(createElement(MemoryRouter, null, ui), options);
+}
 
 /** Set a controlled input/select value. */
 export function fill(el: HTMLElement, value: string) {

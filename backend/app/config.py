@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     jwt_secret: SecretStr
     razorpay_key_id: str | None = None
     razorpay_key_secret: SecretStr | None = None
+    twilio_account_sid: str | None = None
+    twilio_auth_token: SecretStr | None = None
+    twilio_from_number: str | None = None
 
     # --- Auth ---------------------------------------------------------------
     jwt_algorithm: str = "HS256"
@@ -100,13 +103,21 @@ class Settings(BaseSettings):
 
         problems: list[str] = []
 
-        if "localhost" in self.public_base_url:
+        if "localhost" in self.public_base_url.lower():
             problems.append("public_base_url must be your real public URL")
 
-        if self.sms_backend == "console":
-            problems.append("sms_backend='console' logs OTP codes; configure a real SMS backend")
+        if self.sms_backend != "twilio":
+            problems.append("sms_backend must be the implemented 'twilio' provider in production")
+        if self.sms_backend == "twilio" and not all(
+            (self.twilio_account_sid, self.twilio_auth_token, self.twilio_from_number)
+        ):
+            problems.append("Twilio SMS requires account SID, auth token, and sender number")
         if "*" in self.cors_origins:
             problems.append("cors_origins must list explicit origins, not '*'")
+        if any("localhost" in origin.lower() for origin in self.cors_origins):
+            problems.append("cors_origins must not include localhost in production")
+        if not self.razorpay_key_id or self.razorpay_key_secret is None:
+            problems.append("Razorpay key ID and secret are required for production wallet top-ups")
 
         password = make_url(self.database_url.get_secret_value()).password
         if not password or password.lower() in _WEAK_VALUES:

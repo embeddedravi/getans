@@ -13,7 +13,7 @@ from app.deps import get_db
 from app.models.ad_unit import AdUnit
 from app.models.creative import Creative, ReviewStatus
 from app.services.ad_selector import NoEligibleCampaignError, RequestContext, select_ad
-from app.services.budget_tracker import record_event
+from app.services.budget_tracker import BudgetExceededError, record_event
 from app.services.publisher_auth import authenticate_publisher
 
 router = APIRouter(prefix="/delivery", tags=["Publisher Ad Delivery"])
@@ -37,7 +37,7 @@ class AdRequestResponse(BaseModel):
 class AdEvent(BaseModel):
     ad_unit_id: int
     creative_id: int
-    event_id: str = Field(min_length=1, max_length=128)
+    event_id: str = Field(min_length=1, max_length=36)
     visitor_id: str | None = Field(default=None, max_length=128)
 
 
@@ -71,9 +71,13 @@ async def request_ad(
     return AdRequestResponse(ad=ServedAd(**selected.__dict__))
 
 
-@router.post("/events/{event_type}", status_code=status.HTTP_204_NO_CONTENT, summary="Record an ad impression or click")
+@router.post(
+    "/events/{event_type}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Record an ad impression, click, or conversion",
+)
 async def track_ad_event(
-    event_type: Literal["impression", "click"],
+    event_type: Literal["impression", "click", "conversion"],
     payload: AdEvent,
     request: Request,
     publisher_key: str = Header(alias="X-Publisher-Key"),
@@ -101,13 +105,16 @@ async def track_ad_event(
     client = request.client
     user_agent = request.headers.get("user-agent", "")[:512] or None
     country = (request.headers.get("cf-ipcountry") or request.headers.get("x-country-code") or "")[:2] or None
-    await record_event(
-        event_type=event_type,
-        ad_unit_id=payload.ad_unit_id,
-        creative_id=payload.creative_id,
-        event_id=payload.event_id,
-        visitor_id=payload.visitor_id,
-        user_ip=client.host if client else None,
-        user_agent=user_agent,
-        country_code=country,
-    )
+    try:
+        await record_event(
+            event_type=event_type,
+            ad_unit_id=payload.ad_unit_id,
+            creative_id=payload.creative_id,
+            event_id=payload.event_id,
+            visitor_id=payload.visitor_id,
+            user_ip=client.host if client else None,
+            user_agent=user_agent,
+            country_code=country,
+        )
+    except BudgetExceededError as exc:
+        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(exc)) from exc

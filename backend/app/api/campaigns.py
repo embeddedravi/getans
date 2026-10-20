@@ -152,12 +152,14 @@ async def update_campaign(
             detail="end_date must be after start_date",
         )
 
-    for field, value in updates.items():
-        setattr(campaign, field, value)
-
     if "total_budget" in updates:
         old_budget = campaign.reserved_amount
         new_budget = updates["total_budget"] or 0
+        if campaign.total_budget is None and new_budget and campaign.spent_amount > 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A wallet-funded campaign cannot add a reserved total budget after it has spent; create a new campaign",
+            )
         if new_budget < campaign.spent_amount:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -183,6 +185,9 @@ async def update_campaign(
                 .values(balance=Advertiser.balance + abs(delta))
             )
         campaign.reserved_amount = new_budget
+
+    for field, value in updates.items():
+        setattr(campaign, field, value)
 
     await db.commit()
     await db.refresh(campaign)

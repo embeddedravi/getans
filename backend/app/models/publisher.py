@@ -80,7 +80,7 @@ class Publisher(TimestampMixin, Base):
         nullable=False,
     )
     unpaid_earnings: Mapped[Decimal] = mapped_column(
-        Numeric(precision=12, scale=2),
+        Numeric(precision=14, scale=6),
         default=Decimal("0.00"),
         nullable=False,
     )

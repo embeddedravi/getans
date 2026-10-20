@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../lib/api";
 import type { AdUnit, Campaign, Publisher } from "../types";
-import { fill } from "../tests/utils";
+import { fill, renderWithRouter } from "../tests/utils";
 import { CampaignsPage } from "./CampaignsPage";
 import { PublishersPage } from "./PublishersPage";
 
@@ -85,22 +85,22 @@ describe("PublishersPage edge cases", () => {
     });
 
     it("loads the ad slots of whichever publisher is selected", async () => {
-        render(<PublishersPage />);
+        renderWithRouter(<PublishersPage view="adslots" />);
 
-        fireEvent.click(await screen.findByRole("button", { name: /alpha/ }));
+        fireEvent.change(await screen.findByRole("combobox", { name: "Select site for ad slots" }), { target: { value: "1" } });
         expect(await screen.findByText("alpha-slot")).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole("button", { name: /beta/ }));
+        fireEvent.change(screen.getByRole("combobox", { name: "Select site for ad slots" }), { target: { value: "2" } });
         expect(await screen.findByText("beta-slot")).toBeInTheDocument();
         expect(screen.queryByText("alpha-slot")).not.toBeInTheDocument();
         expect(mocked.listAdUnits).toHaveBeenCalledWith(2);
     });
 
     it("closes the add-publisher modal on Cancel without calling the API", async () => {
-        render(<PublishersPage />);
+        renderWithRouter(<PublishersPage />);
         await screen.findByText("alpha");
 
-        fireEvent.click(screen.getByRole("button", { name: "+ Add" }));
+        fireEvent.click(screen.getByRole("button", { name: "Add site" }));
         expect(screen.getByRole("heading", { name: "Add publisher" })).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
@@ -110,11 +110,11 @@ describe("PublishersPage edge cases", () => {
     });
 
     it("closes the new-slot modal on Cancel without calling the API", async () => {
-        render(<PublishersPage />);
-        fireEvent.click(await screen.findByRole("button", { name: /alpha/ }));
+        renderWithRouter(<PublishersPage view="adslots" />);
+        fireEvent.change(await screen.findByRole("combobox", { name: "Select site for ad slots" }), { target: { value: "1" } });
         await screen.findByText("alpha-slot");
 
-        fireEvent.click(screen.getByRole("button", { name: "New ad slot" }));
+        fireEvent.click(screen.getByRole("button", { name: "Add ad slot" }));
         fill(screen.getByLabelText("Slot name"), "draft");
         fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 

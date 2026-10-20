@@ -29,7 +29,7 @@ class FakeResponse:
 async def test_wallet_and_order_requires_active_advertiser_and_razorpay_config(client, db, advertiser_user, advertiser, monkeypatch):
     headers = await auth_headers(client, "9123456789", "advertiserpass123")
     wallet = await client.get("/api/payments/wallet", headers=headers)
-    assert wallet.status_code == 200 and wallet.json() == {"balance": "0.00", "credit_limit": "0.00", "currency": "INR"}
+    assert wallet.status_code == 200 and wallet.json() == {"balance": "0.000000", "credit_limit": "0.00", "currency": "INR"}
     assert (await client.post("/api/payments/orders", json={"amount": "100.00"}, headers=headers)).status_code == 403
 
     advertiser.status = AccountStatus.ACTIVE
@@ -74,9 +74,9 @@ async def test_order_creation_and_payment_verification_credit_wallet_once(client
     body = {"razorpay_order_id": "order_123456", "razorpay_payment_id": "pay_123456", "razorpay_signature": signature}
     verified = await client.post("/api/payments/verify", json=body, headers=headers)
     assert verified.status_code == 200, verified.text
-    assert verified.json()["balance"] == "125.50"
+    assert verified.json()["balance"] == "125.500000"
     repeated = await client.post("/api/payments/verify", json=body, headers=headers)
-    assert repeated.status_code == 200 and repeated.json()["balance"] == "125.50"
+    assert repeated.status_code == 200 and repeated.json()["balance"] == "125.500000"
     topup = await db.scalar(select(AdvertiserTopUp).where(AdvertiserTopUp.order_id == "order_123456"))
     assert topup.status == TopUpStatus.PAID and topup.payment_id == "pay_123456"
 

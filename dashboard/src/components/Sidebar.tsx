@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 
@@ -83,9 +83,9 @@ export function Sidebar() {
   return (
     <aside className="min-h-full w-72 max-w-[85vw] shrink-0 border-r border-base-300 bg-base-200 flex flex-col lg:w-60">
       <div className="px-5 py-5 border-b border-base-300">
-        <span className="font-display text-lg font-semibold tracking-tight">
+        <Link to="/" className="font-display text-lg font-semibold tracking-tight transition hover:text-primary" aria-label="GetANS public home">
           GetANS
-        </span>
+        </Link>
         {role && <p className="mt-1 text-xs ">{roleLabels[role]}</p>}
       </div>
 

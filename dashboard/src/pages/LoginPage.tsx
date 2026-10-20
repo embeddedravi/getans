@@ -54,7 +54,7 @@ export function LoginPage() {
         )}
       </button>
       <div className="w-full max-w-sm border border-base-300 bg-base-200 rounded p-8">
-        <h1 className="font-display text-2xl font-semibold mb-1">GetANS</h1>
+        <Link to="/" className="font-display text-2xl font-semibold mb-1 inline-block hover:text-primary">GetANS</Link>
         <p className="text-sm  mb-6">Sign in to manage campaigns</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -6,7 +6,7 @@ Include in main.py *without* an internal prefix, e.g.:
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 import logging
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +18,7 @@ from app.schemas.otp import OTPRequest, OTPRequestResponse, OTPVerify
 from app.schemas.user import MessageResponse
 from app.services.otp import OTPRateLimitError, issue_otp, verify_otp
 from app.services.sms import send_sms
+from app.services.captcha import verify_captcha
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -33,7 +34,8 @@ async def _get_user(db: AsyncSession, mobile: str) -> User | None:
     status_code=status.HTTP_202_ACCEPTED,
     summary="Send a verification code to a registered mobile number",
 )
-async def request_otp(payload: OTPRequest, db: AsyncSession = Depends(get_db)) -> OTPRequestResponse:
+async def request_otp(payload: OTPRequest, request: Request, db: AsyncSession = Depends(get_db)) -> OTPRequestResponse:
+    await verify_captcha(payload.captcha_challenge, payload.captcha_answer)
     user = await _get_user(db, payload.mobile)
     # Same response whether or not the number is registered, so this can't be used
     # to discover which numbers have accounts.

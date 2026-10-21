@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { CaptchaChallenge } from "../components/CaptchaChallenge";
 
 type Role = "advertiser" | "publisher";
 
@@ -10,6 +11,9 @@ export function SignupPage() {
     const [organization, setOrganization] = useState("");
     const [mobile, setMobile] = useState("");
     const [password, setPassword] = useState("");
+    const [captchaChallenge, setCaptchaChallenge] = useState("");
+    const [captchaAnswer, setCaptchaAnswer] = useState("");
+    const [captchaVersion, setCaptchaVersion] = useState(0);
     const [email, setEmail] = useState("");
     const [siteUrl, setSiteUrl] = useState("");
     const [payoutEmail, setPayoutEmail] = useState("");
@@ -27,6 +31,8 @@ export function SignupPage() {
                 organization_name: organization,
                 mobile,
                 password,
+                captcha_challenge: captchaChallenge,
+                captcha_answer: captchaAnswer,
                 email: email || null,
                 ...(role === "publisher"
                     ? { site_url: siteUrl, payout_email: payoutEmail }
@@ -34,6 +40,9 @@ export function SignupPage() {
             });
             navigate("/verify");
         } catch (err) {
+            setCaptchaChallenge("");
+            setCaptchaAnswer("");
+            setCaptchaVersion((version) => version + 1);
             setError(err instanceof Error ? err.message : "Could not create account");
         } finally {
             setBusy(false);
@@ -97,6 +106,7 @@ export function SignupPage() {
                             value={password} onChange={(e) => setPassword(e.target.value)} className={input} />
                     </div>
 
+                    <CaptchaChallenge key={captchaVersion} onChallenge={setCaptchaChallenge} onAnswer={setCaptchaAnswer} />
                     {error && (
                         <div role="alert" className="alert alert-error py-2 text-sm"><span>{error}</span></div>
                     )}

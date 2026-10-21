@@ -100,6 +100,15 @@ def _api(method: str, path: str, **kwargs):
     return resp.json()
 
 
+def _captcha_challenge():
+    try:
+        response = requests.get(f"{API_BASE}/auth/captcha-challenge", timeout=5)
+        response.raise_for_status()
+        return response.json()
+    except Exception:
+        return None
+
+
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -180,7 +189,7 @@ def login():
         mobile = request.form.get("mobile", "")
         password = request.form.get("password", "")
         try:
-            data = _api("POST", "/auth/login", json={"mobile": mobile, "password": password})
+            data = _api("POST", "/auth/login", json={"mobile": mobile, "password": password, "captcha_challenge": request.form.get("captcha_challenge"), "captcha_answer": request.form.get("captcha_answer")})
             session["access_token"] = data["access_token"]
             session["user_mobile"] = mobile
             try:
@@ -202,12 +211,12 @@ def login():
         except Exception:
             error = "Could not reach the backend. Is it running?"
 
-    return render_template("login.html", error=error)
+    return render_template("login.html", error=error, captcha=_captcha_challenge())
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "GET":
-        return render_template("signup.html", form={}, error=None)
+        return render_template("signup.html", form={}, error=None, captcha=_captcha_challenge())
 
     form = request.form
     role = form.get("role", "advertiser")
@@ -216,6 +225,8 @@ def signup():
         "organization_name": form.get("organization_name", ""),
         "mobile": form.get("mobile", ""),
         "password": form.get("password", ""),
+        "captcha_challenge": form.get("captcha_challenge"),
+        "captcha_answer": form.get("captcha_answer"),
         "email": form.get("email", ""),
     }
     if role == "publisher":
@@ -233,9 +244,9 @@ def signup():
                 detail = ", ".join(str(d.get("msg", "Invalid input")).replace("Value error, ", "") for d in detail)
         except Exception:
             detail = "Signup failed"
-        return render_template("signup.html", form=form, error=detail)
+        return render_template("signup.html", form=form, error=detail, captcha=_captcha_challenge())
     except requests.RequestException:
-        return render_template("signup.html", form=form, error="Could not reach the backend. Is it running?")
+        return render_template("signup.html", form=form, error="Could not reach the backend. Is it running?", captcha=_captcha_challenge())
 
     flash("Account created. Verify your mobile number to sign in.", "success")
     return redirect(url_for("verify.verify_page"))
@@ -243,13 +254,21 @@ def signup():
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "GET":
-        return render_template("forgot_password.html", error=None)
+        return render_template("forgot_password.html", error=None, captcha=_captcha_challenge())
 
     mobile = request.form.get("mobile", "")
     try:
-        _api("POST", "/auth/otp/request", json={"mobile": mobile})
+        _api("POST", "/auth/otp/request", json={"mobile": mobile, "captcha_challenge": request.form.get("captcha_challenge"), "captcha_answer": request.form.get("captcha_answer")})
+    except requests.HTTPError as exc:
+        try:
+            detail = exc.response.json().get("detail", "Could not send OTP")
+            if isinstance(detail, list):
+                detail = ", ".join(str(item.get("msg", "Invalid input")).replace("Value error, ", "") for item in detail)
+        except Exception:
+            detail = "Could not send OTP"
+        return render_template("forgot_password.html", error=detail, captcha=_captcha_challenge())
     except Exception:
-        return render_template("forgot_password.html", error="Could not reach backend. Is it running?")
+        return render_template("forgot_password.html", error="Could not reach backend. Is it running?", captcha=_captcha_challenge())
 
     session["reset_mobile"] = mobile
     flash("If this number is registered, an OTP has been sent.", "success")
@@ -261,13 +280,13 @@ def forgot_password_reset():
         return redirect(url_for("forgot_password"))
 
     if request.method == "GET":
-        return render_template("forgot_password_reset.html", error=None)
+        return render_template("forgot_password_reset.html", error=None, captcha=_captcha_challenge())
 
     mobile = session["reset_mobile"]
     code = request.form.get("code", "")
     password = request.form.get("password", "")
     try:
-        _api("POST", "/auth/forgot-password/reset", json={"mobile": mobile, "code": code, "password": password})
+        _api("POST", "/auth/forgot-password/reset", json={"mobile": mobile, "code": code, "password": password, "captcha_challenge": request.form.get("captcha_challenge"), "captcha_answer": request.form.get("captcha_answer")})
         session.pop("reset_mobile", None)
         flash("Password reset successfully. Please log in.", "success")
         return redirect(url_for("login"))
@@ -278,9 +297,9 @@ def forgot_password_reset():
                 detail = detail[0].get("msg", "Invalid input").replace("Value error, ", "")
         except Exception:
             detail = "Failed to reset password"
-        return render_template("forgot_password_reset.html", error=detail)
+        return render_template("forgot_password_reset.html", error=detail, captcha=_captcha_challenge())
     except Exception:
-        return render_template("forgot_password_reset.html", error="Could not reach backend")
+        return render_template("forgot_password_reset.html", error="Could not reach backend", captcha=_captcha_challenge())
 
 @app.route("/logout")
 def logout():

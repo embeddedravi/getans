@@ -39,10 +39,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  login: (mobile: string, password: string) =>
+  captchaChallenge: () => request<{ challenge: string; question: string }>("/auth/captcha-challenge"),
+  login: (mobile: string, password: string, captcha_challenge?: string, captcha_answer?: string) =>
     request<{ access_token: string }>("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ mobile, password }),
+      body: JSON.stringify({ mobile, password, captcha_challenge, captcha_answer }),
     }),
 
   me: () => request("/auth/me"),
@@ -78,15 +79,15 @@ export const api = {
     request(`/admin/ad-units/${id}/active`, { method: "PATCH", body: JSON.stringify({ is_active }) }),
   signup: (payload: unknown) =>
     request("/auth/signup", { method: "POST", body: JSON.stringify(payload) }),
-  requestOtp: (mobile: string) =>
+  requestOtp: (mobile: string, captcha_challenge?: string, captcha_answer?: string) =>
     request<{ message: string; expires_in: number; resend_after: number }>("/auth/otp/request", {
       method: "POST",
-      body: JSON.stringify({ mobile }),
+      body: JSON.stringify({ mobile, captcha_challenge, captcha_answer }),
     }),
-  verifyOtp: (mobile: string, code: string) =>
+  verifyOtp: (mobile: string, code: string, captcha_challenge?: string, captcha_answer?: string) =>
     request<{ message: string }>("/auth/otp/verify", {
       method: "POST",
-      body: JSON.stringify({ mobile, code }),
+      body: JSON.stringify({ mobile, code, captcha_challenge, captcha_answer }),
     }),
   resetPassword: (payload: unknown) =>
     request<{ message: string }>("/auth/forgot-password/reset", {

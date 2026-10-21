@@ -22,6 +22,15 @@ def _post(path: str, payload: dict) -> requests.Response:
     return requests.post(f"{API_BASE}{path}", json=payload, timeout=10)
 
 
+def _captcha_challenge():
+    try:
+        response = requests.get(f"{API_BASE}/auth/captcha-challenge", timeout=5)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException:
+        return None
+
+
 def _error_from(resp: requests.Response) -> str:
     """Turn a FastAPI error body (string or 422 list) into a message."""
     try:
@@ -40,14 +49,14 @@ def _error_from(resp: requests.Response) -> str:
 @verify_bp.route("/verify", methods=["GET", "POST"])
 def verify_page():
     if request.method == "GET":
-        return render_template("verify.html", step="mobile")
+        return render_template("verify.html", step="mobile", captcha=_captcha_challenge())
 
     action = request.form.get("action")
     mobile = request.form.get("mobile", "").strip()
 
     try:
         if action == "request":
-            resp = _post("/auth/otp/request", {"mobile": mobile})
+            resp = _post("/auth/otp/request", {"mobile": mobile, "captcha_challenge": request.form.get("captcha_challenge"), "captcha_answer": request.form.get("captcha_answer")})
             if resp.ok:
                 data = resp.json()
                 return render_template(
@@ -55,11 +64,12 @@ def verify_page():
                     step="code",
                     mobile=mobile,
                     resend_after=data.get("resend_after", 60),
+                    captcha=_captcha_challenge(),
                 )
             # Can't send: stay on the step the person was on.
             step = "code" if request.form.get("resend") else "mobile"
             return render_template(
-                "verify.html", step=step, mobile=mobile, error=_error_from(resp), resend_after=0
+                "verify.html", step=step, mobile=mobile, error=_error_from(resp), resend_after=0, captcha=_captcha_challenge()
             )
 
         if action == "verify":
@@ -69,7 +79,7 @@ def verify_page():
                 flash("Mobile number verified. You can sign in now.", "success")
                 return redirect(url_for("login"))
             return render_template(
-                "verify.html", step="code", mobile=mobile, error=_error_from(resp), resend_after=0
+                "verify.html", step="code", mobile=mobile, error=_error_from(resp), resend_after=0, captcha=_captcha_challenge()
             )
     except requests.RequestException:
         return render_template(
@@ -78,6 +88,7 @@ def verify_page():
             mobile=mobile,
             error="Could not reach the backend. Is it running?",
             resend_after=0,
+            captcha=_captcha_challenge(),
         )
 
     return redirect(url_for("verify.verify_page"))

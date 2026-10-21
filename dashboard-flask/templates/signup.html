@@ -55,6 +55,7 @@
                class="input input-bordered w-full bg-base-100" />
       </div>
 
+      {% include "_captcha.html" %}
       {% if error %}
         <div role="alert" class="alert alert-error py-2.5 text-sm"><span>{{ error }}</span></div>
       {% endif %}

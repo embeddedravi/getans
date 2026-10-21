@@ -1,0 +1,5 @@
+{% if captcha %}
+  <input type="hidden" name="captcha_challenge" value="{{ captcha.challenge }}" />
+  <label class="block text-sm mb-1" for="captcha-answer">{{ captcha.question }}</label>
+  <input id="captcha-answer" name="captcha_answer" type="text" inputmode="numeric" pattern="\d{1,3}" maxlength="3" required autocomplete="off" class="input input-bordered w-full bg-base-100" />
+{% endif %}

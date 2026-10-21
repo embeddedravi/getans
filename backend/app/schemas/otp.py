@@ -7,6 +7,8 @@ from app.core.phone import normalize_indian_mobile
 
 class OTPRequest(BaseModel):
     mobile: str = Field(..., description="Indian mobile number")
+    captcha_challenge: str | None = None
+    captcha_answer: str | None = None
 
     @field_validator("mobile")
     @classmethod

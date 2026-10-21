@@ -243,7 +243,7 @@ Secrets have **no defaults**, and the app refuses to start with a missing or wea
 | `ADPLATFORM_PUBLIC_BASE_URL` | Public base URL used when generating absolute media asset URLs; use the HTTPS origin visitors can reach | `http://localhost:8000` |
 | `ADPLATFORM_RAZORPAY_KEY_ID` / `_KEY_SECRET` | Required for wallet top-ups | unset |
 
-**Production guards:** with `ENVIRONMENT=production` the app refuses to start if the public base URL is localhost, SMS is not configured to use Twilio, CORS contains `*` or localhost, Razorpay credentials are missing, the database password is empty or a known weak value, or the JWT secret is weak. The shipped `backend/.env.example` has a placeholder JWT secret and opts into development mode for local work.
+**Production guards:** with `ENVIRONMENT=production` the app refuses to start if the public base URL is localhost, SMS is not configured to use Twilio, CORS contains `*` or localhost, Razorpay credentials are missing, the database password is empty or a known weak value, or the JWT secret is weak. The built-in arithmetic CAPTCHA is enforced server-side on login, signup, OTP requests, and password reset, with signed challenges that expire after five minutes. The shipped `backend/.env.example` has a placeholder JWT secret and opts into development mode for local work.
 
 **SMS:** Twilio is implemented. Production startup requires `ADPLATFORM_SMS_BACKEND=twilio` and all three Twilio settings above. Console delivery logs OTPs and is for development only.
 

@@ -44,6 +44,8 @@ class UserRole(str, Enum):
 class LoginRequest(BaseModel):
     mobile: str = Field(..., description="Indian mobile number")
     password: str = Field(..., min_length=8, description="User cleartext password")
+    captcha_challenge: Optional[str] = None
+    captcha_answer: Optional[str] = None
 
     @field_validator("mobile")
     @classmethod
@@ -144,6 +146,8 @@ class SignupRequest(BaseModel):
     payout_email: Optional[EmailStr] = None
     # advertiser only (falls back to `email`)
     billing_email: Optional[EmailStr] = None
+    captcha_challenge: Optional[str] = None
+    captcha_answer: Optional[str] = None
 
     @field_validator("mobile")
     @classmethod
@@ -168,6 +172,8 @@ class ForgotPasswordReset(BaseModel):
     mobile: str = Field(..., description="Indian mobile number")
     code: str = Field(..., pattern=r"^\d{6}$", description="6-digit code sent by SMS")
     password: str = Field(..., min_length=8, max_length=72, description="New password")
+    captcha_challenge: Optional[str] = None
+    captcha_answer: Optional[str] = None
 
     @field_validator("mobile")
     @classmethod

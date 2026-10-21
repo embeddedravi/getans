@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { CaptchaChallenge } from "../components/CaptchaChallenge";
 
 type Step = "mobile" | "code" | "done";
 
@@ -9,6 +10,9 @@ export function VerifyMobilePage() {
   const [step, setStep] = useState<Step>("mobile");
   const [mobile, setMobile] = useState("");
   const [code, setCode] = useState("");
+  const [captchaChallenge, setCaptchaChallenge] = useState("");
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [captchaVersion, setCaptchaVersion] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [cooldown, setCooldown] = useState(0);
@@ -25,11 +29,17 @@ export function VerifyMobilePage() {
     setError(null);
     setBusy(true);
     try {
-      const res = await api.requestOtp(mobile);
+      const res = await api.requestOtp(mobile, captchaChallenge, captchaAnswer);
+      setCaptchaChallenge("");
+      setCaptchaAnswer("");
+      setCaptchaVersion((version) => version + 1);
       setCooldown(res.resend_after);
       setCode("");
       setStep("code");
     } catch (err) {
+      setCaptchaChallenge("");
+      setCaptchaAnswer("");
+      setCaptchaVersion((version) => version + 1);
       setError(err instanceof Error ? err.message : "Could not send the code");
     } finally {
       setBusy(false);
@@ -121,6 +131,7 @@ export function VerifyMobilePage() {
               </button>
             </form>
 
+            <CaptchaChallenge key={captchaVersion} onChallenge={setCaptchaChallenge} onAnswer={setCaptchaAnswer} />
             <div className="flex justify-between items-center mt-4 text-sm">
               <button
                 type="button"

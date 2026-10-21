@@ -2,12 +2,16 @@ import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { CaptchaChallenge } from "../components/CaptchaChallenge";
 
 export function ForgotPasswordPage() {
   const [step, setStep] = useState<"request" | "verify">("request");
   const [mobile, setMobile] = useState("");
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
+  const [captchaChallenge, setCaptchaChallenge] = useState("");
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [captchaVersion, setCaptchaVersion] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -18,10 +22,15 @@ export function ForgotPasswordPage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await api.requestOtp(mobile);
+      const res = await api.requestOtp(mobile, captchaChallenge, captchaAnswer);
+      setCaptchaChallenge("");
+      setCaptchaAnswer("");
       setSuccess(res.message || "OTP sent successfully.");
       setStep("verify");
     } catch (err) {
+      setCaptchaChallenge("");
+      setCaptchaAnswer("");
+      setCaptchaVersion((version) => version + 1);
       setError(err instanceof Error ? err.message : "Failed to send OTP");
     } finally {
       setLoading(false);
@@ -34,12 +43,15 @@ export function ForgotPasswordPage() {
     setSuccess(null);
     setLoading(true);
     try {
-      await api.resetPassword({ mobile, code, password });
+      await api.resetPassword({ mobile, code, password, captcha_challenge: captchaChallenge, captcha_answer: captchaAnswer });
       setSuccess("Password reset successfully. Redirecting to login...");
       setTimeout(() => {
         navigate("/login");
       }, 2000);
     } catch (err) {
+      setCaptchaChallenge("");
+      setCaptchaAnswer("");
+      setCaptchaVersion((version) => version + 1);
       setError(err instanceof Error ? err.message : "Failed to reset password");
     } finally {
       setLoading(false);
@@ -75,6 +87,7 @@ export function ForgotPasswordPage() {
                 className="input input-bordered w-full bg-base-100"
               />
             </div>
+            <CaptchaChallenge key={captchaVersion} onChallenge={setCaptchaChallenge} onAnswer={setCaptchaAnswer} />
             {error && (
               <div role="alert" className="alert alert-error py-2 text-sm">
                 <span>{error}</span>
@@ -121,6 +134,7 @@ export function ForgotPasswordPage() {
                 className="input input-bordered w-full bg-base-100"
               />
             </div>
+            <CaptchaChallenge key={captchaVersion} onChallenge={setCaptchaChallenge} onAnswer={setCaptchaAnswer} />
             {error && (
               <div role="alert" className="alert alert-error py-2 text-sm">
                 <span>{error}</span>

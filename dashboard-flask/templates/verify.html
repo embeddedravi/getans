@@ -20,6 +20,7 @@
                  required maxlength="17" value="{{ mobile or '' }}" placeholder="98765 43210"
                  class="input input-bordered w-full bg-base-100 focus:border-primary transition-colors" />
         </div>
+        {% include "_captcha.html" %}
         {% if error %}
           <div role="alert" class="alert alert-error py-2.5 text-sm"><span>{{ error }}</span></div>
         {% endif %}
@@ -53,6 +54,7 @@
           <input type="hidden" name="action" value="request" />
           <input type="hidden" name="resend" value="1" />
           <input type="hidden" name="mobile" value="{{ mobile }}" />
+          {% include "_captcha.html" %}
           <button type="submit" id="resend-btn" class="link" {% if resend_after %}disabled{% endif %}>
             Resend code
           </button>

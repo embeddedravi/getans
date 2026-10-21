@@ -18,8 +18,14 @@ from app.models.advertiser import Advertiser
 from app.models.publisher import Publisher
 from app.schemas.user import SignupRequest, SignupRole, ForgotPasswordReset, MessageResponse, ProfileUpdate, PasswordChange, AccountDeletion
 from app.services.otp import verify_otp
+from app.services.captcha import issue_captcha, verify_captcha
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+@router.get("/captcha-challenge")
+async def captcha_challenge() -> dict[str, str]:
+    return issue_captcha()
 
 
 @router.post(
@@ -33,6 +39,7 @@ async def login(
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
     """Validates mobile + password and produces a bearer access token."""
+    await verify_captcha(payload.captcha_challenge, payload.captcha_answer)
     result = await db.execute(select(User).where(User.mobile == payload.mobile))
     user = result.scalar_one_or_none()
 
@@ -177,6 +184,7 @@ async def delete_account(
     summary="Self-service signup for advertisers and publishers",
 )
 async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)) -> User:
+    await verify_captcha(payload.captcha_challenge, payload.captcha_answer)
     if not settings.allow_self_signup:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Not found")
 
@@ -234,6 +242,7 @@ async def reset_password(
     payload: ForgotPasswordReset,
     db: AsyncSession = Depends(get_db),
 ) -> MessageResponse:
+    await verify_captcha(payload.captcha_challenge, payload.captcha_answer)
     user = (await db.execute(select(User).where(User.mobile == payload.mobile))).scalar_one_or_none()
     
     if user is None or not await verify_otp(db, payload.mobile, payload.code):

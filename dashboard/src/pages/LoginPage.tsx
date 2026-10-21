@@ -1,10 +1,14 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
+import { CaptchaChallenge } from "../components/CaptchaChallenge";
 
 export function LoginPage() {
   const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("");
+  const [captchaChallenge, setCaptchaChallenge] = useState("");
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [captchaVersion, setCaptchaVersion] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">(() =>
@@ -24,10 +28,13 @@ export function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const { access_token } = await api.login(mobile, password);
+      const { access_token } = await api.login(mobile, password, captchaChallenge, captchaAnswer);
       localStorage.setItem("access_token", access_token);
       navigate("/home");
     } catch (err) {
+      setCaptchaChallenge("");
+      setCaptchaAnswer("");
+      setCaptchaVersion((version) => version + 1);
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setLoading(false);
@@ -94,6 +101,8 @@ export function LoginPage() {
               </Link>
             </div>
           </div>
+
+          <CaptchaChallenge key={captchaVersion} onChallenge={setCaptchaChallenge} onAnswer={setCaptchaAnswer} />
 
           {error && (
             <div role="alert" className="alert alert-error py-2 text-sm">

@@ -288,6 +288,57 @@ def logout():
     return redirect(url_for("login"))
 
 
+@app.route("/profile", methods=["GET", "POST"])
+@login_required
+def profile():
+    if request.method == "POST":
+        action = request.form.get("action")
+        saved = False
+        try:
+            if action == "update_name":
+                _api("PATCH", "/auth/me", json={
+                    "first_name": request.form.get("first_name", "").strip() or None,
+                    "last_name": request.form.get("last_name", "").strip() or None,
+                    "email": request.form.get("email", "").strip() or None,
+                })
+                current_user = _api("GET", "/auth/me")
+                _remember_user(current_user)
+                flash("Your profile has been updated.", "success")
+                saved = True
+            elif action == "change_password":
+                _api("POST", "/auth/me/password", json={
+                    "current_password": request.form.get("current_password", ""),
+                    "new_password": request.form.get("new_password", ""),
+                })
+                flash("Password changed successfully.", "success")
+            elif action == "delete_account":
+                _api("DELETE", "/auth/me", json={"password": request.form.get("delete_password", "")})
+                session.clear()
+                flash("Your account has been deleted.", "success")
+                return redirect(url_for("login"))
+            else:
+                flash("Choose a valid account action.", "error")
+        except requests.HTTPError as exc:
+            try:
+                detail = exc.response.json().get("detail", "Could not update your account")
+                if isinstance(detail, list):
+                    detail = ", ".join(str(item.get("msg", "Invalid input")).replace("Value error, ", "") for item in detail)
+            except Exception:
+                detail = "Could not update your account"
+            flash(detail, "error")
+        except requests.RequestException:
+            flash("Could not reach the backend. Please try again.", "error")
+        return redirect(url_for("profile", saved=1 if saved else None))
+
+    try:
+        user = _api("GET", "/auth/me")
+        _remember_user(user)
+    except requests.RequestException:
+        flash("Could not load your profile. Please try again.", "error")
+        user = {}
+    return render_template("profile.html", user=user, profile_saved=request.args.get("saved") == "1")
+
+
 # ── Main pages ────────────────────────────────────────────────────────────────
 
 

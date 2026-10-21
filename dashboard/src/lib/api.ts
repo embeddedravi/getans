@@ -46,6 +46,12 @@ export const api = {
     }),
 
   me: () => request("/auth/me"),
+  updateProfile: (payload: { first_name: string | null; last_name: string | null; email: string | null }) =>
+    request("/auth/me", { method: "PATCH", body: JSON.stringify(payload) }),
+  changePassword: (current_password: string, new_password: string) =>
+    request<{ message: string }>("/auth/me/password", { method: "POST", body: JSON.stringify({ current_password, new_password }) }),
+  deleteAccount: (password: string) =>
+    request<void>("/auth/me", { method: "DELETE", body: JSON.stringify({ password }) }),
   listAdminAdvertisers: () => request<import("../types").Advertiser[]>("/admin/advertisers"),
   listAdminUsers: () => request<import("../types").AdminUser[]>("/admin/users"),
   updateAdminUser: (id: number, payload: {

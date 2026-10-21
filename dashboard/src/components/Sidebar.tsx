@@ -112,6 +112,9 @@ export function Sidebar() {
       </nav>
 
       <div className="px-4 py-4 border-t border-base-300 flex flex-col gap-3">
+        <NavLink to="/profile" className={({ isActive }) => `btn btn-ghost btn-xs w-full justify-start px-0 ${isActive ? "text-primary" : ""}`}>
+          Profile & account
+        </NavLink>
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-semibold text-primary">
             {displayName.slice(0, 1).toUpperCase()}

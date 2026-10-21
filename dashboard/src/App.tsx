@@ -21,6 +21,7 @@ import { MediaLibraryPage } from "./pages/MediaLibraryPage";
 import { PublisherHelpPage } from "./pages/PublisherHelpPage";
 import { AdvertiserWalletPage } from "./pages/AdvertiserWalletPage";
 import { PublisherEarningsPage } from "./pages/PublisherEarningsPage";
+import { ProfilePage } from "./pages/ProfilePage";
 import { api } from "./lib/api";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/media" element={<RequireAuth><MediaLibraryPage /></RequireAuth>} />
+        <Route path="/profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
         <Route path="/help" element={<RequireAuth><PublisherHelpPage /></RequireAuth>} />
         <Route path="/" element={<PublicIndexPage />} />
         <Route path="/home" element={<RequireAuth><HomePage /></RequireAuth>} />

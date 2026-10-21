@@ -173,3 +173,28 @@ class ForgotPasswordReset(BaseModel):
     @classmethod
     def _normalize_mobile(cls, v: str) -> str:
         return normalize_indian_mobile(v)
+
+
+class ProfileUpdate(BaseModel):
+    first_name: Optional[str] = Field(None, max_length=100)
+    last_name: Optional[str] = Field(None, max_length=100)
+    email: Optional[EmailStr] = None
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _blank_email_to_none(cls, value):
+        return value.strip() or None if isinstance(value, str) else value
+
+    @field_validator("first_name", "last_name")
+    @classmethod
+    def _strip_names(cls, value: Optional[str]) -> Optional[str]:
+        return value.strip() if value and value.strip() else None
+
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=8, max_length=72)
+
+
+class AccountDeletion(BaseModel):
+    password: str

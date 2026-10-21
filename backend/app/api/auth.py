@@ -16,7 +16,7 @@ from app.config import settings
 from sqlalchemy.exc import IntegrityError
 from app.models.advertiser import Advertiser
 from app.models.publisher import Publisher
-from app.schemas.user import SignupRequest, SignupRole, ForgotPasswordReset, MessageResponse
+from app.schemas.user import SignupRequest, SignupRole, ForgotPasswordReset, MessageResponse, ProfileUpdate, PasswordChange, AccountDeletion
 from app.services.otp import verify_otp
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -122,6 +122,53 @@ async def register(
 async def me(current_user: User = Depends(get_current_user)) -> User:
     """Retrieves profile details for the currently authenticated identity."""
     return current_user
+
+
+@router.patch("/me", response_model=UserOut, summary="Update own profile")
+async def update_profile(
+    payload: ProfileUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    if not payload.email and not current_user.mobile:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Add a mobile number before removing your email")
+    if payload.email and (await db.execute(select(User).where(User.email == payload.email, User.id != current_user.id))).scalar_one_or_none():
+        raise HTTPException(status.HTTP_409_CONFLICT, "An account with this email already exists")
+    current_user.first_name = payload.first_name
+    current_user.last_name = payload.last_name
+    current_user.email = str(payload.email) if payload.email else None
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "An account with this email already exists")
+    await db.refresh(current_user)
+    return current_user
+
+
+@router.post("/me/password", response_model=MessageResponse, summary="Change own password")
+async def change_password(
+    payload: PasswordChange,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> MessageResponse:
+    if not verify_password(payload.current_password, current_user.hashed_password):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Current password is incorrect")
+    current_user.hashed_password = hash_password(payload.new_password)
+    await db.commit()
+    return MessageResponse(message="Password changed successfully")
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT, summary="Delete own account")
+async def delete_account(
+    payload: AccountDeletion,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    if not verify_password(payload.password, current_user.hashed_password):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Password is incorrect")
+    await db.delete(current_user)
+    await db.commit()
 
 @router.post(
     "/signup",

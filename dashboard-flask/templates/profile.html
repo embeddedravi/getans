@@ -1,0 +1,96 @@
+{% extends "layout.html" %}
+
+{% block title %}Profile & account{% endblock %}
+{% block description %}Manage your profile and account security{% endblock %}
+{% block page_title %}Profile & account{% endblock %}
+
+{% block content %}
+{% set display_name = ([user.get('first_name'), user.get('last_name')]|select|join(' ')) or user.get('email') or user.get('mobile') or 'Your profile' %}
+<div class="mx-auto max-w-5xl space-y-6 pb-8">
+  <section class="relative overflow-hidden rounded-2xl border border-base-300 bg-base-200 px-5 py-6 sm:px-8 sm:py-8">
+    <div class="pointer-events-none absolute -right-10 -top-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl"></div>
+    <div class="relative flex flex-col gap-5 sm:flex-row sm:items-center">
+      <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary/15 font-display text-2xl font-semibold text-primary">{{ display_name[:1]|upper }}</div>
+      <div class="min-w-0 flex-1">
+        <p class="text-xs font-semibold uppercase tracking-[.18em] text-primary">Account settings</p>
+        <h2 class="mt-1 truncate font-display text-2xl font-semibold tracking-tight sm:text-3xl">{{ display_name }}</h2>
+        <p class="mt-1 text-sm text-base-content/60">Update your personal information and keep your account secure.</p>
+      </div>
+      {% if user.get('role') %}<span class="badge badge-outline self-start sm:self-center">{{ user.get('role')|replace('_', ' ')|title }}</span>{% endif %}
+    </div>
+  </section>
+
+  <div class="grid items-start gap-5 lg:grid-cols-2">
+    <section class="card h-full border border-base-300 bg-base-100 shadow-sm">
+      <div class="card-body gap-5 p-5 sm:p-6">
+        <div class="flex items-start gap-3">
+          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-lg text-primary" aria-hidden="true">◎</span>
+          <div><h3 class="font-display text-lg font-semibold">Personal details</h3><p class="text-sm text-base-content/60">Your name appears across your workspace.</p></div>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div class="rounded-xl bg-base-200/70 p-3"><p class="text-xs font-medium uppercase tracking-wide text-base-content/50">Mobile</p><p class="mt-1 truncate text-sm font-medium">{{ user.get('mobile') or 'Not set' }}</p></div>
+          <div class="rounded-xl bg-base-200/70 p-3"><p class="text-xs font-medium uppercase tracking-wide text-base-content/50">Account role</p><p class="mt-1 truncate text-sm font-medium">{{ user.get('role', 'user')|replace('_', ' ')|title }}</p></div>
+        </div>
+        <form id="profile-details-form" method="POST" action="{{ url_for('profile') }}" class="space-y-4">
+          <input type="hidden" name="action" value="update_name" />
+          <div class="grid gap-4 sm:grid-cols-2">
+            <label class="form-control gap-1"><span class="label-text text-xs font-medium">First name</span><input class="input input-bordered w-full focus:input-primary" name="first_name" maxlength="100" value="{{ user.get('first_name') or '' }}" /></label>
+            <label class="form-control gap-1"><span class="label-text text-xs font-medium">Last name</span><input class="input input-bordered w-full focus:input-primary" name="last_name" maxlength="100" value="{{ user.get('last_name') or '' }}" /></label>
+          </div>
+          <label class="form-control gap-1"><span class="label-text text-xs font-medium">Email address</span><input class="input input-bordered w-full focus:input-primary" type="email" name="email" autocomplete="email" maxlength="191" value="{{ user.get('email') or '' }}" /><span class="label-text-alt text-base-content/50">Used for account contact. If you remove it, keep a mobile number on your account.</span></label>
+          <div class="flex justify-end border-t border-base-300 pt-4"><button id="profile-save-button" class="btn {{ 'btn-success' if profile_saved else 'btn-primary' }} btn-sm min-w-28" type="submit">{{ '✓ Saved' if profile_saved else 'Save changes' }}</button></div>
+        </form>
+      </div>
+    </section>
+
+    <section class="card h-full border border-base-300 bg-base-100 shadow-sm">
+      <div class="card-body gap-5 p-5 sm:p-6">
+        <div class="flex items-start gap-3">
+          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/10 text-lg text-secondary" aria-hidden="true">⌑</span>
+          <div><h3 class="font-display text-lg font-semibold">Password &amp; security</h3><p class="text-sm text-base-content/60">Choose a password you don’t use elsewhere.</p></div>
+        </div>
+        <form method="POST" action="{{ url_for('profile') }}" class="space-y-4">
+          <input type="hidden" name="action" value="change_password" />
+          <label class="form-control gap-1"><span class="label-text text-xs font-medium">Current password</span><input class="input input-bordered w-full focus:input-primary" type="password" name="current_password" autocomplete="current-password" required /></label>
+          <label class="form-control gap-1"><span class="label-text text-xs font-medium">New password</span><input class="input input-bordered w-full focus:input-primary" type="password" name="new_password" autocomplete="new-password" minlength="8" maxlength="72" required /><span class="label-text-alt text-base-content/50">At least 8 characters</span></label>
+          <div class="flex justify-end border-t border-base-300 pt-4"><button class="btn btn-primary btn-sm min-w-32" type="submit">Update password</button></div>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <section class="rounded-2xl border border-error/30 bg-error/[.03] p-5 sm:p-6">
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-start">
+      <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-error/10 text-lg text-error" aria-hidden="true">!</div>
+      <div class="min-w-0 flex-1">
+        <h3 class="font-display text-lg font-semibold text-error">Delete account</h3>
+        <p class="mt-1 max-w-2xl text-sm leading-6 text-base-content/65">This permanently removes your sign in account. Your publisher or advertiser workspace and its records will remain.</p>
+        <form method="POST" action="{{ url_for('profile') }}" class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end" onsubmit="return confirm('Permanently delete your account? You will be signed out.');">
+          <input type="hidden" name="action" value="delete_account" />
+          <label class="form-control w-full max-w-sm gap-1"><span class="label-text text-xs font-medium">Confirm with your password</span><input class="input input-bordered w-full" type="password" name="delete_password" autocomplete="current-password" required /></label>
+          <button class="btn btn-error btn-outline" type="submit">Delete my account</button>
+        </form>
+      </div>
+    </div>
+  </section>
+</div>
+<script>
+  document.querySelectorAll('input[name="first_name"], input[name="last_name"], input[name="email"]').forEach((input) => {
+    input.addEventListener('input', () => {
+      const button = document.getElementById('profile-save-button');
+      if (!button) return;
+      button.classList.remove('btn-success');
+      button.classList.add('btn-primary');
+      button.textContent = 'Save changes';
+    });
+  });
+  document.getElementById('profile-details-form')?.addEventListener('submit', () => {
+    const button = document.getElementById('profile-save-button');
+    if (!button) return;
+    button.disabled = true;
+    button.textContent = 'Saving…';
+    button.classList.remove('btn-success');
+    button.classList.add('btn-primary');
+  });
+</script>
+{% endblock %}

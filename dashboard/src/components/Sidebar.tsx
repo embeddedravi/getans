@@ -32,6 +32,7 @@ const roleLinks: Record<Role, { to: string; label: string; end?: boolean }[]> = 
   publisher: [
     { to: "/home", label: "Home", end: true },
     { to: "/analytics", label: "Analytics" },
+    { to: "/my-live-events", label: "Live events" },
     { to: "/earnings", label: "Earnings & payouts" },
     { to: "/publishers", label: "My sites", end: true },
     { to: "/adslots", label: "Ad slots", end: true },
@@ -40,6 +41,7 @@ const roleLinks: Record<Role, { to: string; label: string; end?: boolean }[]> = 
   advertiser: [
     { to: "/home", label: "Home", end: true },
     { to: "/analytics", label: "Analytics" },
+    { to: "/my-live-events", label: "Live events" },
     { to: "/wallet", label: "Wallet" },
     { to: "/campaigns", label: "My campaigns" },
     { to: "/media", label: "Media library" }

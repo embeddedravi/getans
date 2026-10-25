@@ -290,3 +290,39 @@ async def recent_events(
         }
         for e, campaign_name, slot_name in rows
     ]
+
+
+@router.get("/events/mine", summary="Recent events for the signed-in advertiser or publisher")
+async def my_recent_events(
+    limit: int = Query(100, ge=1, le=500),
+    after_id: int | None = Query(None, ge=0),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role("advertiser", "publisher")),
+) -> list[dict[str, Any]]:
+    stmt = (
+        select(Event, Campaign.name, AdUnit.slot_name)
+        .join(Campaign, Campaign.id == Event.campaign_id)
+        .join(AdUnit, AdUnit.id == Event.ad_unit_id)
+    )
+    if user.role == UserRoleModel.ADVERTISER:
+        stmt = stmt.where(Campaign.advertiser_id == user.advertiser_id)
+    else:
+        stmt = stmt.where(AdUnit.publisher_id == user.publisher_id)
+    if after_id is not None:
+        stmt = stmt.where(Event.id > after_id)
+    rows = (await db.execute(stmt.order_by(Event.id.desc()).limit(limit))).all()
+    return [
+        {
+            "id": event.id,
+            "type": event.type.value,
+            "campaign_id": event.campaign_id,
+            "campaign_name": campaign_name,
+            "ad_unit_id": event.ad_unit_id,
+            "slot_name": slot_name,
+            "creative_id": event.creative_id,
+            "country_code": event.country_code,
+            "cost": float(event.cost),
+            "timestamp": event.timestamp.isoformat(),
+        }
+        for event, campaign_name, slot_name in rows
+    ]

@@ -159,6 +159,17 @@ def publisher_required(f):
         return f(*args, **kwargs)
     return decorated
 
+
+def event_viewer_required(f):
+    """Allow admins, advertisers, and publishers to view their permitted feed."""
+    @wraps(f)
+    @login_required
+    def decorated(*args, **kwargs):
+        if session.get("role") not in {"admin", "advertiser", "publisher"}:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated
+
 @app.context_processor
 def inject_current_path():
     pending_count = 0
@@ -1053,23 +1064,24 @@ def media_delete(media_id: int):
         flash(f"Delete failed: {exc}", "error")
     return redirect(url_for("media_library"))
 
-# ── Live events (for admin) ─────────────────────────────────────────────────
+# ── Live events ──────────────────────────────────────────────────────────────
 
 @app.route("/live-events")
-@admin_required
+@event_viewer_required
 def live_events():
     return render_template("live_events.html")
 
 
 @app.route("/proxy/live-events")
-@admin_required
+@event_viewer_required
 def proxy_live_events():
     params = {"limit": min(request.args.get("limit", 100, type=int), 500)}
     after_id = request.args.get("after_id", type=int)
     if after_id is not None:
         params["after_id"] = after_id
     try:
-        return jsonify(_api("GET", "/admin/events/recent", params=params))
+        endpoint = "/admin/events/recent" if session.get("role") == "admin" else "/admin/events/mine"
+        return jsonify(_api("GET", endpoint, params=params))
     except Exception:
         return jsonify({"detail": "Could not load events"}), 502
 

@@ -65,6 +65,7 @@ export const api = {
   listPayouts: (status?: string) => request<import("../types").Payout[]>(`/payouts${status ? `?status=${encodeURIComponent(status)}` : ""}`),
   listAdvertiserTopUps: () => request<import("../types").AdvertiserTopUp[]>("/payments/topups"),
   listRecentEvents: (limit = 100, afterId?: number) => request<import("../types").LiveEvent[]>(`/admin/events/recent?limit=${limit}${afterId === undefined ? "" : `&after_id=${afterId}`}`),
+  listMyRecentEvents: (limit = 100, afterId?: number) => request<import("../types").LiveEvent[]>(`/admin/events/mine?limit=${limit}${afterId === undefined ? "" : `&after_id=${afterId}`}`),
   updatePayout: (id: number, payload: { status?: import("../types").PayoutStatus; reference?: string }) =>
     request<import("../types").Payout>(`/payouts/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   reviewPublisher: (id: number, status: "active" | "suspended" | "rejected", rejection_reason?: string) =>

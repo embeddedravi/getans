@@ -38,6 +38,18 @@ function RequireAdmin({ children }: { children: JSX.Element }) {
   return isAdmin ? children : <Navigate to="/home" replace />;
 }
 
+function RequireAdvertiserOrPublisher({ children }: { children: JSX.Element }) {
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+  useEffect(() => {
+    api.me().then((user) => {
+      const role = (user as { role?: string }).role;
+      setAllowed(role === "advertiser" || role === "publisher");
+    }).catch(() => setAllowed(false));
+  }, []);
+  if (allowed === null) return <div className="p-6 text-sm">Checking access…</div>;
+  return allowed ? children : <Navigate to="/home" replace />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -80,6 +92,7 @@ export default function App() {
         <Route path="/manage-slots" element={<RequireAuth><RequireAdmin><AdminSlotsPage /></RequireAdmin></RequireAuth>} />
         <Route path="/manage-users" element={<RequireAuth><RequireAdmin><AdminUsersPage /></RequireAdmin></RequireAuth>} />
         <Route path="/live-events" element={<RequireAuth><RequireAdmin><LiveEventsPage /></RequireAdmin></RequireAuth>} />
+        <Route path="/my-live-events" element={<RequireAuth><RequireAdvertiserOrPublisher><LiveEventsPage own /></RequireAdvertiserOrPublisher></RequireAuth>} />
       </Routes>
     </BrowserRouter>
   );

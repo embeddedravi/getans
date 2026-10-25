@@ -61,6 +61,7 @@
   let filter = "all";
   let paused = false;
   let socket = null;
+  let lastSeenId = 0;
 
   const body = document.getElementById("feed-body");
   const empty = document.getElementById("empty-state");
@@ -117,7 +118,26 @@
       events.unshift(e);
       if (events.length > MAX_ROWS) events = events.slice(0, MAX_ROWS);
     }
+    lastSeenId = Math.max(lastSeenId, Number(e.id) || 0);
     render();
+  }
+
+  function loadEvents(afterId) {
+    const params = new URLSearchParams({ limit: String(MAX_ROWS) });
+    if (afterId !== undefined) params.set("after_id", String(afterId));
+    return fetch("/proxy/live-events?" + params.toString(), { headers: { Accept: "application/json" } })
+      .then(res => {
+        if (!res.ok) throw new Error("Could not load events");
+        return res.json();
+      })
+      .then(fresh => {
+        if (Array.isArray(fresh)) fresh.slice().reverse().forEach(addEvent);
+        errBox.classList.add("hidden");
+      })
+      .catch(() => {
+        errBox.textContent = "Could not load recent events.";
+        errBox.classList.remove("hidden");
+      });
   }
 
   function connectSocket() {
@@ -193,20 +213,14 @@
     if (paused) {
       setStatus("paused");
     } else {
-      // On resume, fetch recent events to catch up
-      fetch("/proxy/live-events?limit=" + MAX_ROWS, { headers: { Accept: "application/json" } })
-        .then(res => res.json())
-        .then(fresh => {
-          if (Array.isArray(fresh)) {
-            fresh.reverse().forEach(addEvent); // Add older first, then newer
-          }
-        })
-        .catch(() => {});
+      // Catch up only on events that arrived after the feed was paused or cleared.
+      loadEvents(lastSeenId);
       setStatus("live");
     }
   });
 
   // Initialize
+  loadEvents();
   connectSocket();
   window.addEventListener("beforeunload", () => {
     if (socket) socket.disconnect();

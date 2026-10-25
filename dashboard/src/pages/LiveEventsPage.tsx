@@ -16,7 +16,7 @@ function merge(incoming: LiveEvent[], existing: LiveEvent[]): LiveEvent[] {
     .slice(0, MAX_ROWS);
 }
 
-export function LiveEventsPage() {
+export function LiveEventsPage({ own = false }: { own?: boolean }) {
   const [events, setEvents] = useState<LiveEvent[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
   const [paused, setPaused] = useState(false);
@@ -27,7 +27,9 @@ export function LiveEventsPage() {
 
   const load = useCallback(async (afterId?: number) => {
     try {
-      const recent = await api.listRecentEvents(100, afterId);
+      const recent = own
+        ? await api.listMyRecentEvents(100, afterId)
+        : await api.listRecentEvents(100, afterId);
       setEvents((prev) => {
         const next = merge(recent, prev);
         lastSeenId.current = Math.max(lastSeenId.current, ...next.map((event) => event.id), 0);
@@ -37,7 +39,7 @@ export function LiveEventsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load events");
     }
-  }, []);
+  }, [own]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -59,7 +61,7 @@ export function LiveEventsPage() {
   const listing = useListingControls(visible, (event) => `${event.type} ${event.campaign_name || ""} ${event.slot_name || ""} ${event.country_code || ""} ${event.creative_id}`);
 
   return (
-    <Layout title="Live events">
+    <Layout title={own ? "My live events" : "Live events"}>
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div role="tablist" className="tabs tabs-bordered">

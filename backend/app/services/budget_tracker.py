@@ -129,12 +129,17 @@ async def record_event(
         }
 
     await _emit_dashboard_update(enum_event_type.value, campaign_id, ad_unit_id, advertiser_id, publisher_id)
-    await _emit_live_event(live)
+    await _emit_live_event(live, advertiser_id=advertiser_id, publisher_id=publisher_id)
 
 
-async def _emit_live_event(payload: dict) -> None:
+async def _emit_live_event(
+    payload: dict,
+    *,
+    advertiser_id: int | None,
+    publisher_id: int | None,
+) -> None:
     from app.sockets.dashboard_ns import emit_live_event
-    await emit_live_event(payload)
+    await emit_live_event(payload, advertiser_id=advertiser_id, publisher_id=publisher_id)
 
 
 def _event_cost(campaign: Campaign, event_type: EventType) -> Decimal:

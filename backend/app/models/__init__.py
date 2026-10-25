@@ -13,6 +13,7 @@ from app.models.publisher import Publisher  # noqa: F401
 from app.models.user import User  # noqa: F401
 from app.models.payment import AdvertiserTopUp, Payout  # noqa: F401
 from app.models.otp import OTPCode  # noqa: F401
+from app.models.support_ticket import SupportTicket, SupportTicketMessage  # noqa: F401
 
 __all__ = [
     "AdUnit",
@@ -26,4 +27,6 @@ __all__ = [
     "Payout",
     "AdvertiserTopUp",
     "OTPCode",
+    "SupportTicket",
+    "SupportTicketMessage",
 ]

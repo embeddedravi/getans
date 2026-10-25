@@ -32,7 +32,7 @@ fastapi_app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.api import analytics, auth, campaigns, creatives, payouts, publishers, otp, admin, advertiser_payments, media, delivery  # noqa: E402
+from app.api import analytics, auth, campaigns, creatives, payouts, publishers, otp, admin, advertiser_payments, media, delivery, support  # noqa: E402
 
 class MediaFiles(StaticFiles):
     async def get_response(self, path, scope):
@@ -55,6 +55,7 @@ fastapi_app.include_router(analytics.router, prefix="/api", tags=["analytics"])
 fastapi_app.include_router(payouts.router, prefix="/api/payouts", tags=["payouts"])
 fastapi_app.include_router(advertiser_payments.router, prefix="/api/payments", tags=["payments"])
 fastapi_app.include_router(admin.router, prefix="/api", tags=["admin"])
+fastapi_app.include_router(support.router, prefix="/api")
 
 @fastapi_app.get("/health")
 async def health() -> dict[str, str]:

@@ -24,10 +24,12 @@ const roleLinks: Record<Role, { to: string; label: string; end?: boolean }[]> = 
     { to: "/approvals", label: "Approvals" },
     { to: "/payments", label: "Payments" },
     { to: "/payouts", label: "Payouts" },
+    { to: "/support", label: "Support" },
   ],
   staff: [
     { to: "/home", label: "Home", end: true },
     { to: "/approvals", label: "Review queue" },
+    { to: "/support", label: "Support queue" },
   ],
   publisher: [
     { to: "/home", label: "Home", end: true },
@@ -37,6 +39,7 @@ const roleLinks: Record<Role, { to: string; label: string; end?: boolean }[]> = 
     { to: "/publishers", label: "My sites", end: true },
     { to: "/adslots", label: "Ad slots", end: true },
     { to: "/help", label: "Integration help" },
+    { to: "/support", label: "Support" },
   ],
   advertiser: [
     { to: "/home", label: "Home", end: true },
@@ -45,7 +48,8 @@ const roleLinks: Record<Role, { to: string; label: string; end?: boolean }[]> = 
     { to: "/publisher-inventory", label: "Publisher inventory" },
     { to: "/wallet", label: "Wallet" },
     { to: "/campaigns", label: "My campaigns" },
-    { to: "/media", label: "Media library" }
+    { to: "/media", label: "Media library" },
+    { to: "/support", label: "Support" },
   ],
 };
 

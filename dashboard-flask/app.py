@@ -170,6 +170,17 @@ def event_viewer_required(f):
         return f(*args, **kwargs)
     return decorated
 
+
+def support_user_required(f):
+    """Allow customers to see their own support and staff to manage the queue."""
+    @wraps(f)
+    @login_required
+    def decorated(*args, **kwargs):
+        if session.get("role") not in {"admin", "staff", "advertiser", "publisher"}:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated
+
 @app.context_processor
 def inject_current_path():
     pending_count = 0
@@ -682,6 +693,84 @@ def publisher_help():
         api_base=API_BASE,
         socket_base=socket_base,
     )
+
+
+@app.route("/support")
+@support_user_required
+def support_center():
+    is_staff = session.get("role") in {"admin", "staff"}
+    ticket_status = request.args.get("status", "all")
+    params = {"status": ticket_status} if ticket_status != "all" else None
+    try:
+        tickets = _api("GET", "/support/tickets", params=params) or []
+        selected_id = request.args.get("ticket", type=int)
+        selected = _api("GET", f"/support/tickets/{selected_id}") if selected_id else None
+        staff_users = _api("GET", "/support/staff") if is_staff else []
+        error = None
+    except Exception as exc:
+        tickets = []
+        selected = None
+        staff_users = []
+        error = f"Could not load support tickets: {exc}"
+    return render_template(
+        "support.html",
+        tickets=tickets,
+        selected=selected,
+        staff_users=staff_users,
+        is_staff=is_staff,
+        ticket_status=ticket_status,
+        error=error,
+    )
+
+
+@app.route("/support/create", methods=["POST"])
+@support_user_required
+def support_create():
+    if session.get("role") not in {"advertiser", "publisher"}:
+        abort(403)
+    try:
+        created = _api("POST", "/support/tickets", json={
+            "subject": request.form.get("subject", ""),
+            "category": request.form.get("category", "other"),
+            "message": request.form.get("message", ""),
+        })
+        flash("Support ticket created.", "success")
+        return redirect(url_for("support_center", ticket=created["id"]))
+    except Exception as exc:
+        flash(f"Could not create support ticket: {exc}", "error")
+        return redirect(url_for("support_center"))
+
+
+@app.route("/support/<int:ticket_id>/messages", methods=["POST"])
+@support_user_required
+def support_message(ticket_id: int):
+    try:
+        _api("POST", f"/support/tickets/{ticket_id}/messages", json={
+            "body": request.form.get("body", ""),
+            "is_internal": request.form.get("is_internal") == "on",
+        })
+        flash("Note added." if request.form.get("is_internal") == "on" else "Reply sent.", "success")
+    except Exception as exc:
+        flash(f"Could not send message: {exc}", "error")
+    return redirect(url_for("support_center", ticket=ticket_id))
+
+
+@app.route("/support/<int:ticket_id>/update", methods=["POST"])
+@support_user_required
+def support_update(ticket_id: int):
+    if session.get("role") not in {"admin", "staff"}:
+        abort(403)
+    payload = {
+        "status": request.form.get("status"),
+        "priority": request.form.get("priority"),
+        "assigned_to_id": int(request.form["assigned_to_id"]) if request.form.get("assigned_to_id") else None,
+    }
+    try:
+        _api("PATCH", f"/support/tickets/{ticket_id}", json=payload)
+        flash("Ticket updated.", "success")
+    except Exception as exc:
+        flash(f"Could not update ticket: {exc}", "error")
+    return redirect(url_for("support_center", ticket=ticket_id))
 
 
 @app.route("/earnings")

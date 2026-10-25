@@ -77,6 +77,15 @@ export const api = {
   listAdUnitReports: (id: number) =>
     request<{ id: number; creative_id: number | null; reason: string; created_at: string }[]>(`/admin/ad-units/${id}/reports`),
   listAvailablePublisherAdUnits: () => request<import("../types").AvailablePublisherAdUnit[]>("/publishers/available-ad-units"),
+  listSupportTickets: (status?: string) => request<import("../types").SupportTicketSummary[]>(`/support/tickets${status && status !== "all" ? `?status=${encodeURIComponent(status)}` : ""}`),
+  getSupportTicket: (id: number) => request<import("../types").SupportTicket>(`/support/tickets/${id}`),
+  createSupportTicket: (payload: { subject: string; category: import("../types").SupportTicketCategory; message: string }) =>
+    request<import("../types").SupportTicketSummary>("/support/tickets", { method: "POST", body: JSON.stringify(payload) }),
+  addSupportTicketMessage: (id: number, body: string, is_internal = false) =>
+    request<import("../types").SupportTicketMessage>(`/support/tickets/${id}/messages`, { method: "POST", body: JSON.stringify({ body, is_internal }) }),
+  updateSupportTicket: (id: number, payload: { status?: import("../types").SupportTicketStatus; priority?: import("../types").SupportTicketPriority; assigned_to_id?: number | null }) =>
+    request<import("../types").SupportTicketSummary>(`/support/tickets/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  listSupportStaff: () => request<{ id: number; name: string; role: "staff" | "admin" }[]>("/support/staff"),
   setAdUnitActive: (id: number, is_active: boolean) =>
     request(`/admin/ad-units/${id}/active`, { method: "PATCH", body: JSON.stringify({ is_active }) }),
   signup: (payload: unknown) =>

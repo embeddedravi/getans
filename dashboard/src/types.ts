@@ -135,6 +135,38 @@ export interface AvailablePublisherAdUnit {
   reserve_price: number;
 }
 
+export type SupportTicketStatus = "open" | "in_progress" | "waiting_on_customer" | "resolved" | "closed";
+export type SupportTicketPriority = "low" | "normal" | "high" | "urgent";
+export type SupportTicketCategory = "account" | "billing" | "campaign" | "creative" | "ad_delivery" | "payout" | "other";
+
+export interface SupportTicketSummary {
+  id: number;
+  subject: string;
+  category: SupportTicketCategory;
+  status: SupportTicketStatus;
+  priority: SupportTicketPriority;
+  user_id: number;
+  customer_name: string;
+  customer_email: string | null;
+  customer_mobile: string | null;
+  assigned_to_id: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SupportTicketMessage {
+  id: number;
+  author_id: number;
+  author_name: string;
+  body: string;
+  is_internal: boolean;
+  created_at: string;
+}
+
+export interface SupportTicket extends SupportTicketSummary {
+  messages: SupportTicketMessage[];
+}
+
 export interface MediaAsset {
   id: number; advertiser_id: number; kind: "image" | "video";
   original_filename: string; content_type: string; size_bytes: number;

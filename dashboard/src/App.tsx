@@ -23,6 +23,7 @@ import { AdvertiserWalletPage } from "./pages/AdvertiserWalletPage";
 import { PublisherEarningsPage } from "./pages/PublisherEarningsPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { PublisherInventoryPage } from "./pages/PublisherInventoryPage";
+import { SupportPage } from "./pages/SupportPage";
 import { api } from "./lib/api";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -104,6 +105,7 @@ export default function App() {
         <Route path="/live-events" element={<RequireAuth><RequireAdmin><LiveEventsPage /></RequireAdmin></RequireAuth>} />
         <Route path="/my-live-events" element={<RequireAuth><RequireAdvertiserOrPublisher><LiveEventsPage own /></RequireAdvertiserOrPublisher></RequireAuth>} />
         <Route path="/publisher-inventory" element={<RequireAuth><RequireAdvertiser><PublisherInventoryPage /></RequireAdvertiser></RequireAuth>} />
+        <Route path="/support" element={<RequireAuth><SupportPage /></RequireAuth>} />
       </Routes>
     </BrowserRouter>
   );

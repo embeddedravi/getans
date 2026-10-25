@@ -52,6 +52,7 @@
         {% endif %}
         {% if session.get('role') == 'advertiser' %}
           {% set nav_links = nav_links + [
+            ('/publisher-inventory', 'Publisher inventory', 'M4 6h16M4 12h16M4 18h16'),
             ('/media', 'Media library', 'M4 16l4-4a3 3 0 014 0l4 4m-2-2l1-1a3 3 0 014 0l2 2M4 6h16a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1z'),
             ('/wallet', 'Wallet', 'M3 10h18M7 15h1m4 0h1m-9 4h16a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z')
           ] %}

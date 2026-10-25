@@ -22,6 +22,7 @@ import { PublisherHelpPage } from "./pages/PublisherHelpPage";
 import { AdvertiserWalletPage } from "./pages/AdvertiserWalletPage";
 import { PublisherEarningsPage } from "./pages/PublisherEarningsPage";
 import { ProfilePage } from "./pages/ProfilePage";
+import { PublisherInventoryPage } from "./pages/PublisherInventoryPage";
 import { api } from "./lib/api";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -48,6 +49,15 @@ function RequireAdvertiserOrPublisher({ children }: { children: JSX.Element }) {
   }, []);
   if (allowed === null) return <div className="p-6 text-sm">Checking access…</div>;
   return allowed ? children : <Navigate to="/home" replace />;
+}
+
+function RequireAdvertiser({ children }: { children: JSX.Element }) {
+  const [isAdvertiser, setIsAdvertiser] = useState<boolean | null>(null);
+  useEffect(() => {
+    api.me().then((user) => setIsAdvertiser((user as { role?: string }).role === "advertiser")).catch(() => setIsAdvertiser(false));
+  }, []);
+  if (isAdvertiser === null) return <div className="p-6 text-sm">Checking access…</div>;
+  return isAdvertiser ? children : <Navigate to="/home" replace />;
 }
 
 export default function App() {
@@ -93,6 +103,7 @@ export default function App() {
         <Route path="/manage-users" element={<RequireAuth><RequireAdmin><AdminUsersPage /></RequireAdmin></RequireAuth>} />
         <Route path="/live-events" element={<RequireAuth><RequireAdmin><LiveEventsPage /></RequireAdmin></RequireAuth>} />
         <Route path="/my-live-events" element={<RequireAuth><RequireAdvertiserOrPublisher><LiveEventsPage own /></RequireAdvertiserOrPublisher></RequireAuth>} />
+        <Route path="/publisher-inventory" element={<RequireAuth><RequireAdvertiser><PublisherInventoryPage /></RequireAdvertiser></RequireAuth>} />
       </Routes>
     </BrowserRouter>
   );

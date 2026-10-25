@@ -7,8 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import get_db, require_role
-from app.models.ad_unit import AdUnit
-from app.models.publisher import Publisher
+from app.models.ad_unit import AdUnit, AdUnitStatus
+from app.models.publisher import Publisher, PublisherStatus
 from app.models.user import User
 from app.schemas.publisher import PublisherCreate, PublisherOut
 from app.schemas.add_unit import AdUnitCreate, AdUnitOut
@@ -57,6 +57,44 @@ async def list_publishers(
 
     result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+@router.get(
+    "/available-ad-units",
+    summary="List approved active publisher inventory for advertisers",
+)
+async def available_ad_units(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role("advertiser")),
+) -> list[dict]:
+    rows = (await db.execute(
+        select(AdUnit, Publisher)
+        .join(Publisher, Publisher.id == AdUnit.publisher_id)
+        .where(
+            Publisher.status == PublisherStatus.ACTIVE,
+            Publisher.is_active.is_(True),
+            AdUnit.status == AdUnitStatus.APPROVED,
+            AdUnit.is_active.is_(True),
+        )
+        .order_by(Publisher.name, AdUnit.slot_name)
+    )).all()
+    return [
+        {
+            "id": unit.id,
+            "publisher_id": publisher.id,
+            "publisher_name": publisher.name,
+            "site_url": publisher.site_url,
+            "domain": publisher.domain,
+            "category": publisher.category,
+            "slot_name": unit.slot_name,
+            "description": unit.description,
+            "format_type": unit.format_type.value,
+            "width": unit.width,
+            "height": unit.height,
+            "reserve_price": float(unit.reserve_price),
+        }
+        for unit, publisher in rows
+    ]
 
 
 @router.get(

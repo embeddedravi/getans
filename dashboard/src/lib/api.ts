@@ -76,6 +76,7 @@ export const api = {
     request(`/admin/ad-units/${id}/review`, { method: "PATCH", body: JSON.stringify({ status, rejection_reason }) }),
   listAdUnitReports: (id: number) =>
     request<{ id: number; creative_id: number | null; reason: string; created_at: string }[]>(`/admin/ad-units/${id}/reports`),
+  listAvailablePublisherAdUnits: () => request<import("../types").AvailablePublisherAdUnit[]>("/publishers/available-ad-units"),
   setAdUnitActive: (id: number, is_active: boolean) =>
     request(`/admin/ad-units/${id}/active`, { method: "PATCH", body: JSON.stringify({ is_active }) }),
   signup: (payload: unknown) =>

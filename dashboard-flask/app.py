@@ -622,6 +622,18 @@ def publisher_adslots():
     return _publisher_workspace("adslots")
 
 
+@app.route("/publisher-inventory")
+@advertiser_required
+def publisher_inventory():
+    try:
+        ad_units = _api("GET", "/publishers/available-ad-units")
+        error = None
+    except Exception:
+        ad_units = []
+        error = "Could not load publisher inventory. Please try again."
+    return render_template("publisher_inventory.html", ad_units=ad_units, error=error)
+
+
 def _publisher_workspace(view: str):
     try:
         publishers_list = _api("GET", "/publishers")

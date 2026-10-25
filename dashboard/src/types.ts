@@ -120,6 +120,21 @@ export interface AdUnit {
   created_at: string;
 }
 
+export interface AvailablePublisherAdUnit {
+  id: number;
+  publisher_id: number;
+  publisher_name: string;
+  site_url: string;
+  domain: string | null;
+  category: string | null;
+  slot_name: string;
+  description: string | null;
+  format_type: AdFormatType;
+  width: number;
+  height: number;
+  reserve_price: number;
+}
+
 export interface MediaAsset {
   id: number; advertiser_id: number; kind: "image" | "video";
   original_filename: string; content_type: string; size_bytes: number;

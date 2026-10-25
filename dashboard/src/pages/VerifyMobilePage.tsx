@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { CaptchaChallenge } from "../components/CaptchaChallenge";
+import { AuthBackground } from "../components/AuthBackground";
 
 type Step = "mobile" | "code" | "done";
 
@@ -61,9 +62,10 @@ export function VerifyMobilePage() {
   }
 
   return (
-    <div className="h-screen flex items-center justify-center bg-base-100">
+    <div className="relative isolate min-h-screen flex items-center justify-center overflow-hidden bg-base-100 p-4">
+      <AuthBackground />
       <ThemeToggle />
-      <div className="w-full max-w-sm border border-base-300 bg-base-200 rounded p-8">
+      <div className="relative z-10 w-full max-w-sm border border-base-300 bg-base-200 rounded p-8">
         <h1 className="font-display text-2xl font-semibold mb-1">Verify your mobile number</h1>
 
         {step === "mobile" && (

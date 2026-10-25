@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { CaptchaChallenge } from "../components/CaptchaChallenge";
+import { AuthBackground } from "../components/AuthBackground";
 
 export function ForgotPasswordPage() {
   const [step, setStep] = useState<"request" | "verify">("request");
@@ -59,9 +60,10 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <div className="h-screen flex items-center justify-center bg-base-100">
+    <div className="relative isolate min-h-screen flex items-center justify-center overflow-hidden bg-base-100 p-4">
+      <AuthBackground />
       <ThemeToggle />
-      <div className="w-full max-w-sm border border-base-300 bg-base-200 rounded p-8">
+      <div className="relative z-10 w-full max-w-sm border border-base-300 bg-base-200 rounded p-8">
         <h1 className="font-display text-2xl font-semibold mb-1">Reset Password</h1>
         <p className="text-sm  mb-6">
           {step === "request"

@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { CaptchaChallenge } from "../components/CaptchaChallenge";
+import { AuthBackground } from "../components/AuthBackground";
 
 export function LoginPage() {
   const [mobile, setMobile] = useState("");
@@ -42,7 +43,8 @@ export function LoginPage() {
   }
 
   return (
-    <div className="relative h-screen flex items-center justify-center bg-base-100">
+    <div className="relative isolate min-h-screen flex items-center justify-center overflow-hidden bg-base-100 p-4">
+      <AuthBackground />
       <button
         type="button"
         className="btn btn-ghost btn-square btn-sm absolute right-4 top-4"
@@ -60,7 +62,7 @@ export function LoginPage() {
           </svg>
         )}
       </button>
-      <div className="w-full max-w-sm border border-base-300 bg-base-200 rounded p-8">
+      <div className="relative z-10 w-full max-w-sm border border-base-300 bg-base-200 rounded p-8">
         <Link to="/" className="font-display text-2xl font-semibold mb-1 inline-block hover:text-primary">GetANS</Link>
         <p className="text-sm  mb-6">Sign in to manage campaigns</p>
 

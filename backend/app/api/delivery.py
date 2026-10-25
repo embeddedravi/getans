@@ -82,10 +82,10 @@ async def request_ad(
 @router.post(
     "/events/{event_type}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Record an ad impression, click, or conversion",
+    summary="Record an ad impression, click, conversion, or viewable impression",
 )
 async def track_ad_event(
-    event_type: Literal["impression", "click", "conversion"],
+    event_type: Literal["impression", "click", "conversion", "viewable_impression"],
     payload: AdEvent,
     request: Request,
     publisher_key: str = Header(alias="X-Publisher-Key"),

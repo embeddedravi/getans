@@ -198,6 +198,32 @@
     frame.appendChild(details);
   }
 
+  function setupViewabilityTracking(frame, socket, adUnitId, ad) {
+    if (!ad.creative_id || !ad.serve_token || !ad.visitor_id) return;
+
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          // Ad entered viewport - send viewable_impression event
+          socket.emit("viewable_impression", {
+            ad_unit_id: adUnitId,
+            creative_id: ad.creative_id,
+            visitor_id: ad.visitor_id,
+            serve_token: ad.serve_token,
+            event_id: createEventId()
+          });
+          // Only fire once per ad
+          observer.disconnect();
+        }
+      });
+    }, {
+      threshold: 0.5,
+      rootMargin: "0px"
+    });
+
+    observer.observe(frame);
+  }
+
   function requestAdForSlot(socket, container) {
     var adUnitId = container.getAttribute("data-ad-unit-id");
     if (!adUnitId || container.getAttribute("data-ad-loading") === "true") return;
@@ -235,6 +261,7 @@
         event_id: createEventId()
       });
       addReportControl(rendered.frame, socket, adUnitId, ad);
+      setupViewabilityTracking(rendered.frame, socket, adUnitId, ad);
     }
 
     function onNoFill() {

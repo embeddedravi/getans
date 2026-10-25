@@ -6,7 +6,7 @@ import { subscribeToLiveEvents } from "../lib/socket";
 import type { LiveEvent } from "../types";
 
 const MAX_ROWS = 200;
-type Filter = "all" | "impression" | "click";
+type Filter = "all" | "impression" | "viewable_impression" | "click" | "conversion";
 
 function merge(incoming: LiveEvent[], existing: LiveEvent[]): LiveEvent[] {
   const seen = new Set<number>();
@@ -22,12 +22,17 @@ export function LiveEventsPage() {
   const [paused, setPaused] = useState(false);
   const [error, setError] = useState("");
   const pausedRef = useRef(false);
+  const lastSeenId = useRef(0);
   pausedRef.current = paused;
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (afterId?: number) => {
     try {
-      const recent = await api.listRecentEvents(100);
-      setEvents((prev) => merge(recent, prev));
+      const recent = await api.listRecentEvents(100, afterId);
+      setEvents((prev) => {
+        const next = merge(recent, prev);
+        lastSeenId.current = Math.max(lastSeenId.current, ...next.map((event) => event.id), 0);
+        return next;
+      });
       setError("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load events");
@@ -39,13 +44,14 @@ export function LiveEventsPage() {
   useEffect(() => {
     return subscribeToLiveEvents((event) => {
       if (pausedRef.current) return;
+      lastSeenId.current = Math.max(lastSeenId.current, event.id);
       setEvents((prev) => merge([event], prev));
     });
   }, []);
 
   function togglePause() {
     // Events that arrive while paused are skipped; catch up from the DB on resume.
-    if (paused) void load();
+    if (paused) void load(lastSeenId.current);
     setPaused(!paused);
   }
 
@@ -57,13 +63,13 @@ export function LiveEventsPage() {
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div role="tablist" className="tabs tabs-bordered">
-            {(["all", "impression", "click"] as Filter[]).map((f) => (
-              <button key={f} role="tab" aria-selected={filter === f}
-                onClick={() => setFilter(f)} className={`tab ${filter === f ? "tab-active" : ""}`}>
-                {f === "all" ? "All" : f === "impression" ? "Impressions" : "Clicks"}
-              </button>
-            ))}
-          </div>
+                      {(["all", "impression", "viewable_impression", "click", "conversion"] as Filter[]).map((f) => (
+                        <button key={f} role="tab" aria-selected={filter === f}
+                          onClick={() => setFilter(f)} className={`tab ${filter === f ? "tab-active" : ""}`}>
+                          {f === "all" ? "All" : f === "impression" ? "Impressions" : f === "viewable_impression" ? "Viewable" : f === "click" ? "Clicks" : "Conversions"}
+                        </button>
+                      ))}
+                    </div>
           <div className="flex items-center gap-2">
             <span className="text-xs  tabular">{visible.length} shown</span>
             <button className="btn btn-ghost btn-xs" onClick={() => setEvents([])}>Clear</button>

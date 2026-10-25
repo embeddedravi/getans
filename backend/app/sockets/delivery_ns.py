@@ -2,12 +2,13 @@
 Socket.IO namespace handling publisher-facing ad delivery.
 
 Events:
-    client -> server: "request_ad"   { ad_unit_id, api_key, context? }
-    server -> client: "serve_ad"     { creative_id, asset_url, click_url, width, height }
-    server -> client: "no_fill"      { reason }
-    client -> server: "impression"   { creative_id, ad_unit_id }
-    client -> server: "click"        { creative_id, ad_unit_id }
-    client -> server: "report_ad"    { api_key, ad_unit_id, creative_id, visitor_id, reason }
+    client -> server: "request_ad"           { ad_unit_id, api_key, context? }
+    server -> client: "serve_ad"             { creative_id, asset_url, click_url, width, height }
+    server -> client: "no_fill"              { reason }
+    client -> server: "impression"           { ad_unit_id, creative_id, visitor_id, serve_token, event_id }
+    client -> server: "click"                { ad_unit_id, creative_id, visitor_id, serve_token, event_id }
+    client -> server: "viewable_impression"  { ad_unit_id, creative_id, visitor_id, serve_token, event_id }
+    client -> server: "report_ad"            { api_key, ad_unit_id, creative_id, visitor_id, reason }
 """
 
 from __future__ import annotations
@@ -145,6 +146,27 @@ class DeliveryNamespace(socketio.AsyncNamespace):
         try:
             await record_event(
                 event_type="click",
+                ad_unit_id=data.get("ad_unit_id", 0),
+                creative_id=data.get("creative_id", 0),
+                event_id=data.get("event_id", ""),
+                visitor_id=visitor,
+                **metadata,
+            )
+        except BudgetExceededError as exc:
+            await self.emit("event_rejected", {"reason": str(exc)}, to=sid)
+        except ValueError as exc:
+            await self.emit("event_rejected", {"reason": str(exc)}, to=sid)
+
+    async def on_viewable_impression(self, sid: str, data: dict) -> None:
+        """Handle viewable impression event (ad entered viewport)."""
+        visitor = verify_serve_token(str(data.get("serve_token", "")), data.get("ad_unit_id", 0), data.get("creative_id", 0)) if isinstance(data, dict) else None
+        if visitor is None:
+            await self.emit("event_rejected", {"reason": "invalid_or_expired_serve_token"}, to=sid)
+            return
+        metadata = await self._event_metadata(sid, data)
+        try:
+            await record_event(
+                event_type="viewable_impression",
                 ad_unit_id=data.get("ad_unit_id", 0),
                 creative_id=data.get("creative_id", 0),
                 event_id=data.get("event_id", ""),

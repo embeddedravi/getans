@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 
 {% block title %}Live events{% endblock %}
-{% block description %}Real-time impressions and clicks{% endblock %}
+{% block description %}Real-time impressions, clicks, and viewable impressions{% endblock %}
 {% block page_title %}Live events{% endblock %}
 
 {% block content %}
@@ -10,7 +10,9 @@
     <div role="tablist" class="tabs tabs-bordered" id="filter-tabs">
       <a role="tab" class="tab tab-active" data-filter="all">All</a>
       <a role="tab" class="tab" data-filter="impression">Impressions</a>
+      <a role="tab" class="tab" data-filter="viewable_impression">Viewable</a>
       <a role="tab" class="tab" data-filter="click">Clicks</a>
+      <a role="tab" class="tab" data-filter="conversion">Conversions</a>
     </div>
     <div class="flex items-center gap-3">
       <span class="flex items-center gap-1.5 text-xs ">
@@ -43,17 +45,22 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- Socket.IO client from CDN -->
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 <script>
 (function () {
-  const POLL_MS = 2000;
   const MAX_ROWS = 200;
-  const BADGE = { click: "badge-info", conversion: "badge-success" };
+  const BADGE = {
+    impression: "badge-warning",
+    viewable_impression: "badge-primary",
+    click: "badge-info",
+    conversion: "badge-success"
+  };
 
   let events = [];
-  let lastId = 0;
   let filter = "all";
   let paused = false;
-  let timer = null;
+  let socket = null;
 
   const body = document.getElementById("feed-body");
   const empty = document.getElementById("empty-state");
@@ -103,26 +110,70 @@
     count.textContent = rows.length + " shown";
   }
 
-  async function poll() {
-    if (paused) return;
-    const url = "/proxy/live-events?limit=" + (lastId ? MAX_ROWS : 100) +
-                (lastId ? "&after_id=" + lastId : "");
-    try {
-      const res = await fetch(url, { headers: { Accept: "application/json" } });
-      if (res.redirected || !res.ok) throw new Error(res.status === 502 ? "Backend unavailable" : "Session expired or request failed");
-      const fresh = await res.json();
-      errBox.classList.add("hidden");
-      setStatus("live");
-      if (fresh.length) {
-        lastId = Math.max(lastId, ...fresh.map(e => e.id));
-        events = fresh.concat(events).slice(0, MAX_ROWS);
-        render();
-      }
-    } catch (err) {
-      setStatus("error");
-      errBox.textContent = err.message;
-      errBox.classList.remove("hidden");
+  function addEvent(e) {
+    // Deduplicate by event ID (should be unique)
+    const exists = events.some(ev => ev.id === e.id);
+    if (!exists) {
+      events.unshift(e);
+      if (events.length > MAX_ROWS) events = events.slice(0, MAX_ROWS);
     }
+    render();
+  }
+
+  function connectSocket() {
+    const token = "{{ session.access_token }}";
+    if (!token) {
+      setStatus("error");
+      errBox.textContent = "No authentication token. Please log in.";
+      errBox.classList.remove("hidden");
+      return;
+    }
+
+    // Get the backend URL (replace /dashboard with /api for socket.io)
+    const apiBase = "{{ API_BASE }}".replace("/api", "");
+    socket = io(apiBase + "/dashboard", {
+      transports: ["websocket"],
+      auth: { token: token }
+    });
+
+    socket.on("connect", () => {
+      setStatus("live");
+      errBox.classList.add("hidden");
+    });
+
+    socket.on("disconnect", (reason) => {
+      if (reason === "io server disconnect") {
+        setStatus("error");
+        errBox.textContent = "Session expired. Please log in again.";
+        errBox.classList.remove("hidden");
+        // Reload page to trigger re-auth
+        setTimeout(() => window.location.reload(), 2000);
+      } else {
+        setStatus("error");
+        errBox.textContent = "Disconnected: " + reason + ". Reconnecting...";
+        errBox.classList.remove("hidden");
+      }
+    });
+
+    socket.on("connect_error", (err) => {
+      if (err.message === "unauthorized") {
+        setStatus("error");
+        errBox.textContent = "Authentication failed. Please log in again.";
+        errBox.classList.remove("hidden");
+        setTimeout(() => window.location.reload(), 2000);
+      } else {
+        setStatus("error");
+        errBox.textContent = "Connection error: " + err.message;
+        errBox.classList.remove("hidden");
+      }
+    });
+
+    socket.on("live_event", (event) => {
+      if (!paused) {
+        addEvent(event);
+      }
+      // If paused, we'll fetch missed events on resume
+    });
   }
 
   document.getElementById("filter-tabs").addEventListener("click", (ev) => {
@@ -139,13 +190,27 @@
     paused = !paused;
     pauseBtn.textContent = paused ? "Resume" : "Pause";
     pauseBtn.className = "btn btn-xs " + (paused ? "btn-success" : "btn-warning");
-    if (paused) setStatus("paused");
-    else poll(); // lastId wasn't advanced while paused, so this catches up
+    if (paused) {
+      setStatus("paused");
+    } else {
+      // On resume, fetch recent events to catch up
+      fetch("/proxy/live-events?limit=" + MAX_ROWS, { headers: { Accept: "application/json" } })
+        .then(res => res.json())
+        .then(fresh => {
+          if (Array.isArray(fresh)) {
+            fresh.reverse().forEach(addEvent); // Add older first, then newer
+          }
+        })
+        .catch(() => {});
+      setStatus("live");
+    }
   });
 
-  poll();
-  timer = setInterval(poll, POLL_MS);
-  window.addEventListener("beforeunload", () => clearInterval(timer));
+  // Initialize
+  connectSocket();
+  window.addEventListener("beforeunload", () => {
+    if (socket) socket.disconnect();
+  });
 })();
 </script>
 {% endblock %}

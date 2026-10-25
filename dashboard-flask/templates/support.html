@@ -8,72 +8,116 @@
 {% set statuses = ['open', 'in_progress', 'waiting_on_customer', 'resolved', 'closed'] %}
 {% set priorities = ['low', 'normal', 'high', 'urgent'] %}
 {% set categories = ['account', 'billing', 'campaign', 'creative', 'ad_delivery', 'payout', 'other'] %}
+{% set status_tones = {'open': 'badge-info', 'in_progress': 'badge-primary', 'waiting_on_customer': 'badge-warning', 'resolved': 'badge-success', 'closed': 'badge-ghost'} %}
+{% set priority_tones = {'low': 'badge-ghost', 'normal': 'badge-info', 'high': 'badge-warning', 'urgent': 'badge-error'} %}
 <div class="space-y-4">
   {% if error %}<div role="alert" class="alert alert-error py-2 text-sm">{{ error }}</div>{% endif %}
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <p class="text-sm">{{ 'Review and respond to customer requests.' if is_staff else 'Create a request and follow replies from the support team.' }}</p>
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div><p class="text-sm">{{ 'Review and respond to customer requests.' if is_staff else 'Create a request and follow replies from the support team.' }}</p><p class="mt-1 text-xs">{{ tickets|length }} {{ 'ticket' if tickets|length == 1 else 'tickets' }} in this view</p></div>
     {% if is_staff %}
-    <form method="GET" action="{{ url_for('support_center') }}" class="flex items-center gap-2 text-sm">
-      {% if selected %}<input type="hidden" name="ticket" value="{{ selected.id }}">{% endif %}
-      <label for="status-filter">Status</label>
-      <select id="status-filter" class="select select-bordered select-sm" name="status" onchange="this.form.submit()">
-        <option value="all" {{ 'selected' if ticket_status == 'all' else '' }}>All statuses</option>
-        {% for value in statuses %}<option value="{{ value }}" {{ 'selected' if ticket_status == value else '' }}>{{ value|replace('_', ' ') }}</option>{% endfor %}
-      </select>
-    </form>
+    <div class="flex flex-wrap items-center gap-2">
+      <input id="ticket-search" type="search" aria-label="Search support tickets" placeholder="Search tickets…" class="input input-bordered input-sm w-52">
+      <form method="GET" action="{{ url_for('support_center') }}" class="flex items-center gap-2 text-sm">
+        {% if selected %}<input type="hidden" name="ticket" value="{{ selected.id }}">{% endif %}
+        <label for="status-filter">Status</label>
+        <select id="status-filter" class="select select-bordered select-sm" name="status" onchange="this.form.submit()">
+          <option value="all" {{ 'selected' if ticket_status == 'all' else '' }}>All statuses</option>
+          {% for value in statuses %}<option value="{{ value }}" {{ 'selected' if ticket_status == value else '' }}>{{ value|replace('_', ' ') }}</option>{% endfor %}
+        </select>
+      </form>
+    </div>
     {% else %}<a class="btn btn-primary btn-sm" href="#new-ticket">New support ticket</a>{% endif %}
   </div>
 
+  {% if is_staff %}
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <div class="rounded-lg border border-base-300 bg-base-200 px-4 py-3"><p class="text-xs">Open / in progress</p><p class="mt-1 text-2xl font-semibold tabular-nums text-info">{{ (tickets|selectattr('status', 'equalto', 'open')|list|length) + (tickets|selectattr('status', 'equalto', 'in_progress')|list|length) }}</p></div>
+    <div class="rounded-lg border border-base-300 bg-base-200 px-4 py-3"><p class="text-xs">Waiting on customer</p><p class="mt-1 text-2xl font-semibold tabular-nums text-warning">{{ tickets|selectattr('status', 'equalto', 'waiting_on_customer')|list|length }}</p></div>
+    <div class="rounded-lg border border-base-300 bg-base-200 px-4 py-3"><p class="text-xs">Resolved / closed</p><p class="mt-1 text-2xl font-semibold tabular-nums text-success">{{ (tickets|selectattr('status', 'equalto', 'resolved')|list|length) + (tickets|selectattr('status', 'equalto', 'closed')|list|length) }}</p></div>
+  </div>
+  {% endif %}
+
   {% if not is_staff %}
-  <form id="new-ticket" method="POST" action="{{ url_for('support_create') }}" class="space-y-3 rounded-lg border border-base-300 bg-base-200 p-4">
-    <h2 class="font-semibold">Open a support ticket</h2>
-    <div class="grid gap-3 sm:grid-cols-2">
-      <label class="form-control"><span class="label-text mb-1">Subject</span><input class="input input-bordered input-sm" name="subject" required minlength="3" maxlength="200"></label>
-      <label class="form-control"><span class="label-text mb-1">Category</span><select class="select select-bordered select-sm" name="category">{% for value in categories %}<option value="{{ value }}">{{ value|replace('_', ' ')|title }}</option>{% endfor %}</select></label>
+  <form id="new-ticket" method="POST" action="{{ url_for('support_create') }}" class="overflow-hidden rounded-xl border border-base-300 bg-base-200 shadow-sm">
+    <div class="border-b border-base-300 bg-gradient-to-r from-primary/10 via-base-200 to-base-200 px-5 py-4 sm:px-6">
+      <span class="badge badge-primary badge-outline badge-sm">SUPPORT REQUEST</span>
+      <h2 class="mt-2 text-lg font-semibold">Tell us what you need help with</h2>
+      <p class="mt-1 text-sm text-base-content/70">Share a few details and the support team will reply in this ticket.</p>
     </div>
-    <label class="form-control"><span class="label-text mb-1">How can we help?</span><textarea class="textarea textarea-bordered" name="message" required maxlength="5000" rows="4"></textarea></label>
-    <button class="btn btn-primary btn-sm">Submit ticket</button>
+    <div class="space-y-4 p-5 sm:p-6">
+      <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_220px]">
+        <label class="form-control gap-1.5"><span class="text-sm font-medium">Subject</span><input class="input input-bordered w-full bg-base-100" name="subject" placeholder="A short summary of the issue" required minlength="3" maxlength="200"><span class="text-xs text-base-content/60">Keep it brief and specific.</span></label>
+        <label class="form-control gap-1.5"><span class="text-sm font-medium">Category</span><select class="select select-bordered w-full bg-base-100" name="category">{% for value in categories %}<option value="{{ value }}">{{ value|replace('_', ' ')|title }}</option>{% endfor %}</select><span class="text-xs text-base-content/60">Choose the closest match.</span></label>
+      </div>
+      <label class="form-control gap-1.5"><span class="text-sm font-medium">Description</span><textarea id="support-new-message" class="textarea textarea-bordered min-h-36 w-full bg-base-100" name="message" placeholder="What happened? Include the steps you took and what you expected to happen." required maxlength="5000" rows="5"></textarea><span id="support-new-count" class="text-right text-xs text-base-content/60">0/5000</span></label>
+    </div>
+    <div class="flex flex-wrap items-center justify-between gap-3 border-t border-base-300 bg-base-100/50 px-5 py-4 sm:px-6">
+      <p class="text-xs text-base-content/60">Please don’t include passwords or payment credentials.</p>
+      <button class="btn btn-primary">Submit support request <span aria-hidden="true">→</span></button>
+    </div>
   </form>
   {% endif %}
 
   <div class="grid gap-4 lg:grid-cols-[minmax(260px,360px)_1fr]">
     <section class="overflow-hidden rounded-lg border border-base-300 bg-base-200">
-      <header class="border-b border-base-300 px-4 py-3 font-medium">Tickets <span class="text-xs font-normal">({{ tickets|length }})</span></header>
+      <header class="flex items-center justify-between border-b border-base-300 px-4 py-3 font-medium"><span>Inbox</span><span class="badge badge-ghost badge-sm">{{ tickets|length }}</span></header>
       {% if tickets %}<ul class="divide-y divide-base-300">
-        {% for ticket in tickets %}<li>
-          <a class="block p-4 hover:bg-base-300/60 {{ 'bg-base-300/60' if selected and selected.id == ticket.id else '' }}" href="{{ url_for('support_center', ticket=ticket.id, status=ticket_status if is_staff else none) }}">
-            <span class="flex items-center justify-between gap-2"><span class="truncate font-medium">{{ ticket.subject }}</span><span class="badge badge-xs">{{ ticket.status|replace('_', ' ') }}</span></span>
-            {% if is_staff %}<span class="mt-1 block text-xs">{{ ticket.customer_name }}</span>{% endif %}
-            <span class="mt-1 block text-xs">#{{ ticket.id }} · {{ ticket.category|replace('_', ' ') }} · {{ ticket.priority }}</span>
+        {% for ticket in tickets %}<li data-ticket-row>
+          <a class="block border-l-2 p-4 transition hover:bg-base-300/60 {{ 'border-primary bg-primary/5' if selected and selected.id == ticket.id else 'border-transparent' }}" href="{{ url_for('support_center', ticket=ticket.id, status=ticket_status if is_staff else none) }}">
+            <span class="flex items-start justify-between gap-2"><span class="line-clamp-2 font-medium">{{ ticket.subject }}</span><span class="badge badge-xs capitalize {{ status_tones.get(ticket.status, 'badge-ghost') }}">{{ ticket.status|replace('_', ' ') }}</span></span>
+            {% if is_staff %}<span class="mt-2 block text-xs font-medium">{{ ticket.customer_name }}</span>{% endif %}
+            <span class="mt-2 flex flex-wrap items-center gap-1.5 text-xs"><span class="text-base-content/60">#{{ ticket.id }}</span><span class="badge badge-ghost badge-xs capitalize">{{ ticket.category|replace('_', ' ') }}</span><span class="badge badge-xs capitalize {{ priority_tones.get(ticket.priority, 'badge-ghost') }}">{{ ticket.priority }}</span></span>
           </a>
         </li>{% endfor %}
       </ul>{% else %}<p class="p-5 text-sm">{{ 'No tickets match this filter.' if is_staff else 'No support tickets yet.' }}</p>{% endif %}
     </section>
 
-    <section class="min-h-80 rounded-lg border border-base-300 bg-base-200">
+    <section class="flex min-h-[32rem] flex-col overflow-hidden rounded-lg border border-base-300 bg-base-200 shadow-sm">
       {% if selected %}
-      <header class="flex flex-wrap items-start justify-between gap-3 border-b border-base-300 p-4">
-        <div><h2 class="font-semibold">{{ selected.subject }}</h2><p class="mt-1 text-xs">#{{ selected.id }} · {{ selected.category|replace('_', ' ') }} · {{ selected.customer_name }}</p>{% if is_staff and (selected.customer_email or selected.customer_mobile) %}<p class="mt-1 text-xs">{{ selected.customer_email }}{% if selected.customer_email and selected.customer_mobile %} · {% endif %}{{ selected.customer_mobile }}</p>{% endif %}</div>
-        {% if is_staff %}<form method="POST" action="{{ url_for('support_update', ticket_id=selected.id) }}" class="flex flex-wrap gap-2">
-          <select aria-label="Ticket status" class="select select-bordered select-xs" name="status">{% for value in statuses %}<option value="{{ value }}" {{ 'selected' if selected.status == value else '' }}>{{ value|replace('_', ' ') }}</option>{% endfor %}</select>
-          <select aria-label="Ticket priority" class="select select-bordered select-xs" name="priority">{% for value in priorities %}<option value="{{ value }}" {{ 'selected' if selected.priority == value else '' }}>{{ value }}</option>{% endfor %}</select>
-          <select aria-label="Assign ticket" class="select select-bordered select-xs" name="assigned_to_id"><option value="">Unassigned</option>{% for person in staff_users %}<option value="{{ person.id }}" {{ 'selected' if selected.assigned_to_id == person.id else '' }}>{{ person.name }} ({{ person.role }})</option>{% endfor %}</select>
-          <button class="btn btn-primary btn-xs">Update</button>
+      <header class="space-y-3 border-b border-base-300 bg-base-200 p-4">
+        <div class="flex flex-wrap items-start justify-between gap-3"><div><div class="flex flex-wrap items-center gap-2"><h2 class="text-lg font-semibold">{{ selected.subject }}</h2><span class="badge badge-sm capitalize {{ status_tones.get(selected.status, 'badge-ghost') }}">{{ selected.status|replace('_', ' ') }}</span></div><p class="mt-1 text-xs">Ticket #{{ selected.id }} · {{ selected.category|replace('_', ' ') }} · Updated <time data-iso="{{ selected.updated_at }}">{{ selected.updated_at }}</time></p>{% if is_staff and (selected.customer_email or selected.customer_mobile) %}<p class="mt-1 text-xs font-medium">{{ selected.customer_name }}{% if selected.customer_email %} · {{ selected.customer_email }}{% endif %}{% if selected.customer_mobile %} · {{ selected.customer_mobile }}{% endif %}</p>{% endif %}</div><span class="badge badge-sm capitalize {{ priority_tones.get(selected.priority, 'badge-ghost') }}">{{ selected.priority }} priority</span></div>
+        {% if is_staff %}<form method="POST" action="{{ url_for('support_update', ticket_id=selected.id) }}" class="flex flex-wrap items-center gap-2 border-t border-base-300 pt-3">
+          <label class="text-xs">Status<select aria-label="Ticket status" class="select select-bordered select-xs ml-2" name="status">{% for value in statuses %}<option value="{{ value }}" {{ 'selected' if selected.status == value else '' }}>{{ value|replace('_', ' ') }}</option>{% endfor %}</select></label>
+          <label class="text-xs">Priority<select aria-label="Ticket priority" class="select select-bordered select-xs ml-2" name="priority">{% for value in priorities %}<option value="{{ value }}" {{ 'selected' if selected.priority == value else '' }}>{{ value }}</option>{% endfor %}</select></label>
+          <label class="text-xs">Assignee<select aria-label="Assign ticket" class="select select-bordered select-xs ml-2" name="assigned_to_id"><option value="">Unassigned</option>{% for person in staff_users %}<option value="{{ person.id }}" {{ 'selected' if selected.assigned_to_id == person.id else '' }}>{{ person.name }} ({{ person.role }})</option>{% endfor %}</select></label>
+          <button class="btn btn-primary btn-xs">Save changes</button>
         </form>{% endif %}
       </header>
-      <div class="max-h-[55vh] space-y-3 overflow-y-auto p-4">
-        {% for message in selected.messages %}<article class="rounded p-3 {{ 'border border-warning/50 bg-warning/10' if message.is_internal else 'bg-base-100' }}">
-          <div class="flex flex-wrap justify-between gap-2 text-xs"><span class="font-medium">{{ message.author_name }}{{ ' · Internal note' if message.is_internal else '' }}</span><time>{{ message.created_at }}</time></div>
-          <p class="mt-2 whitespace-pre-wrap text-sm">{{ message.body }}</p>
+      <div class="flex-1 space-y-4 overflow-y-auto bg-base-100/40 p-4">
+        {% for message in selected.messages %}<article class="max-w-[92%] rounded-xl border p-3 shadow-sm sm:max-w-[80%] {{ 'mx-auto border-warning/50 bg-warning/10' if message.is_internal else 'ml-auto border-primary/20 bg-primary/10' if message.author_id == session.get('user_id') else 'mr-auto border-base-300 bg-base-100' }}">
+          <div class="flex flex-wrap justify-between gap-3 text-xs"><span class="font-medium">{{ 'You' if message.author_id == session.get('user_id') else message.author_name }}{{ ' · Internal note' if message.is_internal else '' }}</span><time class="text-base-content/60" data-iso="{{ message.created_at }}">{{ message.created_at }}</time></div>
+          <p class="mt-2 whitespace-pre-wrap text-sm leading-relaxed">{{ message.body }}</p>
         </article>{% endfor %}
       </div>
-      {% if selected.status != 'closed' %}<form method="POST" action="{{ url_for('support_message', ticket_id=selected.id) }}" class="space-y-2 border-t border-base-300 p-4">
-        {% if is_staff %}<label class="flex items-center gap-2 text-xs"><input class="checkbox checkbox-xs" type="checkbox" name="is_internal">Add internal note (customer cannot see this)</label>{% endif %}
-        <textarea class="textarea textarea-bordered w-full" name="body" required maxlength="5000" rows="3" placeholder="Write a reply…"></textarea>
-        <button class="btn btn-primary btn-sm">Send reply</button>
-      </form>{% endif %}
+      {% if selected.status != 'closed' %}<form method="POST" action="{{ url_for('support_message', ticket_id=selected.id) }}" class="space-y-3 border-t border-base-300 bg-base-200 p-4">
+        {% if is_staff %}<label class="flex w-fit items-center gap-2 rounded bg-warning/10 px-2 py-1 text-xs"><input class="checkbox checkbox-xs" type="checkbox" name="is_internal">Internal note — only staff can see this</label>{% endif %}
+        <textarea id="support-reply" class="textarea textarea-bordered w-full bg-base-100" name="body" required maxlength="5000" rows="3" placeholder="Write a reply…"></textarea>
+        <div class="flex items-center justify-between gap-3"><span id="support-reply-count" class="text-xs">0/5000</span><button class="btn btn-primary btn-sm">Send reply</button></div>
+      </form>{% else %}<p class="border-t border-base-300 p-4 text-center text-sm">This ticket is closed. Start a new ticket if you need more help.</p>{% endif %}
       {% else %}<p class="p-8 text-center text-sm">Select a ticket to view its conversation.</p>{% endif %}
     </section>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll("time[data-iso]").forEach((node) => {
+    const date = new Date(node.dataset.iso);
+    if (!Number.isNaN(date.getTime())) node.textContent = date.toLocaleString();
+  });
+  const ticketSearch = document.getElementById("ticket-search");
+  if (ticketSearch) ticketSearch.addEventListener("input", () => {
+    const query = ticketSearch.value.trim().toLocaleLowerCase();
+    document.querySelectorAll("[data-ticket-row]").forEach((row) => {
+      row.hidden = !row.textContent.toLocaleLowerCase().includes(query);
+    });
+  });
+  const replyBox = document.getElementById("support-reply");
+  const replyCount = document.getElementById("support-reply-count");
+  if (replyBox && replyCount) replyBox.addEventListener("input", () => { replyCount.textContent = `${replyBox.value.length}/5000`; });
+  const newMessage = document.getElementById("support-new-message");
+  const newCount = document.getElementById("support-new-count");
+  if (newMessage && newCount) newMessage.addEventListener("input", () => { newCount.textContent = `${newMessage.value.length}/5000`; });
+</script>
 {% endblock %}

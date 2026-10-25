@@ -1,14 +1,14 @@
 {% extends "layout.html" %}
 
 {% block title %}Publisher integration help{% endblock %}
-{% block description %}Connect an ad unit with Socket.IO or the REST API{% endblock %}
+{% block description %}Set up publisher ad slots and embed the ad loader{% endblock %}
 {% block page_title %}Publisher integration help{% endblock %}
 
 {% block content %}
 <div class="mx-auto max-w-5xl space-y-6">
   <section class="rounded-lg border border-base-300 bg-base-200 p-5">
     <h2 class="font-display text-lg font-semibold">Connect your ad slots</h2>
-    <p class="mt-2 text-sm">Choose Socket.IO for the real-time browser integration or use the REST GET endpoint from your own integration. Your publisher account and ad unit must be active and approved before ads can serve.</p>
+    <p class="mt-2 text-sm">Add an ad slot, wait for account and slot approval, then embed the loader on the matching page of your site. Ads serve when an approved advertiser creative exactly matches the slot dimensions.</p>
     {% if publisher %}
       <div class="mt-4 grid gap-3 sm:grid-cols-2">
         <div><p class="text-xs font-medium">Publisher API key</p><code class="mt-1 block break-all rounded bg-base-300 p-2 text-xs">{{ publisher.api_key }}</code></div>
@@ -23,10 +23,10 @@
     <h2 class="font-display text-lg font-semibold">Your ad units</h2>
     {% if ad_units %}
       <div class="mt-3 overflow-x-auto"><table class="table table-sm">
-        <thead><tr><th>Slot</th><th>Ad unit ID</th><th>Size</th><th>Status</th></tr></thead>
+        <thead><tr><th>Slot</th><th>Ad unit ID</th><th>Format</th><th>Creative size</th><th>Status</th></tr></thead>
         <tbody>{% for unit in ad_units %}<tr>
           <td>{{ unit.slot_name }}</td><td class="font-mono">{{ unit.id }}</td>
-          <td>{{ unit.width }}×{{ unit.height }}</td><td>{{ unit.status|replace('_', ' ') }}</td>
+          <td>{{ unit.format_type }}</td><td>{{ unit.width }}×{{ unit.height }} px</td><td>{{ unit.status|replace('_', ' ') }}{{ ' · inactive' if not unit.is_active else '' }}</td>
         </tr>{% endfor %}</tbody>
       </table></div>
     {% else %}
@@ -35,8 +35,25 @@
   </section>
 
   <section class="space-y-3 rounded-lg border border-base-300 bg-base-200 p-5">
-    <h2 class="font-display text-lg font-semibold">Option 1: Socket.IO</h2>
-    <p class="text-sm">Load the Socket.IO client, connect to the <code>/delivery</code> namespace, then send <code>request_ad</code>. Listen for <code>serve_ad</code> or <code>no_fill</code>. The existing publisher loader in <code>publisher-snippet/src/loader.js</code> uses this flow.</p>
+    <h2 class="font-display text-lg font-semibold">Quick start: embed the publisher loader</h2>
+    <ol class="list-decimal space-y-2 pl-5 text-sm">
+      <li>Create a slot under <a class="link link-primary" href="{{ url_for('publisher_adslots') }}">Ad slots</a>. Wait until your publisher account is active and the slot is approved and active.</li>
+      <li>Host <code>publisher-snippet/src/loader.js</code> on your site or CDN. The backend does not host this file.</li>
+      <li>Put a slot element where the ad should appear. Set its ID to the slot's ad unit ID from the table above.</li>
+      <li>Load Socket.IO before the loader. The loader requests and renders ads and sends impression, click, viewable impression, and report events.</li>
+    </ol>
+    <pre class="overflow-x-auto rounded bg-base-300 p-4 text-xs"><code>&lt;div data-ad-unit-id="YOUR_AD_UNIT_ID"&gt;&lt;/div&gt;
+&lt;script src="https://cdn.socket.io/4.8.1/socket.io.min.js"&gt;&lt;/script&gt;
+&lt;script src="https://your-cdn.example.com/loader.js"
+        data-api-key="{{ publisher.api_key if publisher else 'YOUR_PUBLISHER_KEY' }}"
+        data-server="{{ socket_base }}"&gt;&lt;/script&gt;</code></pre>
+    <p class="text-xs">Replace the sample loader URL and ad unit ID. The key is visible in browser source, so use it only on your registered site and do not reuse or share it elsewhere. Socket.IO requests check the origin against your registered site.</p>
+    <p class="text-xs">Advertisers need a creative with the exact width and height shown above, and that creative must be approved before it can serve.</p>
+  </section>
+
+  <section class="space-y-3 rounded-lg border border-base-300 bg-base-200 p-5">
+    <h2 class="font-display text-lg font-semibold">Custom integration: Socket.IO</h2>
+    <p class="text-sm">Use this if you are building your own integration instead of embedding the loader. Connect to the <code>/delivery</code> namespace, emit <code>request_ad</code>, then listen for <code>serve_ad</code> or <code>no_fill</code>.</p>
     <pre class="overflow-x-auto rounded bg-base-300 p-4 text-xs"><code>&lt;script src="https://cdn.socket.io/4.8.1/socket.io.min.js"&gt;&lt;/script&gt;
 &lt;script&gt;
 const socket = io("{{ socket_base }}" + "/delivery", { transports: ["websocket"] });
@@ -68,7 +85,7 @@ socket.on("no_fill", info =&gt; console.log("No ad available", info.reason));
   </section>
 
   <section class="space-y-3 rounded-lg border border-base-300 bg-base-200 p-5">
-    <h2 class="font-display text-lg font-semibold">Option 2: REST GET</h2>
+    <h2 class="font-display text-lg font-semibold">Custom integration: REST</h2>
     <p class="text-sm">Request an ad from your browser or server. Send the key in the <code>X-Publisher-Key</code> header. A successful match returns an <code>ad</code>; otherwise <code>ad</code> is null and <code>reason</code> explains the no-fill.</p>
     <pre class="overflow-x-auto rounded bg-base-300 p-4 text-xs"><code>const API_BASE = "{{ api_base }}";
 const publisherKey = "{{ publisher.api_key if publisher else 'YOUR_PUBLISHER_KEY' }}";

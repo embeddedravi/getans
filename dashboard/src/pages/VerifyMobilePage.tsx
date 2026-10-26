@@ -91,6 +91,7 @@ export function VerifyMobilePage() {
                   className="input input-bordered w-full bg-base-100"
                 />
               </div>
+              <CaptchaChallenge key={captchaVersion} onChallenge={setCaptchaChallenge} onAnswer={setCaptchaAnswer} />
               {error && <ErrorBox message={error} />}
               <button type="submit" disabled={busy} className="btn btn-primary w-full">
                 {busy ? "Sending..." : "Send code"}

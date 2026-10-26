@@ -98,10 +98,15 @@ export function LiveEventsPage({ own = false }: { own?: boolean }) {
                 <tr key={e.id} className="border-b border-base-300 last:border-0">
                   <td className="tabular text-xs">{new Date(e.timestamp).toLocaleTimeString()}</td>
                   <td>
-                    <span className={`badge badge-sm ${e.type === "click" ? "badge-info" : e.type === "conversion" ? "badge-success" : "badge-warning"}`}>
-                      {e.type.replace("_", " ")}
-                    </span>
-                  </td>
+                                      <span className={`badge badge-sm ${
+                                        e.type === "click" ? "badge-info" :
+                                        e.type === "conversion" ? "badge-success" :
+                                        e.type === "viewable_impression" ? "badge-primary" :
+                                        "badge-warning"
+                                      }`}>
+                                        {e.type.replace("_", " ")}
+                                      </span>
+                                    </td>
                   <td>{e.campaign_name ?? `#${e.campaign_id}`}</td>
                   <td>{e.slot_name ?? `#${e.ad_unit_id}`}</td>
                   <td className="tabular ">#{e.creative_id}</td>

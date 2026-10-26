@@ -26,8 +26,17 @@ def _captcha_challenge():
     try:
         response = requests.get(f"{API_BASE}/auth/captcha-challenge", timeout=5)
         response.raise_for_status()
-        return response.json()
-    except requests.RequestException:
+        data = response.json()
+        # Validate the response has the expected fields
+        if isinstance(data, dict) and "challenge" in data and "question" in data:
+            return data
+        print(f"[verify] CAPTCHA challenge response missing fields: {data}")
+        return None
+    except requests.RequestException as e:
+        print(f"[verify] CAPTCHA challenge request failed: {e}")
+        return None
+    except ValueError as e:
+        print(f"[verify] CAPTCHA challenge JSON parse failed: {e}")
         return None
 
 
@@ -49,14 +58,26 @@ def _error_from(resp: requests.Response) -> str:
 @verify_bp.route("/verify", methods=["GET", "POST"])
 def verify_page():
     if request.method == "GET":
-        return render_template("verify.html", step="mobile", captcha=_captcha_challenge())
+        captcha = _captcha_challenge()
+        if captcha is None:
+            flash("Unable to load verification challenge. Please ensure the API server is running and try again.", "error")
+        return render_template("verify.html", step="mobile", captcha=captcha)
 
     action = request.form.get("action")
     mobile = request.form.get("mobile", "").strip()
 
     try:
         if action == "request":
-            resp = _post("/auth/otp/request", {"mobile": mobile, "captcha_challenge": request.form.get("captcha_challenge"), "captcha_answer": request.form.get("captcha_answer")})
+            captcha_challenge = request.form.get("captcha_challenge")
+            captcha_answer = request.form.get("captcha_answer")
+            
+            if not captcha_challenge or not captcha_answer:
+                return render_template(
+                    "verify.html", step="mobile", mobile=mobile, 
+                    error="Please complete the CAPTCHA challenge.", resend_after=0, captcha=_captcha_challenge()
+                )
+            
+            resp = _post("/auth/otp/request", {"mobile": mobile, "captcha_challenge": captcha_challenge, "captcha_answer": captcha_answer})
             if resp.ok:
                 data = resp.json()
                 return render_template(
@@ -68,8 +89,13 @@ def verify_page():
                 )
             # Can't send: stay on the step the person was on.
             step = "code" if request.form.get("resend") else "mobile"
+            error_msg = _error_from(resp)
+            # If CAPTCHA expired/incorrect, provide a fresh one
+            new_captcha = _captcha_challenge()
+            if "CAPTCHA" in error_msg and new_captcha:
+                error_msg += " A new challenge has been loaded below."
             return render_template(
-                "verify.html", step=step, mobile=mobile, error=_error_from(resp), resend_after=0, captcha=_captcha_challenge()
+                "verify.html", step=step, mobile=mobile, error=error_msg, resend_after=0, captcha=new_captcha
             )
 
         if action == "verify":
@@ -81,7 +107,8 @@ def verify_page():
             return render_template(
                 "verify.html", step="code", mobile=mobile, error=_error_from(resp), resend_after=0, captcha=_captcha_challenge()
             )
-    except requests.RequestException:
+    except requests.RequestException as e:
+        print(f"[verify] Request failed: {e}")
         return render_template(
             "verify.html",
             step="code" if action == "verify" else "mobile",

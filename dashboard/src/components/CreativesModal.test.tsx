@@ -123,6 +123,19 @@ describe("review controls", () => {
         expect(screen.queryByRole("button", { name: "Reject" })).not.toBeInTheDocument();
     });
 
+    it("shows admin review controls for a pending poll ad", async () => {
+        mocked.listCreativesForCampaign.mockResolvedValue([creative({
+            name: "Cloud poll",
+            format: "poll",
+            custom_attributes: { poll_question: "Which cloud do you use?", poll_options: ["AWS", "Azure", "GCP", "Other"] },
+        })]);
+        renderModal(true);
+
+        expect(await screen.findByText("Cloud poll")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Approve" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Reject" })).toBeInTheDocument();
+    });
+
     it("approves and reloads", async () => {
         renderModal(true);
         fireEvent.click(await screen.findByRole("button", { name: "Approve" }));

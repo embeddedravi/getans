@@ -115,6 +115,7 @@ export const api = {
 
   listCreativesForCampaign: (campaignId: number) =>
     request(`/creatives/by-campaign/${campaignId}`),
+  listPollCreatives: () => request<{ creative: import("../types").Creative; campaign: { id: number; name: string } }[]>("/creatives/polls"),
   createCreative: (payload: unknown) =>
     request("/creatives", { method: "POST", body: JSON.stringify(payload) }),
   deleteCreative: (id: number) => request(`/creatives/${id}`, { method: "DELETE" }),

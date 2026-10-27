@@ -488,6 +488,123 @@ def creative_list():
     return render_template("creative_list.html", rows=rows)
 
 
+@app.route("/poll")
+@login_required
+def poll_management():
+    if session.get("role") not in ("admin", "advertiser"):
+        abort(403)
+    campaigns_list = []
+    rows = []
+    try:
+        campaigns_list = _api("GET", "/campaigns")
+        rows = _api("GET", "/creatives/polls")
+    except Exception as exc:
+        flash(f"Could not load poll ads: {exc}", "error")
+    return render_template("polls.html", rows=rows, campaigns=campaigns_list)
+
+
+@app.route("/poll/create", methods=["POST"])
+@login_required
+def create_poll_from_management():
+    if session.get("role") not in ("admin", "advertiser"):
+        abort(403)
+    try:
+        campaign_id = int(request.form["campaign_id"])
+        width = int(request.form.get("width") or 300)
+        height = int(request.form.get("height") or 250)
+    except (KeyError, ValueError):
+        flash("Choose a campaign and provide valid poll dimensions.", "error")
+        return redirect(url_for("poll_management"))
+    question = (request.form.get("poll_question") or "").strip()
+    options = [(request.form.get(f"option_{index}") or "").strip() for index in range(1, 5)]
+    if not question or not all(options):
+        flash("A question and all 4 poll options are required.", "error")
+        return redirect(url_for("poll_management"))
+    payload = {
+        "campaign_id": campaign_id,
+        "name": request.form.get("name") or None,
+        "format": "poll",
+        "poll_question": question,
+        "poll_options": options,
+        "click_url": request.form.get("click_url"),
+        "width": width,
+        "height": height,
+        "asset_url": request.form.get("asset_url") or "https://poll.getans.local/ad.png",
+    }
+    try:
+        _api("POST", "/creatives", json=payload)
+        flash("Poll ad created. It will serve once approved.", "success")
+    except requests.HTTPError as exc:
+        flash(f"Could not create poll ad: {_detail_from(exc.response)}", "error")
+    except Exception as exc:
+        flash(f"Could not create poll ad: {exc}", "error")
+    return redirect(url_for("poll_management"))
+
+
+@app.route("/poll/<int:creative_id>/toggle", methods=["POST"])
+@login_required
+def toggle_poll(creative_id: int):
+    if session.get("role") not in ("admin", "advertiser"):
+        abort(403)
+    is_active = request.form.get("is_active") == "true"
+    try:
+        _api("PATCH", f"/creatives/{creative_id}", json={"is_active": not is_active})
+        flash("Poll ad updated.", "success")
+    except Exception as exc:
+        flash(f"Could not update poll ad: {exc}", "error")
+    return redirect(url_for("poll_management"))
+
+
+@app.route("/poll/<int:creative_id>/review", methods=["POST"])
+@login_required
+def review_poll(creative_id: int):
+    if session.get("role") != "admin":
+        abort(403)
+    decision = request.form.get("decision")
+    if decision not in {"approved", "rejected"}:
+        flash("Choose approve or reject.", "error")
+        return redirect(url_for("poll_management"))
+    payload = {"review_status": decision}
+    if decision == "rejected":
+        reason = request.form.get("reason", "").strip()
+        if not reason:
+            flash("A rejection reason is required.", "error")
+            return redirect(url_for("poll_management"))
+        payload["rejection_reason"] = reason
+    try:
+        _api("PATCH", f"/creatives/{creative_id}/review", json=payload)
+        flash(f"Poll ad {decision}.", "success")
+    except Exception as exc:
+        flash(f"Could not review poll ad: {exc}", "error")
+    return redirect(url_for("poll_management"))
+
+
+@app.route("/poll/<int:creative_id>/delete", methods=["POST"])
+@login_required
+def delete_poll(creative_id: int):
+    if session.get("role") not in ("admin", "advertiser"):
+        abort(403)
+    try:
+        _api("DELETE", f"/creatives/{creative_id}")
+        flash("Poll ad deleted.", "success")
+    except Exception as exc:
+        flash(f"Could not delete poll ad: {exc}", "error")
+    return redirect(url_for("poll_management"))
+
+
+@app.route("/poll/<int:creative_id>/results")
+@login_required
+def poll_results(creative_id: int):
+    if session.get("role") not in ("admin", "advertiser"):
+        abort(403)
+    try:
+        result = _api("GET", f"/creatives/{creative_id}/poll-results")
+    except Exception as exc:
+        flash(f"Could not load poll results: {exc}", "error")
+        return redirect(url_for("poll_management"))
+    return render_template("poll_results.html", results=result)
+
+
 @app.route("/manage-campaign")
 @admin_required
 def manage_campaigns():
@@ -618,10 +735,10 @@ def create_poll_creative(campaign_id: int):
 
     if not question:
         flash("Poll question is required.", "error")
-        return redirect(url_for("creatives", campaign_id=campaign_id))
+        return redirect(url_for("poll_management"))
     if not (opt1 and opt2 and opt3 and opt4):
         flash("All 4 poll options are required.", "error")
-        return redirect(url_for("creatives", campaign_id=campaign_id))
+        return redirect(url_for("poll_management"))
 
     payload = {
         "campaign_id": campaign_id,
@@ -641,7 +758,7 @@ def create_poll_creative(campaign_id: int):
         flash(f"Failed: {_detail_from(exc.response)}", "error")
     except Exception as exc:
         flash(f"Failed: {exc}", "error")
-    return redirect(url_for("creatives", campaign_id=campaign_id))
+    return redirect(url_for("poll_management"))
 
 
 @app.route("/campaigns/<int:campaign_id>/creatives/<int:creative_id>/toggle", methods=["POST"])

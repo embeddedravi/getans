@@ -9,9 +9,7 @@
 <div class="flex items-center justify-between mb-5">
   <a href="/campaigns" class="link text-sm ">← Back to campaigns</a>
   <div class="flex gap-2">
-    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('modal-create-poll').showModal()">
-      🗳️ Add poll ad
-    </button>
+    <a class="btn btn-secondary btn-sm" href="{{ url_for('poll_management') }}">🗳️ Manage poll ads</a>
     <button class="btn btn-primary btn-sm" onclick="document.getElementById('modal-create-creative').showModal()">
       Add creative
     </button>
@@ -173,76 +171,5 @@
   <form method="dialog" class="modal-backdrop"><button>close</button></form>
 </dialog>
 
-<dialog id="modal-create-poll" class="modal">
-  <div class="modal-box bg-base-200 border border-base-300 max-w-lg">
-    <form method="dialog" class="absolute top-4 right-4"><button class="btn btn-ghost btn-sm btn-circle">✕</button></form>
-    <div class="flex items-center gap-2 mb-4">
-      <span class="badge badge-secondary badge-sm">Interactive Format</span>
-      <h3 class="font-display text-lg font-semibold">Create Poll Ad</h3>
-    </div>
-    <p class="text-xs  mb-4">Deliver an interactive ad with 1 question and 4 choices. Collects live votes and drives traffic to your landing page.</p>
-
-    <form method="POST" action="/campaigns/{{ campaign.id }}/creatives/create-poll" class="space-y-3.5">
-      <label class="block">
-        <span class="block text-xs  mb-1">Creative Name (optional)</span>
-        <input name="name" class="input input-bordered input-sm w-full bg-base-100" placeholder="e.g. Cloud Preference Poll" />
-      </label>
-
-      <label class="block">
-        <span class="block text-xs  mb-1">Poll Question <span class="text-error">*</span></span>
-        <input name="poll_question" required class="input input-bordered input-sm w-full bg-base-100" placeholder="e.g. What is your primary cloud provider?" />
-      </label>
-
-      <div>
-        <span class="block text-xs  mb-1.5 font-medium">4 Poll Options <span class="text-error">*</span></span>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <div class="flex items-center gap-1.5">
-            <span class="badge badge-sm badge-neutral">A</span>
-            <input name="option_1" required class="input input-bordered input-sm w-full bg-base-100" placeholder="Option 1 (e.g. AWS)" />
-          </div>
-          <div class="flex items-center gap-1.5">
-            <span class="badge badge-sm badge-neutral">B</span>
-            <input name="option_2" required class="input input-bordered input-sm w-full bg-base-100" placeholder="Option 2 (e.g. Google Cloud)" />
-          </div>
-          <div class="flex items-center gap-1.5">
-            <span class="badge badge-sm badge-neutral">C</span>
-            <input name="option_3" required class="input input-bordered input-sm w-full bg-base-100" placeholder="Option 3 (e.g. Microsoft Azure)" />
-          </div>
-          <div class="flex items-center gap-1.5">
-            <span class="badge badge-sm badge-neutral">D</span>
-            <input name="option_4" required class="input input-bordered input-sm w-full bg-base-100" placeholder="Option 4 (e.g. Other)" />
-          </div>
-        </div>
-      </div>
-
-      <label class="block">
-        <span class="block text-xs  mb-1">Click-through URL <span class="text-error">*</span></span>
-        <input name="click_url" type="url" required class="input input-bordered input-sm w-full bg-base-100" placeholder="https://yourbrand.example.com" />
-      </label>
-
-      <div class="grid grid-cols-2 gap-3">
-        <label class="block">
-          <span class="block text-xs  mb-1">Width (px)</span>
-          <input name="width" type="number" min="100" value="300" required class="input input-bordered input-sm w-full bg-base-100" />
-        </label>
-        <label class="block">
-          <span class="block text-xs  mb-1">Height (px)</span>
-          <input name="height" type="number" min="100" value="250" required class="input input-bordered input-sm w-full bg-base-100" />
-        </label>
-      </div>
-
-      <label class="block">
-        <span class="block text-xs  mb-1">Header / Logo URL (optional)</span>
-        <input name="asset_url" type="url" class="input input-bordered input-sm w-full bg-base-100" placeholder="https://yourbrand.example.com/logo.png" />
-      </label>
-
-      <div class="flex justify-end gap-2 pt-3 border-t border-base-300">
-        <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('modal-create-poll').close()">Cancel</button>
-        <button type="submit" class="btn btn-secondary btn-sm">Create Poll Ad</button>
-      </div>
-    </form>
-  </div>
-  <form method="dialog" class="modal-backdrop"><button>close</button></form>
-</dialog>
 {% endblock %}
 

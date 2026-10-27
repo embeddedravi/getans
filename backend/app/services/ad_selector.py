@@ -86,6 +86,10 @@ async def select_ad(
 
     if ad_unit.format_type == AdFormatType.POLL:
         stmt = stmt.where(Creative.format == CreativeFormat.POLL)
+    else:
+        # Poll creatives need the interactive poll renderer in the publisher
+        # snippet; do not return them to ordinary display slots.
+        stmt = stmt.where(Creative.format != CreativeFormat.POLL)
 
     result = await db.execute(stmt)
     candidates = list(result.scalars().unique())
@@ -123,7 +127,11 @@ async def select_ad(
             and cr.review_status == ReviewStatus.APPROVED
             and cr.width == ad_unit.width
             and cr.height == ad_unit.height
-            and (ad_unit.format_type != AdFormatType.POLL or cr.format == CreativeFormat.POLL)
+            and (
+                cr.format == CreativeFormat.POLL
+                if ad_unit.format_type == AdFormatType.POLL
+                else cr.format != CreativeFormat.POLL
+            )
         ),
         None,
     )

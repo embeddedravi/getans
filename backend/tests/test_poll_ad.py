@@ -88,6 +88,50 @@ async def test_create_poll_creative_requires_four_options(client, advertiser_use
 
 
 @pytest.mark.asyncio
+async def test_poll_creative_list_is_admin_wide_and_advertiser_scoped(client, advertiser_user, advertiser, admin_user, db):
+    other_advertiser = Advertiser(name="Other Corp", billing_email="billing@other.example")
+    db.add(other_advertiser)
+    await db.commit()
+    await db.refresh(other_advertiser)
+
+    campaigns = []
+    for owner, name in ((advertiser, "My campaign"), (other_advertiser, "Other campaign")):
+        campaign = Campaign(
+            advertiser_id=owner.id,
+            name=name,
+            status=CampaignStatus.ACTIVE,
+            is_active=True,
+            start_date=datetime.now(timezone.utc),
+        )
+        db.add(campaign)
+        campaigns.append(campaign)
+    await db.commit()
+    for campaign in campaigns:
+        await db.refresh(campaign)
+        db.add(Creative(
+            campaign_id=campaign.id,
+            name=f"{campaign.name} poll",
+            asset_url="https://poll.example.com/ad.png",
+            click_url="https://advertiser.example.com/landing",
+            format=CreativeFormat.POLL,
+            width=300,
+            height=250,
+            custom_attributes={"poll_question": "Which option?", "poll_options": ["A", "B", "C", "D"]},
+        ))
+    await db.commit()
+
+    advertiser_headers = await auth_headers(client, "9123456789", "advertiserpass123")
+    admin_headers = await auth_headers(client, "9876543210", "adminpass123")
+    advertiser_res = await client.get("/api/creatives/polls", headers=advertiser_headers)
+    admin_res = await client.get("/api/creatives/polls", headers=admin_headers)
+
+    assert advertiser_res.status_code == 200
+    assert [row["campaign"]["name"] for row in advertiser_res.json()] == ["My campaign"]
+    assert admin_res.status_code == 200
+    assert {row["campaign"]["name"] for row in admin_res.json()} == {"My campaign", "Other campaign"}
+
+
+@pytest.mark.asyncio
 async def test_select_ad_matches_poll_ad_unit(db, publisher, advertiser):
     publisher.status = PublisherStatus.ACTIVE
     publisher.is_active = True

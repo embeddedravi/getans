@@ -17,6 +17,29 @@ from app.models.event import Event, EventType
 router = APIRouter(prefix="/creatives", tags=["Creatives"])
 
 
+@router.get("/polls", summary="List poll creatives visible to the current advertiser or admin")
+async def list_poll_creatives(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role("admin", "advertiser")),
+) -> list[dict]:
+    query = (
+        select(Creative, Campaign)
+        .join(Campaign, Campaign.id == Creative.campaign_id)
+        .where(Creative.format == CreativeFormat.POLL)
+        .order_by(Creative.created_at.desc(), Creative.id.desc())
+    )
+    if user.role == "advertiser":
+        query = query.where(Campaign.advertiser_id == user.advertiser_id)
+    rows = (await db.execute(query)).all()
+    return [
+        {
+            "creative": CreativeOut.model_validate(creative).model_dump(mode="json"),
+            "campaign": {"id": campaign.id, "name": campaign.name},
+        }
+        for creative, campaign in rows
+    ]
+
+
 @router.post(
     "",
     response_model=CreativeOut,

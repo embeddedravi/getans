@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+
+{% block title %}Poll results{% endblock %}
+{% block description %}Poll voting results{% endblock %}
+{% block page_title %}Poll results{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-2xl rounded-lg border border-base-300 bg-base-200 p-5 sm:p-7">
+  <a class="link text-sm" href="{{ url_for('poll_management') }}">← Back to poll ads</a>
+  <div class="mt-5">
+    <h2 class="font-display text-xl font-semibold">{{ results.question }}</h2>
+    <p class="mt-1 text-sm opacity-70">{{ results.total_votes }} total vote{{ '' if results.total_votes == 1 else 's' }}</p>
+  </div>
+  <div class="mt-6 space-y-4">
+    {% for option in results.options %}
+      {% set pct = results.percentages[loop.index0] %}
+      <div>
+        <div class="mb-1 flex justify-between gap-3 text-sm"><span>{{ option }}</span><span>{{ results.counts[loop.index0] }} · {{ pct }}%</span></div>
+        <progress class="progress progress-primary w-full" value="{{ pct }}" max="100"></progress>
+      </div>
+    {% endfor %}
+  </div>
+  <div class="mt-6 flex justify-end"><a class="btn btn-primary btn-sm" href="{{ url_for('poll_management') }}">Done</a></div>
+</div>
+{% endblock %}

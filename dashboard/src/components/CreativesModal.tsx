@@ -47,7 +47,7 @@ export function CreativesModal({
     const [pollHeight, setPollHeight] = useState("250");
     const [pollAssetUrl, setPollAssetUrl] = useState("");
     const [selectedResults, setSelectedResults] = useState<PollResults | null>(null);
-    const [loadingResults, setLoadingResults] = useState(false);
+    const [, setLoadingResults] = useState(false);
 
     useEffect(() => { api.listMedia().then(setMedia).catch(() => { }); }, []);
 

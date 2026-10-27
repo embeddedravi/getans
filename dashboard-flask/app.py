@@ -473,6 +473,21 @@ def campaigns():
     return render_template("campaigns.html", campaigns=campaigns_list, manage_mode=False)
 
 
+@app.route("/creatives")
+@login_required
+def creative_list():
+    try:
+        campaigns_list = _api("GET", "/campaigns")
+        rows = []
+        for campaign in campaigns_list if isinstance(campaigns_list, list) else []:
+            items = _api("GET", f"/creatives/by-campaign/{campaign['id']}")
+            rows.extend({"creative": creative, "campaign": campaign} for creative in items)
+    except Exception as exc:
+        rows = []
+        flash(f"Could not load creatives: {exc}", "error")
+    return render_template("creative_list.html", rows=rows)
+
+
 @app.route("/manage-campaign")
 @admin_required
 def manage_campaigns():

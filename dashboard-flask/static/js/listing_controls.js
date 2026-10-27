@@ -6,7 +6,10 @@
     container.dataset.listingReady = "true";
     const isBody = container.tagName === "TBODY";
     let page = 1;
-    let query = "";
+    const params = new URLSearchParams(window.location.search);
+    const idFilter = params.get("id") || "";
+    const initialSearch = params.get("search") || idFilter;
+    let query = initialSearch;
     let selectedStatus = "all";
 
     const controls = document.createElement("div");
@@ -16,6 +19,7 @@
     search.placeholder = "Search…";
     search.setAttribute("aria-label", "Search listing");
     search.className = "input input-bordered input-sm w-full max-w-xs";
+    search.value = initialSearch;
     const status = document.createElement("select");
     status.setAttribute("aria-label", "Filter listing by status");
     status.className = "select select-bordered select-sm";
@@ -67,9 +71,12 @@
       status.value = statuses.includes(currentStatus) ? currentStatus : "all";
       selectedStatus = status.value;
       const filtered = rows.filter((row) => {
-        const matchesText = row.textContent.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase());
+        const normalizedQuery = query.trim().toLocaleLowerCase();
+        const matchesText = row.textContent.toLocaleLowerCase().includes(normalizedQuery)
+          || (row.dataset.campaignId && row.dataset.campaignId === normalizedQuery);
+        const matchesId = !idFilter || row.dataset.campaignId === idFilter;
         const badge = badgeText(row);
-        return matchesText && (selectedStatus === "all" || badge === selectedStatus);
+        return matchesText && matchesId && (selectedStatus === "all" || badge === selectedStatus);
       });
       const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
       page = Math.min(page, pages);

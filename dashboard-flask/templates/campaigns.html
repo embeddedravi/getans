@@ -58,7 +58,7 @@
             'archived': 'badge-ghost',
           } %}
           {% for c in campaigns %}
-            <tr class="border-b border-base-300 last:border-0 hover:bg-base-300/20 transition-colors">
+            <tr data-campaign-id="{{ c.id }}" class="border-b border-base-300 last:border-0 hover:bg-base-300/20 transition-colors">
               <td class="font-medium">
                 {{ c.name }}
                 <span class="badge badge-xs ml-1 {{ 'badge-success' if c.is_active else 'badge-ghost' }}">{{ 'On' if c.is_active else 'Off' }}</span>

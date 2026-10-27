@@ -33,24 +33,31 @@ export function TopBar({ title }: TopBarProps) {
   }, []);
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-base-300 px-3 sm:h-16 sm:px-6">
-      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+    <header className="sticky top-0 z-30 flex min-h-16 shrink-0 items-center justify-between gap-3 border-b border-base-300/80 bg-base-100/90 px-3 backdrop-blur-xl sm:px-6">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-4">
         <label
           htmlFor="dashboard-drawer-toggle"
-          className="btn btn-ghost btn-square btn-sm lg:hidden"
+          className="btn btn-ghost btn-square btn-sm rounded-xl lg:hidden"
           aria-label="Open navigation"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </label>
-        <h1 className="truncate font-display text-lg font-semibold sm:text-xl">{title}</h1>
+        <span className="hidden h-8 w-px bg-base-300 sm:block" aria-hidden="true" />
+        <div className="min-w-0">
+          <h1 className="truncate font-display text-base font-semibold tracking-tight sm:text-xl">{title}</h1>
+        </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2 text-xs sm:text-sm">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 rounded-full border border-base-300 bg-base-200/70 px-2.5 py-1.5 text-[11px] sm:px-3 sm:text-xs" role="status" aria-live="polite">
+          <span className={`h-2 w-2 rounded-full ${connected ? "bg-success live-dot" : "bg-base-content/30"}`} />
+          <span className="hidden sm:inline">{connected ? "Live" : "Disconnected"}</span>
+        </div>
         <button
           type="button"
-          className="btn btn-ghost btn-square btn-sm"
+          className="btn btn-ghost btn-square btn-sm rounded-xl"
           aria-label={`Switch to ${theme === "light" ? "dark" : "light"} theme`}
           title={`Switch to ${theme === "light" ? "dark" : "light"} theme`}
           onClick={() => setTheme(theme === "light" ? "dark" : "light")}
@@ -65,13 +72,6 @@ export function TopBar({ title }: TopBarProps) {
             </svg>
           )}
         </button>
-        <span
-          className={`h-2 w-2 rounded-full ${connected ? "bg-warning live-dot" : "bg-neutral-content/40"
-            }`}
-        />
-        <span className="tabular ">
-          {connected ? "Live" : "Disconnected"}
-        </span>
       </div>
     </header>
   );

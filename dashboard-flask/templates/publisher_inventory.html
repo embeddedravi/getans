@@ -8,7 +8,7 @@
 <section class="rounded-lg border border-base-300 bg-base-200">
   <header class="border-b border-base-300 px-4 py-3">
     <h2 class="font-medium">Available publisher ad slots</h2>
-    <p class="mt-1 text-xs">Use the slot dimensions and format when you prepare a creative. Dimensions must match exactly for an ad to serve.</p>
+    <p class="mt-1 text-xs">Review each slot’s requirements when preparing a campaign creative. Dimensions must match exactly for an ad to serve.</p>
   </header>
 
   {% if error %}
@@ -18,7 +18,7 @@
   <div class="overflow-x-auto">
     <table class="table table-zebra w-full">
       <thead>
-        <tr><th>Publisher / site</th><th>Slot</th><th>Format</th><th>Creative size</th><th>Floor CPM</th><th></th></tr>
+        <tr><th>Publisher / site</th><th>Slot</th><th>Format</th><th>Creative size</th><th>Floor CPM</th></tr>
       </thead>
       <tbody data-listing>
         {% for unit in ad_units %}
@@ -35,10 +35,9 @@
           <td><span class="badge badge-outline badge-sm">{{ unit.format_type }}</span></td>
           <td class="tabular-nums font-medium">{{ unit.width }} × {{ unit.height }} px</td>
           <td class="tabular-nums">{{ unit.reserve_price | inr(4) if unit.reserve_price|float > 0 else '—' }}</td>
-          <td><a class="btn btn-ghost btn-xs" href="{{ url_for('campaigns') }}">My campaigns</a></td>
         </tr>
         {% else %}
-        <tr><td colspan="6" class="py-10 text-center">
+        <tr><td colspan="5" class="py-10 text-center">
           <p class="font-medium">No available publisher slots yet</p>
           <p class="mt-1 text-sm">Approved, active slots will appear here.</p>
         </td></tr>

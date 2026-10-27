@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+
+{% block title %}Creatives{% endblock %}
+{% block description %}All campaign creatives{% endblock %}
+{% block page_title %}Creatives{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-5">
+  <p class="text-sm">{{ rows|length }} creative{{ '' if rows|length == 1 else 's' }}</p>
+  <a href="{{ '/manage-campaign' if session.get('role') == 'admin' else '/campaigns' }}" class="btn btn-primary btn-sm">Manage campaigns</a>
+</div>
+<div class="border border-base-300 bg-base-200 rounded-lg overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="table w-full">
+      <thead><tr class="text-xs"><th>Preview</th><th>Creative</th><th>Campaign</th><th>Size</th><th>Review</th></tr></thead>
+      <tbody data-listing>
+        {% if not rows %}
+          <tr><td colspan="5" class="py-10 text-center text-sm">No creatives found.</td></tr>
+        {% else %}
+          {% for row in rows %}
+            {% set cr = row.creative %}
+            {% set campaign = row.campaign %}
+            <tr class="border-b border-base-300 last:border-0">
+              <td>
+                {% if cr.format == 'video' %}<video src="{{ cr.asset_url }}" muted preload="metadata" class="max-h-14 max-w-24 rounded bg-base-100"></video>
+                {% else %}<img src="{{ cr.asset_url }}" alt="{{ cr.name or ('Creative #' ~ cr.id) }}" class="max-h-14 max-w-24 rounded bg-base-100 object-contain" />{% endif %}
+              </td>
+              <td class="font-medium">{{ cr.name or ('Creative #' ~ cr.id) }}</td>
+              <td><a class="link" href="/campaigns?id={{ campaign.id }}">{{ campaign.name }}</a></td>
+              <td class="tabular-nums">{{ cr.width }}×{{ cr.height }}</td>
+              <td><span class="badge badge-sm {{ {'pending':'badge-warning','approved':'badge-success','rejected':'badge-error'}.get(cr.review_status, 'badge-ghost') }}">{{ cr.review_status }}</span></td>
+            </tr>
+          {% endfor %}
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

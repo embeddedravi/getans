@@ -5,24 +5,24 @@ import { api } from "../lib/api";
 type Role = "admin" | "staff" | "publisher" | "advertiser";
 
 const roleLabels: Record<Role, string> = {
-  admin: "Platform admin",
-  staff: "Platform staff",
-  publisher: "Publisher workspace",
-  advertiser: "Advertiser workspace",
+  admin: "Admin",
+  staff: "Staff",
+  publisher: "Publisher",
+  advertiser: "Advertiser",
 };
 
 const roleLinks: Record<Role, { to: string; label: string; end?: boolean }[]> = {
   admin: [
     { to: "/home", label: "Home", end: true },
     { to: "/analytics", label: "Analytics" },
+    { to: "/manage-campaign", label: "Campaigns" },
+    { to: "/creatives", label: "Creatives" },
     { to: "/manage-advertiser", label: "Advertisers" },
     { to: "/manage-publisher", label: "Publishers" },
-    { to: "/manage-campaign", label: "Campaigns" },
     { to: "/manage-slots", label: "Ad slots" },
     { to: "/live-events", label: "Live events" },
-    { to: "/manage-users", label: "Users" },
     { to: "/approvals", label: "Approvals" },
-    { to: "/payments", label: "Payments" },
+    { to: "/manage-users", label: "Users" },
     { to: "/payouts", label: "Payouts" },
     { to: "/support", label: "Support" },
   ],
@@ -34,21 +34,22 @@ const roleLinks: Record<Role, { to: string; label: string; end?: boolean }[]> = 
   publisher: [
     { to: "/home", label: "Home", end: true },
     { to: "/analytics", label: "Analytics" },
-    { to: "/my-live-events", label: "Live events" },
-    { to: "/earnings", label: "Earnings & payouts" },
     { to: "/publishers", label: "My sites", end: true },
     { to: "/adslots", label: "Ad slots", end: true },
+    { to: "/my-live-events", label: "Live events" },
+    { to: "/earnings", label: "Earnings & payouts" },
     { to: "/help", label: "Integration help" },
     { to: "/support", label: "Support" },
   ],
   advertiser: [
     { to: "/home", label: "Home", end: true },
     { to: "/analytics", label: "Analytics" },
-    { to: "/my-live-events", label: "Live events" },
+    { to: "/campaigns", label: "My campaigns" },
+    { to: "/creatives", label: "Creatives" },
+    { to: "/media", label: "Media library" },
     { to: "/publisher-inventory", label: "Publisher inventory" },
     { to: "/wallet", label: "Wallet" },
-    { to: "/campaigns", label: "My campaigns" },
-    { to: "/media", label: "Media library" },
+    { to: "/my-live-events", label: "Live events" },
     { to: "/support", label: "Support" },
   ],
 };
@@ -88,15 +89,21 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="min-h-full w-72 max-w-[85vw] shrink-0 border-r border-base-300 bg-base-200 flex flex-col lg:w-60">
-      <div className="px-5 py-5 border-b border-base-300">
-        <Link to="/" className="font-display text-lg font-semibold tracking-tight transition hover:text-primary" aria-label="GetANS public home">
-          GetANS
-        </Link>
-        {role && <p className="mt-1 text-xs ">{roleLabels[role]}</p>}
+    <aside className="flex min-h-full w-72 max-w-[85vw] shrink-0 flex-col border-r border-base-300 bg-base-200/95 lg:w-64">
+      <div className="flex items-center gap-3 border-b border-base-300 px-5 py-5">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-content shadow-sm" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>
+        </span>
+        <div className="min-w-0">
+          <Link to="/" className="font-display text-lg font-semibold tracking-tight transition hover:text-primary" aria-label="GetANS public home">
+            GetANS
+          </Link>
+          <p className="text-xs opacity-60">Ad platform</p>
+        </div>
+        {role && <span className="ml-auto rounded-full bg-base-300 px-2 py-1 text-[10px] font-medium leading-none">{roleLabels[role]}</span>}
       </div>
 
-      <nav className="flex-1 px-2 py-4 space-y-1">
+      <nav aria-label="Main navigation" className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
         {(role ? roleLinks[role] : []).map((link) => (
           <NavLink
             key={link.to}
@@ -107,9 +114,9 @@ export function Sidebar() {
               if (drawer) drawer.checked = false;
             }}
             className={({ isActive }) =>
-              `block rounded px-3 py-2 text-sm transition-colors ${isActive
-                ? "bg-base-300 text-base-content font-medium"
-                : " hover:bg-base-300/60 hover:text-base-content"
+              `block rounded-lg border-l-2 px-3 py-2.5 text-sm transition-colors ${isActive
+                ? "border-primary bg-primary/10 font-semibold text-primary"
+                : "border-transparent opacity-75 hover:bg-base-300/60 hover:opacity-100"
               }`
             }
           >
@@ -118,31 +125,33 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="px-4 py-4 border-t border-base-300 flex flex-col gap-3">
-        <NavLink to="/profile" className={({ isActive }) => `btn btn-ghost btn-xs w-full justify-start px-0 ${isActive ? "text-primary" : ""}`}>
-          Profile & account
-        </NavLink>
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-semibold text-primary">
+      <div className="border-t border-base-300 p-3">
+        <div className="rounded-xl border border-base-300 bg-base-100 p-3 shadow-sm">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary ring-1 ring-primary/10">
             {displayName.slice(0, 1).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-base-content">{displayName}</p>
+              <p className="mt-0.5 truncate text-xs opacity-60">{role ? roleLabels[role] : "Account"}</p>
+              {(user?.email || user?.mobile) && <p className="mt-1 truncate text-[11px] opacity-55">{user.email || user.mobile}</p>}
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-medium text-base-content">{displayName}</p>
-            <p className="truncate text-xs ">{role ? roleLabels[role] : "Account"}</p>
-            {user?.mobile && <p className="truncate text-xs ">{user.mobile}</p>}
-            {user?.email && <p className="truncate text-xs ">{user.email}</p>}
+          <div className="mt-3 grid grid-cols-2 gap-2 border-t border-base-300 pt-3">
+            <NavLink to="/profile" className={({ isActive }) => `btn btn-ghost btn-sm min-w-0 gap-2 ${isActive ? "bg-primary/10 text-primary" : ""}`}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM4 21a8 8 0 0116 0" />
+              </svg>
+              <span className="truncate">Profile</span>
+            </NavLink>
+            <button onClick={handleLogout} className="btn btn-ghost btn-sm min-w-0 gap-2 hover:bg-error/10 hover:text-error">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span className="truncate">Sign out</span>
+            </button>
           </div>
         </div>
-        <span className="text-xs ">Self-hosted ad server</span>
-        <button
-          onClick={handleLogout}
-          className="btn btn-ghost btn-xs w-full  hover:text-error justify-start gap-2 px-0"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          Sign out
-        </button>
       </div>
     </aside>
   );

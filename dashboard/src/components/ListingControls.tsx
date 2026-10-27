@@ -9,13 +9,18 @@ export function useListingControls<T>(
   filters: ListingFilter[] = [],
   pageSize = 10,
 ) {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("search") ?? params.get("id") ?? "";
+  });
+  const [idFilter] = useState(() => new URLSearchParams(window.location.search).get("id") ?? "");
   const [filter, setFilter] = useState("all");
   const [page, setPage] = useState(1);
   const filtered = useMemo(() => items.filter((item) => {
     const matchesQuery = searchText(item).toLocaleLowerCase().includes(query.trim().toLocaleLowerCase());
-    return matchesQuery && (filter === "all" || !filterValue || filterValue(item) === filter);
-  }), [items, searchText, filterValue, filter, query]);
+    const matchesId = !idFilter || (item as { id?: number }).id?.toString() === idFilter;
+    return matchesQuery && matchesId && (filter === "all" || !filterValue || filterValue(item) === filter);
+  }), [items, searchText, filterValue, filter, query, idFilter]);
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   useEffect(() => setPage((current) => Math.min(current, pageCount)), [pageCount]);
   useEffect(() => setPage(1), [query, filter]);

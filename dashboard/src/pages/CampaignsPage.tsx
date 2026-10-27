@@ -28,7 +28,7 @@ export function CampaignsPage() {
   const [creativesFor, setCreativesFor] = useState<Campaign | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [publishingId, setPublishingId] = useState<number | null>(null);
-  const listing = useListingControls(campaigns, (c) => `${c.name} ${c.status} ${c.bidding_strategy}`, (c) => c.status,
+  const listing = useListingControls(campaigns, (c) => `${c.id} ${c.name} ${c.status} ${c.bidding_strategy}`, (c) => c.status,
     ["draft", "scheduled", "active", "paused", "completed", "exhausted", "archived"].map((value) => ({ value, label: value })));
 
   useEffect(() => {

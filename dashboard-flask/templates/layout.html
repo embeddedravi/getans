@@ -7,19 +7,22 @@
   <div class="drawer-side z-40">
     <label for="flask-dashboard-drawer" aria-label="Close navigation" class="drawer-overlay"></label>
     <!-- Sidebar -->
-    <aside class="min-h-full w-72 max-w-[85vw] shrink-0 border-r border-base-300 bg-base-200 flex flex-col lg:w-60">
+    <aside class="flex min-h-full w-72 max-w-[85vw] shrink-0 flex-col border-r border-base-300 bg-base-200/95 lg:w-64">
     <!-- Brand -->
     <div class="px-5 py-5 border-b border-base-300 flex items-center gap-3">
-      <div class="w-7 h-7 rounded bg-primary flex items-center justify-center text-primary-content">
+      <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-content shadow-sm">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
           <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
         </svg>
       </div>
-      <a href="/" class="font-display text-lg font-semibold tracking-tight transition hover:text-primary" aria-label="{{ site_name }} public home">{{ site_name }}</a>
+      <div class="min-w-0">
+        <a href="/" class="font-display text-lg font-semibold tracking-tight transition hover:text-primary" aria-label="{{ site_name }} public home">{{ site_name }}</a>
+        <p class="text-xs opacity-60">Ad platform</p>
+      </div>
     </div>
 
     <!-- Navigation links -->
-    <nav class="flex-1 px-2 py-4 space-y-1">
+    <nav aria-label="Main navigation" class="flex-1 space-y-1 overflow-y-auto px-3 py-5">
       {% set nav_links = [
         ('/home', 'Home', 'M3 10.5 12 3l9 7.5M5 9v11h14V9m-9 11v-6h4v6'),
       ] %}
@@ -28,46 +31,43 @@
       {% endif %}
       {% if session.get('role') == 'admin' %}
         {% set nav_links = nav_links + [
+          ('/manage-campaign', 'Campaigns', 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'),
+          ('/creatives', 'Creatives', 'M4 5h16v14H4zM8 9h8m-8 4h8m-8 4h5'),
           ('/manage-advertiser', 'Advertisers', 'M17 20h5V4H2v16h5m10 0v-3a4 4 0 00-8 0v3m8 0H9m4-10a3 3 0 110-6 3 3 0 010 6z'),
           ('/manage-publisher', 'Publishers', 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9-3-9m-9 9a9 9 0 019-9'),
-          ('/manage-users', 'Users', 'M16 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2m12-13a4 4 0 11-8 0 4 4 0 018 0zm4 13v-2a4 4 0 00-3-3.87m-1-11.13a4 4 0 010 7.75'),
-          ('/manage-campaign', 'Campaigns', 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'),
           ('/manage-slots', 'Ad slots', 'M4 6h16M4 12h16M4 18h16'),
           ('/live-events', 'Live events', 'M13 10V3L4 14h7v7l9-11h-7z'),
-          ('/support', 'Support', 'M8 10h.01M16 10h.01M9 16c.9.7 1.9 1 3 1s2.1-.3 3-1m6-4a9 9 0 11-18 0 9 9 0 0118 0z'),
-          ('/approvals', 'Approvals', 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z')
+          ('/approvals', 'Approvals', 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'),
+          ('/manage-users', 'Users', 'M16 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2m12-13a4 4 0 11-8 0 4 4 0 018 0zm4 13v-2a4 4 0 00-3-3.87m-1-11.13a4 4 0 010 7.75')
         ] %}
-        {% set nav_links = nav_links + [('/payments', 'Payouts', 'M3 10h18M7 15h1m4 0h1m-9 4h16a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z')] %}
+        {% set nav_links = nav_links + [('/payments', 'Payouts', 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z')] %}
+        {% set nav_links = nav_links + [('/support', 'Support', 'M8 10h.01M16 10h.01M9 16c.9.7 1.9 1 3 1s2.1-.3 3-1m6-4a9 9 0 11-18 0 9 9 0 0118 0z')] %}
       {% elif session.get('role') == 'staff' %}
         {% set nav_links = nav_links + [
           ('/approvals', 'Review queue', 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'),
           ('/support', 'Support queue', 'M8 10h.01M16 10h.01M9 16c.9.7 1.9 1 3 1s2.1-.3 3-1m6-4a9 9 0 11-18 0 9 9 0 0118 0z')
         ] %}
-      {% else %}
+      {% elif session.get('role') == 'advertiser' %}
         {% set nav_links = nav_links + [
           ('/campaigns', 'Campaigns', 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'),
+          ('/creatives', 'Creatives', 'M4 5h16v14H4zM8 9h8m-8 4h8m-8 4h5'),
+          ('/media', 'Media library', 'M4 16l4-4a3 3 0 014 0l4 4m-2-2l1-1a3 3 0 014 0l2 2M4 6h16a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1z'),
+          ('/publisher-inventory', 'Publisher inventory', 'M4 6h16M4 12h16M4 18h16'),
+          ('/wallet', 'Wallet', 'M3 10h18M7 15h1m4 0h1m-9 4h16a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'),
           ('/live-events', 'Live events', 'M13 10V3L4 14h7v7l9-11h-7z'),
-          ('/support', 'Support', 'M8 10h.01M16 10h.01M9 16c.9.7 1.9 1 3 1s2.1-.3 3-1m6-4a9 9 0 11-18 0 9 9 0 0118 0z'),
+          ('/support', 'Support', 'M8 10h.01M16 10h.01M9 16c.9.7 1.9 1 3 1s2.1-.3 3-1m6-4a9 9 0 11-18 0 9 9 0 0118 0z')
         ] %}
-        {% if session.get('role') == 'publisher' %}
-          {% set nav_links = nav_links + [
-            ('/publishers', 'My sites', 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9-3-9m-9 9a9 9 0 019-9'),
-            ('/adslots', 'Ad slots', 'M4 6h16M4 12h16M4 18h16')
-          ] %}
-        {% endif %}
-        {% if session.get('role') == 'advertiser' %}
-          {% set nav_links = nav_links + [
-            ('/publisher-inventory', 'Publisher inventory', 'M4 6h16M4 12h16M4 18h16'),
-            ('/media', 'Media library', 'M4 16l4-4a3 3 0 014 0l4 4m-2-2l1-1a3 3 0 014 0l2 2M4 6h16a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1z'),
-            ('/wallet', 'Wallet', 'M3 10h18M7 15h1m4 0h1m-9 4h16a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z')
-          ] %}
-        {% endif %}
-        {% if session.get('role') == 'publisher' %}
-          {% set nav_links = nav_links + [
-            ('/earnings', 'Earnings & payouts', 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'),
-            ('/help', 'Integration help', 'M12 18h.01M8.2 10a4 4 0 117.6 1.3c-.9 1-1.8 1.5-1.8 2.7v.5M12 22a10 10 0 110-20 10 10 0 010 20z')
-          ] %}
-        {% endif %}
+      {% elif session.get('role') == 'publisher' %}
+        {% set nav_links = nav_links + [
+          ('/publishers', 'My sites', 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9-3-9m-9 9a9 9 0 019-9'),
+          ('/adslots', 'Ad slots', 'M4 6h16M4 12h16M4 18h16'),
+          ('/live-events', 'Live events', 'M13 10V3L4 14h7v7l9-11h-7z'),
+          ('/earnings', 'Earnings & payouts', 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'),
+          ('/help', 'Integration help', 'M12 18h.01M8.2 10a4 4 0 117.6 1.3c-.9 1-1.8 1.5-1.8 2.7v.5M12 22a10 10 0 110-20 10 10 0 010 20z'),
+          ('/support', 'Support', 'M8 10h.01M16 10h.01M9 16c.9.7 1.9 1 3 1s2.1-.3 3-1m6-4a9 9 0 11-18 0 9 9 0 0118 0z')
+        ] %}
+      {% else %}
+        {% set nav_links = nav_links + [('/support', 'Support', 'M8 10h.01M16 10h.01M9 16c.9.7 1.9 1 3 1s2.1-.3 3-1m6-4a9 9 0 11-18 0 9 9 0 0118 0z')] %}
       {% endif %}
 
       {% for href, label, icon_path in nav_links %}
@@ -76,9 +76,9 @@
            onclick="document.getElementById('flask-dashboard-drawer').checked = false"
            class="flex items-center gap-3 rounded px-3 py-2.5 text-sm transition-all duration-150
                   {% if is_active %}
-                    bg-primary/15 text-primary font-semibold border-l-2 border-primary pl-[10px]
+                    bg-primary/10 text-primary font-semibold border-l-2 border-primary pl-[10px]
                   {% else %}
-                     hover:bg-base-300/60 hover:text-base-content border-l-2 border-transparent
+                    opacity-75 hover:bg-base-300/60 hover:text-base-content hover:opacity-100 border-l-2 border-transparent
                   {% endif %}">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="{{ icon_path }}" />
@@ -92,41 +92,37 @@
     </nav>
 
     <!-- User context -->
-    <div class="px-4 py-4 border-t border-base-300">
-      <a href="{{ url_for('profile') }}" class="btn btn-ghost btn-sm mb-3 w-full justify-start gap-3 {{ 'text-primary bg-base-300/60' if current_path == '/profile' else '' }}">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM4 21a8 8 0 0116 0" />
-        </svg>
-        Profile &amp; account
-      </a>
-      <div class="flex items-center gap-3 mb-3">
-        <div class="avatar placeholder">
-          <div class="bg-primary/20 text-primary rounded-full w-8 h-8 flex items-center justify-center">
-            <span class="text-xs font-semibold">
-              {{ (session.get('user_name') or 'U')[:1]|upper }}
-            </span>
+    <div class="border-t border-base-300 p-3">
+      <div class="rounded-xl border border-base-300 bg-base-100 p-3 shadow-sm">
+        <div class="flex min-w-0 items-center gap-3">
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary ring-1 ring-primary/10">
+            {{ (session.get('user_name') or session.get('user_email') or session.get('user_mobile') or 'U')[:1]|upper }}
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-semibold text-base-content">
+              {{ session.get('user_name') or session.get('user_mobile') or session.get('user_email') or 'User' }}
+            </p>
+            <p class="mt-0.5 truncate text-xs opacity-60">{{ (session.get('role') or 'user')|replace('_', ' ')|title }}</p>
+            {% if session.get('user_email') or session.get('user_mobile') %}
+              <p class="mt-1 truncate text-[11px] opacity-55">{{ session.get('user_email') or session.get('user_mobile') }}</p>
+            {% endif %}
           </div>
         </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-xs font-medium text-base-content truncate">
-            {{ session.get('user_name') or session.get('user_mobile') or session.get('user_email') or 'User' }}
-          </p>
-          <p class="text-xs  truncate">
-            {{ (session.get('role') or 'user')|replace('_', ' ')|title }}
-            {% if session.get('user_mobile') and session.get('user_email') %}
-              · {{ session.get('user_mobile') }} · {{ session.get('user_email') }}
-            {% else %}
-              {{ session.get('user_mobile') or session.get('user_email') or '' }}
-            {% endif %}
-          </p>
+        <div class="mt-3 grid grid-cols-2 gap-2 border-t border-base-300 pt-3">
+          <a href="{{ url_for('profile') }}" class="btn btn-ghost btn-sm min-w-0 gap-2 {{ 'bg-primary/10 text-primary' if current_path == '/profile' else '' }}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM4 21a8 8 0 0116 0" />
+            </svg>
+            <span class="truncate">Profile</span>
+          </a>
+          <a href="/logout" class="btn btn-ghost btn-sm min-w-0 gap-2 hover:bg-error/10 hover:text-error">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span class="truncate">Sign out</span>
+          </a>
         </div>
       </div>
-      <a href="/logout" class="btn btn-ghost btn-xs w-full  hover:text-error justify-start gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-        </svg>
-        Sign out
-      </a>
     </div>
   </aside>
   </div>
@@ -134,17 +130,24 @@
   <!-- Main viewport -->
   <div class="drawer-content flex min-w-0 flex-col overflow-hidden">
     <!-- Top header -->
-    <header class="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-base-300 bg-base-200/80 px-3 backdrop-blur-sm sm:px-6">
-      <div class="flex min-w-0 items-center gap-2">
-        <label for="flask-dashboard-drawer" aria-label="Open navigation" class="btn btn-ghost btn-square btn-sm lg:hidden">
+    <header class="sticky top-0 z-30 flex min-h-16 shrink-0 items-center justify-between gap-3 border-b border-base-300/80 bg-base-100/90 px-3 backdrop-blur-xl sm:px-6">
+      <div class="flex min-w-0 items-center gap-2 sm:gap-4">
+        <label for="flask-dashboard-drawer" aria-label="Open navigation" class="btn btn-ghost btn-square btn-sm rounded-xl lg:hidden">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </label>
-        <h1 class="truncate font-display text-sm font-semibold sm:text-base">{% block page_title %}{% endblock %}</h1>
+        <span class="hidden h-8 w-px bg-base-300 sm:block" aria-hidden="true"></span>
+        <div class="min-w-0">
+          <h1 class="truncate font-display text-base font-semibold tracking-tight sm:text-xl">{% block page_title %}{% endblock %}</h1>
+        </div>
       </div>
-      <div class="flex shrink-0 items-center gap-2">
-        <button type="button" id="theme-toggle" class="btn btn-ghost btn-square btn-sm" aria-label="Switch theme" title="Switch theme">
+      <div class="flex shrink-0 items-center gap-2 sm:gap-3">
+        <span class="hidden items-center gap-2 rounded-full border border-base-300 bg-base-200/70 px-3 py-1.5 text-xs sm:inline-flex">
+          <span class="h-2 w-2 rounded-full bg-success animate-pulse"></span>
+          {{ (session.get('role') or 'user')|replace('_', ' ')|title }}
+        </span>
+        <button type="button" id="theme-toggle" class="btn btn-ghost btn-square btn-sm rounded-xl" aria-label="Switch theme" title="Switch theme">
           <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"></svg>
         </button>
         <div class="flex items-center gap-1.5 text-[11px]  sm:text-xs">

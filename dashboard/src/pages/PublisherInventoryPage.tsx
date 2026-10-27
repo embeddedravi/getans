@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { Layout } from "../components/Layout";
 import { useListingControls } from "../components/ListingControls";
 import { api } from "../lib/api";
@@ -27,7 +26,7 @@ export function PublisherInventoryPage() {
       <section className="rounded border border-base-300 bg-base-200">
         <header className="border-b border-base-300 px-4 py-3">
           <h2 className="font-medium">Available publisher ad slots</h2>
-          <p className="mt-1 text-xs">Use the slot dimensions and format when preparing a creative. Dimensions must match exactly for an ad to serve.</p>
+          <p className="mt-1 text-xs">Review each slot’s requirements when preparing a campaign creative. Dimensions must match exactly for an ad to serve.</p>
         </header>
 
         {error && <div role="alert" className="alert alert-error m-4 py-2 text-sm">{error}</div>}
@@ -35,7 +34,7 @@ export function PublisherInventoryPage() {
           <div className="p-4">{listing.controls}</div>
           <div className="overflow-x-auto">
             <table className="table table-zebra">
-              <thead><tr><th>Publisher / site</th><th>Slot</th><th>Format</th><th>Creative size</th><th>Floor CPM</th><th /></tr></thead>
+              <thead><tr><th>Publisher / site</th><th>Slot</th><th>Format</th><th>Creative size</th><th>Floor CPM</th></tr></thead>
               <tbody>
                 {listing.pageItems.map((unit) => <tr key={unit.id}>
                   <td>
@@ -50,9 +49,8 @@ export function PublisherInventoryPage() {
                   <td><span className="badge badge-outline badge-sm">{unit.format_type}</span></td>
                   <td className="tabular font-medium">{unit.width} × {unit.height} px</td>
                   <td className="tabular">{Number(unit.reserve_price) > 0 ? `₹${Number(unit.reserve_price).toFixed(4)}` : "—"}</td>
-                  <td><Link className="btn btn-ghost btn-xs" to="/campaigns">My campaigns</Link></td>
                 </tr>)}
-                {!listing.filtered.length && <tr><td colSpan={6} className="py-10 text-center">
+                {!listing.filtered.length && <tr><td colSpan={5} className="py-10 text-center">
                   <p className="font-medium">{units.length ? "No slots match your search" : "No available publisher slots yet"}</p>
                   <p className="mt-1 text-sm">{units.length ? "Try a different search." : "Approved, active slots will appear here."}</p>
                 </td></tr>}

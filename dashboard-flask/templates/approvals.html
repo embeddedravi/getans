@@ -6,47 +6,54 @@
 
 {% block content %}
 {% set labels = {'publishers': 'Publishers', 'advertisers': 'Advertisers', 'ad_units': 'Ad units'} %}
-<div class="space-y-5">
-  <div>
-    <h2 class="text-lg font-semibold">Review new accounts and ad units</h2>
-    <p class="text-sm ">Approve an item to activate it, or provide a reason when rejecting it.</p>
-  </div>
-  <div role="tablist" class="tabs tabs-bordered">
-    {% for key, label in labels.items() %}
-      <a role="tab" href="{{ url_for('approvals', tab=key) }}" class="tab {{ 'tab-active' if tab == key else '' }}">
-        {{ label }} <span class="badge badge-sm ml-2">{{ approvals.get(key, [])|length }}</span>
-      </a>
-    {% endfor %}
-  </div>
+{% set total_pending = approvals.get('publishers', [])|length + approvals.get('advertisers', [])|length + approvals.get('ad_units', [])|length %}
+<div class="space-y-6">
+  <section class="overflow-hidden rounded-xl border border-base-300 bg-gradient-to-br from-base-200 via-base-200 to-primary/10 p-5 sm:p-7">
+    <div class="flex flex-wrap items-center justify-between gap-5">
+      <div><p class="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Review queue</p><h2 class="mt-2 font-display text-2xl font-semibold">Pending approvals</h2><p class="mt-1 max-w-xl text-sm opacity-70">Review new accounts and ad units. Approve an item to activate it, or provide a reason when rejecting it.</p></div>
+      <div class="min-w-28 rounded-xl border border-base-300 bg-base-100/80 px-5 py-3 text-center"><div class="text-3xl font-semibold tabular-nums">{{ total_pending }}</div><div class="mt-1 text-xs opacity-70">awaiting review</div></div>
+    </div>
+    <div role="tablist" class="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
+      {% for key, label in labels.items() %}
+        {% set count = approvals.get(key, [])|length %}
+        <a role="tab" aria-selected="{{ 'true' if tab == key else 'false' }}" href="{{ url_for('approvals', tab=key) }}" class="flex items-center justify-between rounded-lg border px-4 py-3 text-left transition-colors {{ 'border-primary bg-primary/10' if tab == key else 'border-base-300 bg-base-100/60 hover:bg-base-100' }}">
+          <span class="text-sm font-medium">{{ label }}</span><span class="badge badge-sm {{ 'badge-primary' if count else 'badge-ghost' }}">{{ count }}</span>
+        </a>
+      {% endfor %}
+    </div>
+  </section>
   {% set rows = approvals.get(tab, []) %}
+  <div class="flex items-end justify-between gap-3"><div><h3 class="font-display text-lg font-semibold">{{ labels[tab] }}</h3><p class="text-xs opacity-60">{{ rows|length }} item{{ '' if rows|length == 1 else 's' }} in this queue</p></div></div>
   {% if not rows %}
-    <div class="rounded-lg border border-base-300 bg-base-200 p-8 text-center text-sm ">Nothing is waiting for review.</div>
+    <div class="rounded-xl border border-dashed border-base-300 bg-base-200/60 p-10 text-center"><div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-success/10 text-xl text-success">✓</div><h3 class="font-semibold">All caught up</h3><p class="mt-1 text-sm opacity-70">Nothing is waiting for review in {{ labels[tab]|lower }}.</p></div>
   {% else %}
-    <div data-listing class="space-y-3">
+    <div data-listing class="grid gap-3 lg:grid-cols-2">
       {% for item in rows %}
-        <article data-listing-item class="rounded-lg border border-base-300 bg-base-200 p-4">
+        <article data-listing-item class="rounded-xl border border-base-300 bg-base-200 p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5">
           <div class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h3 class="font-medium">{{ item.name if tab != 'ad_units' else item.slot_name }}</h3>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2"><span class="h-2 w-2 shrink-0 rounded-full bg-warning"></span><h3 class="truncate font-semibold">{{ item.name if tab != 'ad_units' else item.slot_name }}</h3><span class="badge badge-warning badge-xs">Pending</span></div>
               {% if tab == 'publishers' %}
-                <p class="text-sm ">{{ item.site_url }} · {{ item.payout_email }}</p>
+                <div class="mt-3 space-y-1 text-sm"><p class="break-all">{{ item.site_url }}</p><p class="opacity-70">Payout email: {{ item.payout_email }}</p></div>
               {% elif tab == 'advertisers' %}
-                <p class="text-sm ">{{ item.billing_email }}{% if item.industry %} · {{ item.industry }}{% endif %}</p>
+                <div class="mt-3 space-y-1 text-sm"><p class="break-all">{{ item.billing_email }}</p>{% if item.industry %}<p class="opacity-70">Industry: {{ item.industry }}</p>{% endif %}</div>
               {% else %}
-                <p class="text-sm ">Publisher #{{ item.publisher_id }} · {{ item.width }} × {{ item.height }} · {{ item.format_type }}</p>
+                <div class="mt-3 flex flex-wrap gap-2 text-xs"><span class="badge badge-outline">Publisher #{{ item.publisher_id }}</span><span class="badge badge-outline">{{ item.width }} × {{ item.height }}</span><span class="badge badge-outline">{{ item.format_type }}</span></div>
               {% endif %}
-              <p class="text-xs  mt-1">Submitted {{ item.created_at[:10] }}</p>
+              <p class="mt-3 text-xs opacity-60">Submitted {{ item.created_at[:10] }}</p>
             </div>
+          </div>
+          <div class="mt-4 flex flex-wrap gap-2 border-t border-base-300 pt-4">
+            <form method="POST" action="{{ url_for('review_approval', kind=tab, item_id=item.id) }}" class="flex min-w-0 flex-1 flex-wrap gap-2">
+              <input type="hidden" name="decision" value="reject" />
+              <input name="rejection_reason" required maxlength="500" placeholder="Reason required to reject" aria-label="Rejection reason" class="input input-bordered input-sm min-w-40 flex-1 bg-base-100" />
+              <button class="btn btn-error btn-outline btn-sm">Reject</button>
+            </form>
             <form method="POST" action="{{ url_for('review_approval', kind=tab, item_id=item.id) }}">
               <input type="hidden" name="decision" value="approve" />
               <button class="btn btn-success btn-sm">Approve</button>
             </form>
           </div>
-          <form method="POST" action="{{ url_for('review_approval', kind=tab, item_id=item.id) }}" class="mt-3 flex flex-wrap gap-2">
-            <input type="hidden" name="decision" value="reject" />
-            <input name="rejection_reason" required maxlength="500" placeholder="Reason required to reject" aria-label="Rejection reason" class="input input-bordered input-sm flex-1 min-w-56" />
-            <button class="btn btn-error btn-outline btn-sm">Reject</button>
-          </form>
         </article>
       {% endfor %}
     </div>

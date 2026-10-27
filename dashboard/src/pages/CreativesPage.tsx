@@ -12,6 +12,8 @@ export function CreativesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [campaignsPath, setCampaignsPath] = useState("/campaigns");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [reviewingId, setReviewingId] = useState<number | null>(null);
   const listing = useListingControls(rows, ({ creative, campaign }) =>
     `${creative.name ?? ""} ${creative.id} ${campaign.name} ${creative.review_status} ${creative.width} ${creative.height}`,
     ({ creative }) => creative.review_status,
@@ -21,7 +23,10 @@ export function CreativesPage() {
     let cancelled = false;
     setLoading(true);
     api.me().then((user) => {
-      if (!cancelled && (user as { role?: string }).role === "admin") setCampaignsPath("/manage-campaign");
+      if (!cancelled && (user as { role?: string }).role === "admin") {
+        setIsAdmin(true);
+        setCampaignsPath("/manage-campaign");
+      }
     }).catch(() => { });
     api.listCampaigns()
       .then(async (campaigns) => {
@@ -38,6 +43,23 @@ export function CreativesPage() {
     return () => { cancelled = true; };
   }, []);
 
+  async function reviewCreative(creative: Creative, status: "approved" | "rejected") {
+    const reason = status === "rejected" ? window.prompt("Reason for rejection?")?.trim() : undefined;
+    if (status === "rejected" && !reason) return;
+    setReviewingId(creative.id);
+    setError(null);
+    try {
+      await api.reviewCreative(creative.id, status, reason);
+      setRows((current) => current.map((row) => row.creative.id === creative.id
+        ? { ...row, creative: { ...row.creative, review_status: status, rejection_reason: reason ?? null } }
+        : row));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not review creative.");
+    } finally {
+      setReviewingId(null);
+    }
+  }
+
   return (
     <Layout title="Creatives">
       <div className="mb-5 flex items-center justify-between">
@@ -48,10 +70,10 @@ export function CreativesPage() {
       {listing.controls}
       <div className="overflow-x-auto rounded border border-base-300 bg-base-200">
         <table className="table">
-          <thead><tr className="text-xs"><th>Preview</th><th>Creative</th><th>Campaign</th><th>Size</th><th>Review</th></tr></thead>
+          <thead><tr className="text-xs"><th>Preview</th><th>Creative</th><th>Campaign</th><th>Size</th><th>Review</th>{isAdmin && <th>Actions</th>}</tr></thead>
           <tbody>
-            {loading ? <tr><td colSpan={5} className="py-6 text-center text-sm">Loading creatives…</td></tr>
-              : listing.filtered.length === 0 ? <tr><td colSpan={5} className="py-6 text-center text-sm">No creatives found.</td></tr>
+            {loading ? <tr><td colSpan={isAdmin ? 6 : 5} className="py-6 text-center text-sm">Loading creatives…</td></tr>
+              : listing.filtered.length === 0 ? <tr><td colSpan={isAdmin ? 6 : 5} className="py-6 text-center text-sm">No creatives found.</td></tr>
                 : listing.pageItems.map(({ creative, campaign }) => (
                   <tr key={creative.id} className="border-b border-base-300 last:border-0">
                     <td><img src={creative.asset_url} alt={creative.name ?? `Creative ${creative.id}`} className="max-h-14 max-w-24 rounded bg-base-100 object-contain" /></td>
@@ -59,6 +81,10 @@ export function CreativesPage() {
                     <td><Link className="link" to={`${campaignsPath}?id=${campaign.id}`}>{campaign.name}</Link></td>
                     <td className="tabular text-sm">{creative.width}×{creative.height}</td>
                     <td><span className={`badge badge-sm ${creative.review_status === "approved" ? "badge-success" : creative.review_status === "rejected" ? "badge-error" : "badge-warning"}`}>{creative.review_status}</span></td>
+                    {isAdmin && <td><div className="flex gap-1">
+                      {creative.review_status !== "approved" && <button className="btn btn-success btn-xs" disabled={reviewingId === creative.id} onClick={() => void reviewCreative(creative, "approved")}>Approve</button>}
+                      {creative.review_status !== "rejected" && <button className="btn btn-error btn-outline btn-xs" disabled={reviewingId === creative.id} onClick={() => void reviewCreative(creative, "rejected")}>Reject</button>}
+                    </div></td>}
                   </tr>
                 ))}
           </tbody>

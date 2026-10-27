@@ -90,12 +90,13 @@ export function PollsPage() {
   return <Layout title="Poll ads">
     <div className="mx-auto max-w-6xl space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm">Create poll ads and manage their serving status and results.</p>
+        <p className="text-sm">{isAdmin ? "Review poll ads, check voting results, and control whether each poll is serving." : "Create poll ads and manage their serving status and results."}</p>
         <Link to="/campaigns" className="btn btn-ghost btn-sm">Manage campaigns</Link>
       </div>
       {error && <div role="alert" className="alert alert-error py-2 text-sm">{error}</div>}
       {notice && <div role="status" className="alert alert-success py-2 text-sm">{notice}</div>}
 
+      {!isAdmin && <>
       <form onSubmit={createPoll} className="grid gap-3 rounded-lg border border-base-300 bg-base-200 p-4 sm:grid-cols-2 sm:p-5">
         <div className="sm:col-span-2"><h2 className="font-display text-lg font-semibold">Create poll ad</h2><p className="mt-1 text-xs opacity-70">Poll ads use 300 × 250 dimensions by default and need approval before serving.</p></div>
         <label className="block sm:col-span-2"><span className="mb-1 block text-xs font-medium">Campaign</span>
@@ -117,6 +118,7 @@ export function PollsPage() {
         </label>
         <div className="flex justify-end sm:col-span-2"><button className="btn btn-primary btn-sm" disabled={busy || campaigns.length === 0}>{busy ? "Creating…" : "Create poll ad"}</button></div>
       </form>
+      </>}
 
       <section className="space-y-3">
         <div className="flex items-center justify-between"><h2 className="font-display text-lg font-semibold">Poll ads</h2><span className="text-xs opacity-70">{rows.length} total</span></div>

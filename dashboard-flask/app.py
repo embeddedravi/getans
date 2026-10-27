@@ -488,6 +488,27 @@ def creative_list():
     return render_template("creative_list.html", rows=rows)
 
 
+@app.route("/creatives/<int:creative_id>/review", methods=["POST"])
+@admin_required
+def review_creative_from_list(creative_id: int):
+    decision = request.form.get("decision")
+    if decision not in {"approved", "rejected"}:
+        abort(400)
+    body = {"review_status": decision}
+    if decision == "rejected":
+        reason = (request.form.get("reason") or "").strip()
+        if not reason:
+            flash("A rejection reason is required.", "error")
+            return redirect(url_for("creative_list"))
+        body["rejection_reason"] = reason
+    try:
+        _api("PATCH", f"/creatives/{creative_id}/review", json=body)
+        flash(f"Creative {decision}.", "success")
+    except Exception as exc:
+        flash(f"Review failed: {exc}", "error")
+    return redirect(url_for("creative_list"))
+
+
 @app.route("/poll")
 @login_required
 def poll_management():

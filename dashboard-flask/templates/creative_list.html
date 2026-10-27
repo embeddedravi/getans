@@ -12,10 +12,10 @@
 <div class="border border-base-300 bg-base-200 rounded-lg overflow-hidden">
   <div class="overflow-x-auto">
     <table class="table w-full">
-      <thead><tr class="text-xs"><th>Preview</th><th>Creative</th><th>Campaign</th><th>Size</th><th>Review</th></tr></thead>
+      <thead><tr class="text-xs"><th>Preview</th><th>Creative</th><th>Campaign</th><th>Size</th><th>Review</th>{% if session.get('role') == 'admin' %}<th>Actions</th>{% endif %}</tr></thead>
       <tbody data-listing>
         {% if not rows %}
-          <tr><td colspan="5" class="py-10 text-center text-sm">No creatives found.</td></tr>
+          <tr><td colspan="{{ 6 if session.get('role') == 'admin' else 5 }}" class="py-10 text-center text-sm">No creatives found.</td></tr>
         {% else %}
           {% for row in rows %}
             {% set cr = row.creative %}
@@ -29,6 +29,23 @@
               <td><a class="link" href="/campaigns?id={{ campaign.id }}">{{ campaign.name }}</a></td>
               <td class="tabular-nums">{{ cr.width }}×{{ cr.height }}</td>
               <td><span class="badge badge-sm {{ {'pending':'badge-warning','approved':'badge-success','rejected':'badge-error'}.get(cr.review_status, 'badge-ghost') }}">{{ cr.review_status }}</span></td>
+              {% if session.get('role') == 'admin' %}
+              <td><div class="flex flex-wrap items-center gap-1">
+                {% if cr.review_status != 'approved' %}
+                <form method="POST" action="{{ url_for('review_creative_from_list', creative_id=cr.id) }}">
+                  <input type="hidden" name="decision" value="approved" />
+                  <button class="btn btn-success btn-xs" type="submit">Approve</button>
+                </form>
+                {% endif %}
+                {% if cr.review_status != 'rejected' %}
+                <form method="POST" action="{{ url_for('review_creative_from_list', creative_id=cr.id) }}" class="flex gap-1">
+                  <input type="hidden" name="decision" value="rejected" />
+                  <input name="reason" required maxlength="500" placeholder="Rejection reason" aria-label="Rejection reason" class="input input-bordered input-xs w-32" />
+                  <button class="btn btn-error btn-outline btn-xs" type="submit">Reject</button>
+                </form>
+                {% endif %}
+              </div></td>
+              {% endif %}
             </tr>
           {% endfor %}
         {% endif %}

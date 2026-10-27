@@ -5,7 +5,7 @@ import { api } from "../lib/api";
 import type { AdFormatType, AdUnit, Publisher } from "../types";
 import { useListingControls } from "../components/ListingControls";
 
-const AD_FORMATS: AdFormatType[] = ["display", "banner", "native", "video", "interstitial"];
+const AD_FORMATS: AdFormatType[] = ["display", "banner", "native", "video", "interstitial", "poll"];
 
 export function PublishersPage({ view = "sites" }: { view?: "sites" | "adslots" }) {
   const [searchParams] = useSearchParams();

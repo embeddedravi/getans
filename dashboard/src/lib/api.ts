@@ -125,6 +125,8 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ review_status, rejection_reason }),
     }),
+  getPollResults: (creativeId: number) =>
+    request<import("../types").PollResults>(`/creatives/${creativeId}/poll-results`),
 
   listMedia: () => request<import("../types").MediaAsset[]>("/media"),
   uploadMedia: async (file: File) => {

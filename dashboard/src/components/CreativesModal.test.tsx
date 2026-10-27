@@ -236,4 +236,35 @@ describe("add creative form", () => {
         expect(await screen.findByRole("alert")).toHaveTextContent("Parent campaign not found");
         expect(screen.getByPlaceholderText("Image URL")).toHaveValue("https://cdn.example.com/new.png");
     });
+
+    it("creates a poll ad with 1 question and 4 options", async () => {
+        renderModal();
+        await screen.findByText("Banner A");
+
+        fireEvent.click(screen.getByRole("button", { name: /Poll Ad/i }));
+
+        fill(screen.getByPlaceholderText(/e.g. Which programming language/i), "Which framework do you prefer?");
+        fill(screen.getByPlaceholderText("Option 1"), "React");
+        fill(screen.getByPlaceholderText("Option 2"), "Vue");
+        fill(screen.getByPlaceholderText("Option 3"), "Svelte");
+        fill(screen.getByPlaceholderText("Option 4"), "Angular");
+        fill(screen.getByPlaceholderText("https://yourbrand.example.com"), "https://example.com/vote");
+
+        submitForm(screen.getByRole("button", { name: "Create Poll Ad" }));
+
+        await waitFor(() =>
+            expect(mocked.createCreative).toHaveBeenCalledWith({
+                campaign_id: 1,
+                name: null,
+                format: "poll",
+                poll_question: "Which framework do you prefer?",
+                poll_options: ["React", "Vue", "Svelte", "Angular"],
+                click_url: "https://example.com/vote",
+                width: 300,
+                height: 250,
+                asset_url: undefined,
+            })
+        );
+    });
 });
+

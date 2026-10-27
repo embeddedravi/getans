@@ -607,6 +607,43 @@ def create_creative_by_url(campaign_id: int):
         flash(f"Failed: {exc}", "error")
     return redirect(url_for("creatives", campaign_id=campaign_id))
 
+@app.route("/campaigns/<int:campaign_id>/creatives/create-poll", methods=["POST"])
+@login_required
+def create_poll_creative(campaign_id: int):
+    question = (request.form.get("poll_question") or "").strip()
+    opt1 = (request.form.get("option_1") or "").strip()
+    opt2 = (request.form.get("option_2") or "").strip()
+    opt3 = (request.form.get("option_3") or "").strip()
+    opt4 = (request.form.get("option_4") or "").strip()
+
+    if not question:
+        flash("Poll question is required.", "error")
+        return redirect(url_for("creatives", campaign_id=campaign_id))
+    if not (opt1 and opt2 and opt3 and opt4):
+        flash("All 4 poll options are required.", "error")
+        return redirect(url_for("creatives", campaign_id=campaign_id))
+
+    payload = {
+        "campaign_id": campaign_id,
+        "name": request.form.get("name") or None,
+        "format": "poll",
+        "poll_question": question,
+        "poll_options": [opt1, opt2, opt3, opt4],
+        "click_url": request.form.get("click_url"),
+        "width": int(request.form.get("width") or 300),
+        "height": int(request.form.get("height") or 250),
+        "asset_url": request.form.get("asset_url") or "https://poll.getans.local/ad.png",
+    }
+    try:
+        _api("POST", "/creatives", json=payload)
+        flash("Poll creative created. It will serve once approved.", "success")
+    except requests.HTTPError as exc:
+        flash(f"Failed: {_detail_from(exc.response)}", "error")
+    except Exception as exc:
+        flash(f"Failed: {exc}", "error")
+    return redirect(url_for("creatives", campaign_id=campaign_id))
+
+
 @app.route("/campaigns/<int:campaign_id>/creatives/<int:creative_id>/toggle", methods=["POST"])
 @login_required
 def toggle_creative(campaign_id: int, creative_id: int):

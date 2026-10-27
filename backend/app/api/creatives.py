@@ -11,7 +11,8 @@ from app.models.campaign import Campaign
 from app.models.creative import Creative, ReviewStatus, CreativeFormat
 from app.models.user import User
 from app.models.media_asset import MediaKind, MediaAsset
-from app.schemas.creative import CreativeCreate, CreativeOut, CreativeUpdate, CreativeReview
+from app.schemas.creative import CreativeCreate, CreativeOut, CreativeUpdate, CreativeReview, PollResultsOut
+from app.models.event import Event, EventType
 
 router = APIRouter(prefix="/creatives", tags=["Creatives"])
 
@@ -166,3 +167,47 @@ async def review_creative(
     await db.commit()
     await db.refresh(creative)
     return creative
+
+
+@router.get("/{creative_id}/poll-results", response_model=PollResultsOut, summary="Get poll voting results")
+async def get_poll_results(
+    creative_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role("admin", "advertiser")),
+) -> PollResultsOut:
+    creative = await _get_owned_creative(db, creative_id, user)
+    if creative.format != CreativeFormat.POLL:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Creative is not a poll ad")
+
+    attrs = creative.custom_attributes or {}
+    question = attrs.get("poll_question", "Poll")
+    options = attrs.get("poll_options", ["Option 1", "Option 2", "Option 3", "Option 4"])
+
+    result = await db.execute(
+        select(Event.meta)
+        .where(
+            Event.creative_id == creative_id,
+            Event.type == EventType.POLL_VOTE,
+            Event.is_valid.is_(True),
+        )
+    )
+    counts = [0, 0, 0, 0]
+    for row in result.scalars():
+        if isinstance(row, dict) and "option_index" in row:
+            try:
+                idx = int(row["option_index"])
+                if 0 <= idx < 4:
+                    counts[idx] += 1
+            except (ValueError, TypeError):
+                pass
+    total = sum(counts)
+    percentages = [round((c / total * 100), 1) if total > 0 else 0.0 for c in counts]
+
+    return PollResultsOut(
+        creative_id=creative_id,
+        question=question,
+        options=options,
+        counts=counts,
+        percentages=percentages,
+        total_votes=total,
+    )

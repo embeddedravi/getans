@@ -8,6 +8,7 @@ from app.api import delivery
 from app.models.ad_unit import AdUnit
 from app.models.campaign import Campaign
 from app.models.creative import Creative, ReviewStatus
+from app.services import serve_token as serve_token_module
 
 
 @pytest.mark.asyncio
@@ -41,8 +42,13 @@ async def test_conversion_events_are_accepted_for_cpa_billing(client, db, advert
     async def record_event(**kwargs):
         seen.append(kwargs)
 
+    # Stub verify_serve_token so we don't need a real token, and return a long-enough visitor_id
+    FAKE_VISITOR = "visitor-1-padded-to-16chars"
+    def fake_verify(token, ad_unit_id, creative_id): return FAKE_VISITOR
+
     monkeypatch.setattr(delivery, "authenticate_publisher", authenticate)
     monkeypatch.setattr(delivery, "record_event", record_event)
+    monkeypatch.setattr(delivery, "verify_serve_token", fake_verify)
 
     response = await client.post(
         "/api/delivery/events/conversion",
@@ -51,7 +57,8 @@ async def test_conversion_events_are_accepted_for_cpa_billing(client, db, advert
             "ad_unit_id": unit.id,
             "creative_id": creative.id,
             "event_id": "conversion-event-1",
-            "visitor_id": "visitor-1",
+            "visitor_id": FAKE_VISITOR,
+            "serve_token": "a" * 20,  # min_length=20 required by schema
         },
     )
 

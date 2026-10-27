@@ -15,12 +15,14 @@ from __future__ import annotations
 
 import logging
 import hashlib
+import secrets
+from decimal import Decimal
 
 import socketio
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_session
+from app.db.session import async_session_factory, get_session
 from app.models.ad_report import AdReport
 from app.models.ad_unit import AdUnit, AdUnitStatus
 from app.models.creative import Creative
@@ -61,7 +63,7 @@ class DeliveryNamespace(socketio.AsyncNamespace):
             await self.emit("no_fill", {"reason": "unauthorized"}, to=sid)
             return
 
-        environ = self.server.get_environ(sid, namespace=self.namespace) or {}
+        environ = (self.server.get_environ(sid, namespace=self.namespace) or {}) if self.server else {}
         origin = environ.get("HTTP_ORIGIN")
         site_url = getattr(publisher, "site_url", None)
         if origin and site_url:
@@ -101,21 +103,23 @@ class DeliveryNamespace(socketio.AsyncNamespace):
             return
 
         token, visitor = issue_serve_token(ad_unit_id, ad.creative_id)
-        await self.emit(
-            "serve_ad",
-            {
-                "campaign_id": ad.campaign_id,
-                "creative_id": ad.creative_id,
-                "asset_url": ad.asset_url,
-                "click_url": ad.click_url,
-                "width": ad.width,
-                "height": ad.height,
-                "format": ad.format,
-                "serve_token": token,
-                "visitor_id": visitor,
-            },
-            to=sid,
-        )
+        serve_payload = {
+            "campaign_id": ad.campaign_id,
+            "creative_id": ad.creative_id,
+            "asset_url": ad.asset_url,
+            "click_url": ad.click_url,
+            "width": ad.width,
+            "height": ad.height,
+            "format": ad.format,
+            "custom_attributes": ad.custom_attributes,
+            "html_snippet": ad.html_snippet,
+            "serve_token": token,
+            "visitor_id": visitor,
+        }
+        if ad.format == "poll":
+            serve_payload["poll_results"] = await self._get_poll_stats(db, ad.creative_id, ad.custom_attributes)
+
+        await self.emit("serve_ad", serve_payload, to=sid)
 
     async def on_impression(self, sid: str, data: dict) -> None:
         visitor = verify_serve_token(str(data.get("serve_token", "")), data.get("ad_unit_id", 0), data.get("creative_id", 0)) if isinstance(data, dict) else None
@@ -178,10 +182,148 @@ class DeliveryNamespace(socketio.AsyncNamespace):
         except ValueError as exc:
             await self.emit("event_rejected", {"reason": str(exc)}, to=sid)
 
+    async def _get_poll_stats(
+        self,
+        db: AsyncSession,
+        creative_id: int,
+        custom_attributes: dict | None = None,
+    ) -> dict:
+        attrs = custom_attributes or {}
+        question = attrs.get("poll_question", "")
+        options = attrs.get("poll_options", [])
+        from app.models.event import Event, EventType
+        result = await db.execute(
+            select(Event.meta).where(
+                Event.creative_id == creative_id,
+                Event.type == EventType.POLL_VOTE,
+                Event.is_valid.is_(True),
+            )
+        )
+        counts = [0, 0, 0, 0]
+        for row in result.scalars():
+            if isinstance(row, dict) and "option_index" in row:
+                try:
+                    idx = int(row["option_index"])
+                    if 0 <= idx < 4:
+                        counts[idx] += 1
+                except (ValueError, TypeError):
+                    pass
+        total = sum(counts)
+        percentages = [round((c / total * 100), 1) if total > 0 else 0.0 for c in counts]
+        return {
+            "question": question,
+            "options": options,
+            "counts": counts,
+            "percentages": percentages,
+            "total_votes": total,
+        }
+
+    async def on_poll_vote(self, sid: str, data: dict) -> dict:
+        """Handle poll vote interaction event from publisher embed."""
+        if not isinstance(data, dict):
+            return {"ok": False, "message": "Invalid vote payload"}
+
+        try:
+            ad_unit_id = int(data.get("ad_unit_id", 0))
+            creative_id = int(data.get("creative_id", 0))
+            option_index = int(data.get("option_index", -1))
+        except (TypeError, ValueError):
+            return {"ok": False, "message": "Invalid ad or option index"}
+
+        if not (0 <= option_index <= 3):
+            return {"ok": False, "message": "Option index must be between 0 and 3"}
+
+        serve_token = str(data.get("serve_token", ""))
+        visitor = verify_serve_token(serve_token, ad_unit_id, creative_id)
+        if visitor is None:
+            await self.emit("event_rejected", {"reason": "invalid_or_expired_serve_token"}, to=sid)
+            return {"ok": False, "message": "Invalid or expired serve token"}
+
+        metadata = await self._event_metadata(sid, data)
+        from app.models.event import Event, EventType
+        from app.models.creative import Creative
+        from app.models.campaign import Campaign
+        from datetime import datetime, timezone
+        from sqlalchemy.exc import IntegrityError
+        from app.services.budget_tracker import _emit_live_event
+
+        timestamp = datetime.now(timezone.utc)
+        visitor_hash = hashlib.sha256(visitor.encode("utf-8")).hexdigest()
+        identity = f"{visitor_hash}:{ad_unit_id}:{creative_id}:poll_vote:{timestamp:%Y-%m-%d}"
+        dedupe_key = hashlib.sha256(identity.encode("utf-8")).hexdigest()
+
+        event_id = data.get("event_id") or f"pv-{secrets.token_hex(12)}"
+
+        async with async_session_factory() as db:
+            creative = await db.get(Creative, creative_id)
+            if not creative:
+                return {"ok": False, "message": "Creative not found"}
+
+            attrs = creative.custom_attributes or {}
+            options = attrs.get("poll_options", [])
+            option_text = options[option_index] if 0 <= option_index < len(options) else f"Option {option_index + 1}"
+
+            event = Event(
+                event_id=event_id,
+                dedupe_key=dedupe_key,
+                ad_unit_id=ad_unit_id,
+                campaign_id=creative.campaign_id,
+                creative_id=creative_id,
+                type=EventType.POLL_VOTE,
+                cost=Decimal("0.000000"),
+                is_valid=True,
+                user_ip=metadata.get("user_ip"),
+                user_agent=metadata.get("user_agent"),
+                country_code=metadata.get("country_code"),
+                timestamp=timestamp,
+                meta={
+                    "option_index": option_index,
+                    "option_text": option_text,
+                },
+            )
+            db.add(event)
+            already_voted = False
+            try:
+                await db.commit()
+            except IntegrityError:
+                await db.rollback()
+                already_voted = True
+
+            stats = await self._get_poll_stats(db, creative_id, attrs)
+
+            if not already_voted:
+                live = {
+                    "id": event.id,
+                    "type": EventType.POLL_VOTE.value,
+                    "campaign_id": creative.campaign_id,
+                    "campaign_name": await db.scalar(select(Campaign.name).where(Campaign.id == creative.campaign_id)),
+                    "ad_unit_id": ad_unit_id,
+                    "slot_name": await db.scalar(select(AdUnit.slot_name).where(AdUnit.id == ad_unit_id)),
+                    "creative_id": creative_id,
+                    "country_code": metadata.get("country_code"),
+                    "cost": 0.0,
+                    "meta": {"option_index": option_index, "option_text": option_text},
+                    "timestamp": timestamp.isoformat(),
+                }
+                campaign = await db.get(Campaign, creative.campaign_id)
+                adv_id = campaign.advertiser_id if campaign else None
+                pub = await db.scalar(select(AdUnit.publisher_id).where(AdUnit.id == ad_unit_id))
+                try:
+                    await _emit_live_event(live, advertiser_id=adv_id, publisher_id=pub)
+                except Exception:
+                    pass
+
+            return {
+                "ok": True,
+                "already_voted": already_voted,
+                "selected_option": option_index,
+                "poll_results": stats,
+            }
+
     async def _event_metadata(self, sid: str, data: dict) -> dict[str, str | None]:
         """Extract client metadata from the socket request and ad request context."""
-        environ = self.server.get_environ(sid, namespace=self.namespace) or {}
-        session = await self.get_session(sid)
+        environ = (self.server.get_environ(sid, namespace=self.namespace) or {}) if self.server else {}
+        session = (await self.get_session(sid)) if self.server else {}
         country = _normalize_country(
             environ.get("HTTP_CF_IPCOUNTRY")
             or environ.get("HTTP_CLOUDFRONT_VIEWER_COUNTRY")
@@ -231,7 +373,7 @@ class DeliveryNamespace(socketio.AsyncNamespace):
         if publisher is None:
             return {"ok": False, "message": "Publisher authentication failed."}
 
-        environ = self.server.get_environ(sid, namespace=self.namespace) or {}
+        environ = (self.server.get_environ(sid, namespace=self.namespace) or {}) if self.server else {}
         origin = environ.get("HTTP_ORIGIN")
         if origin:
             from urllib.parse import urlsplit

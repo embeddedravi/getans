@@ -12,10 +12,10 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.ad_unit import AdUnit, AdUnitStatus
+from app.models.ad_unit import AdFormatType, AdUnit, AdUnitStatus
 from app.models.advertiser import AccountStatus, Advertiser
 from app.models.campaign import BiddingStrategy, Campaign, CampaignStatus
-from app.models.creative import Creative, ReviewStatus
+from app.models.creative import Creative, CreativeFormat, ReviewStatus
 from app.models.event import Event, EventType
 from app.models.publisher import PublisherStatus
 
@@ -35,6 +35,8 @@ class SelectedAd:
     width: int
     height: int
     format: str = "image"
+    custom_attributes: Optional[dict] = None
+    html_snippet: Optional[str] = None
 
 
 class NoEligibleCampaignError(Exception):
@@ -82,6 +84,9 @@ async def select_ad(
         )
     )
 
+    if ad_unit.format_type == AdFormatType.POLL:
+        stmt = stmt.where(Creative.format == CreativeFormat.POLL)
+
     result = await db.execute(stmt)
     candidates = list(result.scalars().unique())
 
@@ -118,6 +123,7 @@ async def select_ad(
             and cr.review_status == ReviewStatus.APPROVED
             and cr.width == ad_unit.width
             and cr.height == ad_unit.height
+            and (ad_unit.format_type != AdFormatType.POLL or cr.format == CreativeFormat.POLL)
         ),
         None,
     )
@@ -132,6 +138,8 @@ async def select_ad(
         width=creative.width,
         height=creative.height,
         format=creative.format.value,
+        custom_attributes=creative.custom_attributes,
+        html_snippet=creative.html_snippet,
     )
 
 

@@ -34,6 +34,7 @@ class AdFormatType(str, Enum):
     NATIVE = "native"
     VIDEO = "video"
     INTERSTITIAL = "interstitial"
+    POLL = "poll"
 
 
 class AdUnitStatus(str, Enum):

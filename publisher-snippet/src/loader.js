@@ -41,10 +41,310 @@
     };
   }
 
-  function renderCreative(container, ad) {
+  function renderPollCreative(container, ad, socket, adUnitId) {
+    var attrs = ad.custom_attributes || {};
+    var question = attrs.poll_question || ad.poll_question || "Poll Question";
+    var options = attrs.poll_options || ad.poll_options || [
+      "Option 1", "Option 2", "Option 3", "Option 4"
+    ];
+    while (options.length < 4) {
+      options.push("Option " + (options.length + 1));
+    }
+    if (options.length > 4) {
+      options = options.slice(0, 4);
+    }
+
+    container.innerHTML = "";
+    container.style.display = "";
+
+    var card = document.createElement("div");
+    card.className = "getans-poll-ad";
+    var w = Number(ad.width) > 0 ? Number(ad.width) : 300;
+    var h = Number(ad.height) > 0 ? Number(ad.height) : 250;
+    card.style.position = "relative";
+    card.style.display = "flex";
+    card.style.flexDirection = "column";
+    card.style.justifyContent = "space-between";
+    card.style.width = w + "px";
+    card.style.maxWidth = "100%";
+    card.style.minHeight = h + "px";
+    card.style.boxSizing = "border-box";
+    card.style.padding = "12px 14px";
+    card.style.borderRadius = "10px";
+    card.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+    card.style.background = "linear-gradient(145deg, #18181b 0%, #09090b 100%)";
+    card.style.color = "#f4f4f5";
+    card.style.border = "1px solid #27272a";
+    card.style.boxShadow = "0 4px 16px rgba(0, 0, 0, 0.25)";
+    card.style.overflow = "hidden";
+    card.style.textAlign = "left";
+
+    // Top Header: Badge + Sponsor Link
+    var header = document.createElement("div");
+    header.style.display = "flex";
+    header.style.alignItems = "center";
+    header.style.justifyContent = "space-between";
+    header.style.marginBottom = "8px";
+    header.style.fontSize = "11px";
+
+    var badge = document.createElement("span");
+    badge.textContent = "POLL";
+    badge.style.display = "inline-flex";
+    badge.style.alignItems = "center";
+    badge.style.background = "#6366f1";
+    badge.style.color = "#ffffff";
+    badge.style.fontSize = "10px";
+    badge.style.fontWeight = "700";
+    badge.style.letterSpacing = "0.5px";
+    badge.style.padding = "2px 7px";
+    badge.style.borderRadius = "9999px";
+    badge.style.lineHeight = "1.2";
+
+    var sponsorLink = document.createElement("a");
+    sponsorLink.href = ad.click_url;
+    sponsorLink.target = "_blank";
+    sponsorLink.rel = "noopener sponsored";
+    sponsorLink.textContent = "Sponsored ↗";
+    sponsorLink.style.color = "#a1a1aa";
+    sponsorLink.style.textDecoration = "none";
+    sponsorLink.style.fontSize = "11px";
+    sponsorLink.style.marginRight = "24px"; // space for report control
+
+    header.appendChild(badge);
+    header.appendChild(sponsorLink);
+    card.appendChild(header);
+
+    // Question
+    var questionEl = document.createElement("div");
+    questionEl.textContent = question;
+    questionEl.style.fontSize = "13px";
+    questionEl.style.fontWeight = "600";
+    questionEl.style.lineHeight = "1.35";
+    questionEl.style.color = "#ffffff";
+    questionEl.style.marginBottom = "8px";
+    card.appendChild(questionEl);
+
+    // 4 Options container
+    var optionsList = document.createElement("div");
+    optionsList.style.display = "flex";
+    optionsList.style.flexDirection = "column";
+    optionsList.style.gap = "5px";
+    optionsList.style.flex = "1";
+    optionsList.style.justifyContent = "center";
+
+    var letters = ["A", "B", "C", "D"];
+    var optionBtns = [];
+    var initialStats = ad.poll_results || {
+      counts: [0, 0, 0, 0],
+      percentages: [0, 0, 0, 0],
+      total_votes: 0
+    };
+    var hasVoted = false;
+
+    function applyResults(results, selectedIdx) {
+      hasVoted = true;
+      var counts = results.counts || [0, 0, 0, 0];
+      var pcts = results.percentages || [0, 0, 0, 0];
+      var total = results.total_votes || 0;
+
+      for (var i = 0; i < optionBtns.length; i++) {
+        var btn = optionBtns[i];
+        btn.disabled = true;
+        btn.style.cursor = "default";
+        var isSelected = (i === selectedIdx);
+
+        if (isSelected) {
+          btn.style.borderColor = "#6366f1";
+          btn.style.background = "rgba(99, 102, 241, 0.15)";
+        }
+
+        var bar = btn.querySelector(".poll-bar");
+        if (bar) {
+          bar.style.width = pcts[i] + "%";
+          bar.style.background = isSelected
+            ? "rgba(99, 102, 241, 0.35)"
+            : "rgba(255, 255, 255, 0.1)";
+        }
+        var pctLabel = btn.querySelector(".poll-pct");
+        if (pctLabel) {
+          pctLabel.textContent = pcts[i] + "%";
+          pctLabel.style.display = "block";
+        }
+      }
+
+      if (footerStatus) {
+        footerStatus.textContent = total + " vote" + (total === 1 ? "" : "s");
+      }
+      if (ctaBtn) {
+        ctaBtn.style.display = "inline-flex";
+      }
+    }
+
+    options.forEach(function (optText, idx) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "poll-opt-btn";
+      btn.style.position = "relative";
+      btn.style.display = "flex";
+      btn.style.alignItems = "center";
+      btn.style.justifyContent = "space-between";
+      btn.style.width = "100%";
+      btn.style.boxSizing = "border-box";
+      btn.style.padding = "6px 8px";
+      btn.style.background = "rgba(255, 255, 255, 0.05)";
+      btn.style.border = "1px solid rgba(255, 255, 255, 0.12)";
+      btn.style.borderRadius = "6px";
+      btn.style.color = "#f4f4f5";
+      btn.style.cursor = "pointer";
+      btn.style.textAlign = "left";
+      btn.style.fontSize = "12px";
+      btn.style.overflow = "hidden";
+      btn.style.transition = "all 0.2s ease";
+
+      var bar = document.createElement("div");
+      bar.className = "poll-bar";
+      bar.style.position = "absolute";
+      bar.style.top = "0";
+      bar.style.left = "0";
+      bar.style.bottom = "0";
+      bar.style.width = "0%";
+      bar.style.transition = "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)";
+      bar.style.zIndex = "1";
+      btn.appendChild(bar);
+
+      var contentWrapper = document.createElement("div");
+      contentWrapper.style.position = "relative";
+      contentWrapper.style.zIndex = "2";
+      contentWrapper.style.display = "flex";
+      contentWrapper.style.alignItems = "center";
+      contentWrapper.style.gap = "6px";
+      contentWrapper.style.overflow = "hidden";
+      contentWrapper.style.textOverflow = "ellipsis";
+      contentWrapper.style.whiteSpace = "nowrap";
+
+      var letterCircle = document.createElement("span");
+      letterCircle.textContent = letters[idx];
+      letterCircle.style.display = "inline-flex";
+      letterCircle.style.alignItems = "center";
+      letterCircle.style.justifyContent = "center";
+      letterCircle.style.width = "18px";
+      letterCircle.style.height = "18px";
+      letterCircle.style.borderRadius = "50%";
+      letterCircle.style.background = "rgba(255, 255, 255, 0.12)";
+      letterCircle.style.fontSize = "10px";
+      letterCircle.style.fontWeight = "600";
+      letterCircle.style.flexShrink = "0";
+
+      var label = document.createElement("span");
+      label.textContent = optText;
+      label.style.overflow = "hidden";
+      label.style.textOverflow = "ellipsis";
+      label.style.whiteSpace = "nowrap";
+
+      contentWrapper.appendChild(letterCircle);
+      contentWrapper.appendChild(label);
+      btn.appendChild(contentWrapper);
+
+      var pct = document.createElement("span");
+      pct.className = "poll-pct";
+      pct.style.position = "relative";
+      pct.style.zIndex = "2";
+      pct.style.fontSize = "11px";
+      pct.style.fontWeight = "600";
+      pct.style.display = "none";
+      btn.appendChild(pct);
+
+      btn.addEventListener("mouseenter", function () {
+        if (!hasVoted) {
+          btn.style.background = "rgba(255, 255, 255, 0.1)";
+          btn.style.borderColor = "rgba(255, 255, 255, 0.25)";
+        }
+      });
+      btn.addEventListener("mouseleave", function () {
+        if (!hasVoted) {
+          btn.style.background = "rgba(255, 255, 255, 0.05)";
+          btn.style.borderColor = "rgba(255, 255, 255, 0.12)";
+        }
+      });
+
+      btn.addEventListener("click", function (evt) {
+        evt.stopPropagation();
+        if (hasVoted) return;
+        hasVoted = true;
+
+        var updatedCounts = [].concat(initialStats.counts || [0, 0, 0, 0]);
+        updatedCounts[idx] = (updatedCounts[idx] || 0) + 1;
+        var total = 0;
+        for (var k = 0; k < updatedCounts.length; k++) total += updatedCounts[k];
+        var pcts = updatedCounts.map(function (c) {
+          return total > 0 ? Math.round((c / total) * 100) : 0;
+        });
+
+        applyResults({ counts: updatedCounts, percentages: pcts, total_votes: total }, idx);
+
+        if (socket && ad.serve_token) {
+          socket.emit("poll_vote", {
+            ad_unit_id: adUnitId,
+            creative_id: ad.creative_id,
+            visitor_id: ad.visitor_id,
+            serve_token: ad.serve_token,
+            option_index: idx,
+            event_id: createEventId()
+          }, function (response) {
+            if (response && response.poll_results) {
+              applyResults(response.poll_results, idx);
+            }
+          });
+        }
+      });
+
+      optionBtns.push(btn);
+      optionsList.appendChild(btn);
+    });
+
+    card.appendChild(optionsList);
+
+    // Footer: vote count + CTA button
+    var footer = document.createElement("div");
+    footer.style.display = "flex";
+    footer.style.alignItems = "center";
+    footer.style.justifyContent = "space-between";
+    footer.style.marginTop = "8px";
+    footer.style.fontSize = "11px";
+    footer.style.color = "#71717a";
+
+    var footerStatus = document.createElement("span");
+    footerStatus.textContent = (initialStats.total_votes || 0) + " votes";
+    footer.appendChild(footerStatus);
+
+    var ctaBtn = document.createElement("a");
+    ctaBtn.href = ad.click_url;
+    ctaBtn.target = "_blank";
+    ctaBtn.rel = "noopener sponsored";
+    ctaBtn.textContent = "Learn More →";
+    ctaBtn.style.color = "#818cf8";
+    ctaBtn.style.textDecoration = "none";
+    ctaBtn.style.fontWeight = "600";
+    ctaBtn.style.display = "none";
+    footer.appendChild(ctaBtn);
+
+    card.appendChild(footer);
+
+    container.appendChild(card);
+    if (ad.creative_id != null) container.dataset.creativeId = ad.creative_id;
+    if (ad.campaign_id != null) container.dataset.campaignId = ad.campaign_id;
+
+    return { link: sponsorLink, frame: card, ctaLink: ctaBtn };
+  }
+
+  function renderCreative(container, ad, socket, adUnitId) {
     if (!ad || !ad.asset_url || !ad.click_url) {
       console.error("[ad-loader] Received an invalid ad response.", ad);
       return null;
+    }
+
+    if (ad.format === "poll") {
+      return renderPollCreative(container, ad, socket, adUnitId);
     }
 
     container.innerHTML = "";
@@ -89,6 +389,7 @@
     if (ad.campaign_id != null) container.dataset.campaignId = ad.campaign_id;
     return { link: link, frame: creativeFrame };
   }
+
 
   function createEventId() {
     if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
@@ -241,10 +542,10 @@
         console.error("[ad-loader] Ad response is missing its tracking token or visitor ID.");
         return;
       }
-      var rendered = renderCreative(container, ad);
+      var rendered = renderCreative(container, ad, socket, adUnitId);
       if (!rendered) return;
 
-      rendered.link.addEventListener("click", function () {
+      function trackClick() {
         socket.emit("click", {
           ad_unit_id: adUnitId,
           creative_id: ad.creative_id,
@@ -252,7 +553,10 @@
           serve_token: ad.serve_token,
           event_id: createEventId()
         });
-      });
+      }
+
+      if (rendered.link) rendered.link.addEventListener("click", trackClick);
+      if (rendered.ctaLink) rendered.ctaLink.addEventListener("click", trackClick);
       socket.emit("impression", {
         ad_unit_id: adUnitId,
         creative_id: ad.creative_id,

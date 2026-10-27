@@ -36,7 +36,7 @@ async def test_record_event_stores_metadata_emits_updates_and_deduplicates(db, a
     updates = []
     live = []
     async def update(*args, **kwargs): updates.append((args, kwargs))
-    async def live_event(payload): live.append(payload)
+    async def live_event(payload, **kwargs): live.append(payload)
     monkeypatch.setattr(budget_tracker, "_emit_dashboard_update", update)
     monkeypatch.setattr(budget_tracker, "_emit_live_event", live_event)
 

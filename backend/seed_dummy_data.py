@@ -378,8 +378,23 @@ async def seed(db: AsyncSession) -> dict[str, int]:
                 fmt = CreativeFormat.VIDEO if media.kind == MediaKind.VIDEO else CreativeFormat.IMAGE
             else:
                 w, h = random.choice(SIZES)
-                asset_url = f"https://placehold.co/{w}x{h}/png?text=Demo+Ad"
-                fmt = CreativeFormat.IMAGE
+                if random.random() < 0.2:
+                    fmt = CreativeFormat.POLL
+                    asset_url = f"https://placehold.co/{w}x{h}/png?text=Poll+Ad"
+                else:
+                    fmt = CreativeFormat.IMAGE
+                    asset_url = f"https://placehold.co/{w}x{h}/png?text=Demo+Ad"
+            attrs = None
+            if fmt == CreativeFormat.POLL:
+                attrs = {
+                    "poll_question": random.choice([
+                        "Which mobile OS do you prefer?",
+                        "What is your primary cloud platform?",
+                        "How do you prefer to pay online?",
+                        "Which tech framework do you love most?"
+                    ]),
+                    "poll_options": ["Option A", "Option B", "Option C", "Option D"]
+                }
             review = wchoice([ReviewStatus.APPROVED, ReviewStatus.PENDING, ReviewStatus.REJECTED], [60, 28, 12])
             creatives.append(
                 Creative(
@@ -391,12 +406,14 @@ async def seed(db: AsyncSession) -> dict[str, int]:
                     format=fmt,
                     width=w,
                     height=h,
+                    custom_attributes=attrs,
                     is_active=random.random() < 0.9,
                     review_status=review,
                     rejection_reason="Image is blurry or low quality" if review == ReviewStatus.REJECTED else None,
                     weight=random.choice([50, 100, 100, 200]),
                 )
             )
+
     db.add_all(creatives)
     await db.flush()
     counts["creatives"] = len(creatives)

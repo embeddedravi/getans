@@ -36,7 +36,7 @@ export interface Publisher {
   created_at: string;
 }
 
-export type AdFormatType = "display" | "banner" | "native" | "video" | "interstitial";
+export type AdFormatType = "display" | "banner" | "native" | "video" | "interstitial" | "poll";
 export type AdUnitStatus = "pending_review" | "approved" | "rejected";
 
 export type AccountStatus = "pending_verification" | "active" | "suspended" | "rejected" | "archived";
@@ -215,7 +215,7 @@ export interface Campaign {
   created_at: string;
 }
 
-export type CreativeFormat = "image" | "html" | "video" | "native";
+export type CreativeFormat = "image" | "html" | "video" | "native" | "poll";
 export type ReviewStatus = "pending" | "approved" | "rejected";
 
 export interface Creative {
@@ -228,11 +228,26 @@ export interface Creative {
   format: CreativeFormat;
   width: number;
   height: number;
+  html_snippet?: string | null;
+  custom_attributes?: {
+    poll_question?: string;
+    poll_options?: string[];
+    [key: string]: any;
+  } | null;
   is_active: boolean;
   review_status: ReviewStatus;
   rejection_reason: string | null;
   created_at: string;
   media_asset_id: number | null;
+}
+
+export interface PollResults {
+  creative_id: number;
+  question: string;
+  options: string[];
+  counts: number[];
+  percentages: number[];
+  total_votes: number;
 }
 
 export interface CampaignStats {

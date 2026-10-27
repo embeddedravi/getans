@@ -29,6 +29,7 @@ class CreativeFormat(str, PyEnum):
     HTML = "html"
     VIDEO = "video"
     NATIVE = "native"
+    POLL = "poll"
 
 
 class ReviewStatus(str, PyEnum):

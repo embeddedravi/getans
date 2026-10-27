@@ -33,6 +33,7 @@ class AdFormatType(str, PyEnum):
     NATIVE = "native"
     VIDEO = "video"
     INTERSTITIAL = "interstitial"
+    POLL = "poll"
 
 
 class AdUnitStatus(str, PyEnum):

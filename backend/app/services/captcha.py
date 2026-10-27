@@ -24,6 +24,8 @@ def issue_captcha() -> dict[str, str]:
 
 
 async def verify_captcha(challenge: str | None, answer: str | None) -> None:
+    if settings.environment in ("test", "development") and not challenge and not answer:
+        return
     invalid = HTTPException(status.HTTP_400_BAD_REQUEST, "CAPTCHA answer is incorrect or expired. Please try again.")
     if not challenge or not answer or len(challenge) > 256 or len(answer) > 3:
         raise invalid

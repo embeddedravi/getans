@@ -33,6 +33,7 @@ class EventType(str, PyEnum):
     CLICK = "click"
     CONVERSION = "conversion"
     VIEWABLE_IMPRESSION = "viewable_impression"
+    POLL_VOTE = "poll_vote"
 
 
 class Event(Base):

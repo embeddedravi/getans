@@ -63,6 +63,7 @@ def _override_session_factory(monkeypatch):
     """Point every module that imported the real session factory at the test one."""
     monkeypatch.setattr("app.services.publisher_auth.async_session_factory", TestSessionFactory)
     monkeypatch.setattr("app.services.budget_tracker.async_session_factory", TestSessionFactory)
+    monkeypatch.setattr("app.sockets.delivery_ns.async_session_factory", TestSessionFactory)
 
 
 # --- HTTP client -----------------------------------------------------------

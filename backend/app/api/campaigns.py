@@ -114,7 +114,13 @@ async def list_campaigns(
     total = await db.scalar(select(func.count()).select_from(base.subquery())) or 0
     stmt = base.order_by(Campaign.created_at.desc(), Campaign.id.desc()).offset((page - 1) * size).limit(size)
     result = await db.execute(stmt)
-    return PaginatedResponse(items=list(result.scalars().all()), total=total, page=page, size=size, pages=(total + size - 1) // size)
+    return PaginatedResponse(
+        items=list(result.scalars().all()), 
+        total=total, 
+        page=page, 
+        size=size, 
+        pages=(total + size - 1) // size
+    )
 
 
 @router.get(
@@ -127,6 +133,7 @@ async def get_campaign(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "advertiser")),
 ) -> Campaign:
+    
     """Loads details for a specific campaign ID."""
     return await _get_owned_campaign(db, campaign_id, user)
 
@@ -142,6 +149,7 @@ async def update_campaign(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "advertiser")),
 ) -> Campaign:
+    
     """Updates selected fields on a campaign."""
     campaign = await _get_owned_campaign(db, campaign_id, user)
     updates = payload.model_dump(exclude_unset=True)
@@ -207,6 +215,7 @@ async def delete_campaign(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "advertiser")),
 ) -> None:
+    
     """Archives a campaign while preserving its financial and event audit trail."""
     campaign = await _get_owned_campaign(db, campaign_id, user)
     refundable = max(campaign.reserved_amount - campaign.spent_amount, 0)

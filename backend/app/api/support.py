@@ -102,6 +102,7 @@ async def list_tickets(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("advertiser", "publisher", "staff", "admin")),
 ) -> PaginatedResponse[dict]:
+    
     stmt = select(SupportTicket, User).join(User, User.id == SupportTicket.user_id)
     if user.role in CUSTOMER_ROLES:
         stmt = stmt.where(SupportTicket.user_id == user.id)
@@ -112,7 +113,13 @@ async def list_tickets(
     total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
     rows = (await db.execute(stmt.order_by(SupportTicket.updated_at.desc()).offset((page - 1) * size).limit(size))).all()
     items = [_summary(ticket, customer) for ticket, customer in rows]
-    return PaginatedResponse(items=items, total=total, page=page, size=size, pages=(total + size - 1) // size)
+    return PaginatedResponse(
+        items=items, 
+        total=total, 
+        page=page, 
+        size=size, 
+        pages=(total + size - 1) // size
+    )
 
 
 @router.get("/staff")
@@ -122,11 +129,18 @@ async def list_support_staff(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("staff", "admin")),
 ) -> PaginatedResponse[dict]:
+    
     stmt = select(User).where(User.role.in_(STAFF_ROLES), User.is_active.is_(True)).order_by(User.role, User.first_name, User.last_name)
     total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
     users = (await db.execute(stmt.offset((page - 1) * size).limit(size))).scalars().all()
     items = [{"id": person.id, "name": person.full_name, "role": person.role.value} for person in users]
-    return PaginatedResponse(items=items, total=total, page=page, size=size, pages=(total + size - 1) // size)
+    return PaginatedResponse(
+        items=items, 
+        total=total, 
+        page=page, 
+        size=size, 
+        pages=(total + size - 1) // size
+    )
 
 
 @router.post("/tickets", status_code=status.HTTP_201_CREATED)
@@ -135,6 +149,7 @@ async def create_ticket(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("advertiser", "publisher")),
 ) -> dict:
+    
     ticket = SupportTicket(user_id=user.id, subject=payload.subject, category=payload.category)
     ticket.messages.append(SupportTicketMessage(author_id=user.id, body=payload.message))
     db.add(ticket)
@@ -151,6 +166,7 @@ async def get_ticket(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("advertiser", "publisher", "staff", "admin")),
 ) -> dict:
+    
     ticket = await _get_accessible_ticket(db, ticket_id, user)
     customer = await db.get(User, ticket.user_id)
     message_stmt = (
@@ -167,17 +183,22 @@ async def get_ticket(
     )).all()
     return {
         **_summary(ticket, customer),
-        "messages": PaginatedResponse(items=[
-            {
-                "id": message.id,
-                "author_id": message.author_id,
-                "author_name": author.full_name,
-                "body": message.body,
-                "is_internal": message.is_internal,
-                "created_at": message.created_at.isoformat(),
-            }
-            for message, author in messages
-        ], total=total_messages, page=page, size=size, pages=(total_messages + size - 1) // size),
+        "messages": PaginatedResponse(
+            items=[{
+                    "id": message.id,
+                    "author_id": message.author_id,
+                    "author_name": author.full_name,
+                    "body": message.body,
+                    "is_internal": message.is_internal,
+                    "created_at": message.created_at.isoformat(),
+                }
+                for message, author in messages
+            ], 
+            total=total_messages, 
+            page=page, 
+            size=size, 
+            pages=(total_messages + size - 1) // size
+        ),
     }
 
 
@@ -188,6 +209,7 @@ async def add_message(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("advertiser", "publisher", "staff", "admin")),
 ) -> dict:
+    
     ticket = await _get_accessible_ticket(db, ticket_id, user)
     is_staff = user.role in STAFF_ROLES
     if payload.is_internal and not is_staff:
@@ -228,6 +250,7 @@ async def update_ticket(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("staff", "admin")),
 ) -> dict:
+    
     ticket = await db.get(SupportTicket, ticket_id)
     if ticket is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Support ticket not found")

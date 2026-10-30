@@ -57,6 +57,7 @@ async def create_payout(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("admin")),
 ) -> Payout:
+    
     if payload.period_start and payload.period_end and payload.period_end < payload.period_start:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "period_end must not be before period_start")
 
@@ -93,6 +94,7 @@ async def list_payouts(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "publisher")),
 ) -> PaginatedResponse[PayoutOut]:
+    
     stmt = select(Payout).order_by(Payout.id.desc())
     if user.role == "publisher":
         stmt = stmt.where(Payout.publisher_id == user.publisher_id)
@@ -105,7 +107,13 @@ async def list_payouts(
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Unknown payout status")
     total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
     result = await db.execute(stmt.offset((page - 1) * size).limit(size))
-    return PaginatedResponse(items=list(result.scalars().all()), total=total, page=page, size=size, pages=(total + size - 1) // size)
+    return PaginatedResponse(
+        items=list(result.scalars().all()), 
+        total=total, 
+        page=page, 
+        size=size, 
+        pages=(total + size - 1) // size
+    )
 
 
 @router.get("/{payout_id}", response_model=PayoutOut, summary="Get a payout")
@@ -114,6 +122,7 @@ async def get_payout(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "publisher")),
 ) -> Payout:
+    
     payout = await db.get(Payout, payout_id)
     if payout is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Payout not found")
@@ -129,6 +138,7 @@ async def update_payout(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("admin")),
 ) -> Payout:
+    
     payout = await db.get(Payout, payout_id)
     if payout is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Payout not found")

@@ -26,6 +26,7 @@ async def create_publisher(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("admin")),
 ) -> Publisher:
+    
     """Creates a new publisher account (Admin restricted)."""
     publisher = Publisher(
         name=payload.name,
@@ -51,6 +52,7 @@ async def list_publishers(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "publisher")),
 ) -> PaginatedResponse[PublisherOut]:
+    
     """Lists registered publishers according to permission context."""
     stmt = select(Publisher)
     if user.role == "publisher":
@@ -58,7 +60,13 @@ async def list_publishers(
 
     total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
     result = await db.execute(stmt.order_by(Publisher.id).offset((page - 1) * size).limit(size))
-    return PaginatedResponse(items=list(result.scalars().all()), total=total, page=page, size=size, pages=(total + size - 1) // size)
+    return PaginatedResponse(
+        items=list(result.scalars().all()), 
+        total=total, 
+        page=page, 
+        size=size, 
+        pages=(total + size - 1) // size
+    )
 
 
 @router.get(
@@ -71,6 +79,7 @@ async def available_ad_units(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("advertiser")),
 ) -> list[dict]:
+    
     stmt = (
         select(AdUnit, Publisher)
         .join(Publisher, Publisher.id == AdUnit.publisher_id)
@@ -101,7 +110,13 @@ async def available_ad_units(
         }
         for unit, publisher in rows
     ]
-    return PaginatedResponse(items=items, total=total, page=page, size=size, pages=(total + size - 1) // size)
+    return PaginatedResponse(
+        items=items, 
+        total=total, 
+        page=page, 
+        size=size, 
+        pages=(total + size - 1) // size
+    )
 
 
 @router.get(
@@ -114,6 +129,7 @@ async def get_publisher(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "publisher")),
 ) -> Publisher:
+    
     """Retrieves details of a specified publisher."""
     if user.role == "publisher" and user.publisher_id != publisher_id:
         raise HTTPException(
@@ -142,6 +158,7 @@ async def create_ad_unit(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "publisher")),
 ) -> AdUnit:
+    
     """Creates a new ad unit under a publisher account."""
     if user.role == "publisher" and user.publisher_id != publisher_id:
         raise HTTPException(
@@ -191,6 +208,7 @@ async def list_ad_units(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "publisher")),
 ) -> PaginatedResponse[AdUnitOut]:
+    
     """Fetches all ad placement units registered under a given publisher."""
     if user.role == "publisher" and user.publisher_id != publisher_id:
         raise HTTPException(
@@ -201,4 +219,10 @@ async def list_ad_units(
     stmt = select(AdUnit).where(AdUnit.publisher_id == publisher_id).order_by(AdUnit.id)
     total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
     result = await db.execute(stmt.offset((page - 1) * size).limit(size))
-    return PaginatedResponse(items=list(result.scalars().all()), total=total, page=page, size=size, pages=(total + size - 1) // size)
+    return PaginatedResponse(
+        items=list(result.scalars().all()), 
+        total=total, 
+        page=page, 
+        size=size, 
+        pages=(total + size - 1) // size
+    )

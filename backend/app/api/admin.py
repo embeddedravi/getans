@@ -28,15 +28,22 @@ router = APIRouter(prefix="/admin", tags=["Admin Approvals"])
 
 @router.get("/users", response_model=PaginatedResponse[AdminUserOut], summary="List dashboard users")
 async def list_users(
-    page: int = Query(1, ge=1),
-    size: int = Query(50, ge=1, le=100),
-    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1),  
+    size: int = Query(50, ge=1, le=100),  
+    db: AsyncSession = Depends(get_db),  
     _: User = Depends(require_role("admin")),
-) -> PaginatedResponse[AdminUserOut]:
+    ) -> PaginatedResponse[AdminUserOut]:
+
     stmt = select(User).order_by(User.created_at.desc())
     total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
     result = await db.execute(stmt.offset((page - 1) * size).limit(size))
-    return PaginatedResponse(items=list(result.scalars().all()), total=total, page=page, size=size, pages=(total + size - 1) // size)
+
+    return PaginatedResponse(
+        items=list(result.scalars().all()), 
+        total=total, page=page, 
+        size=size, 
+        pages=(total + size - 1) // size
+    )
 
 
 @router.patch("/users/{user_id}", response_model=AdminUserOut, summary="Update a dashboard user")
@@ -46,6 +53,7 @@ async def update_user(
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_role("admin")),
 ) -> User:
+    
     user = await db.get(User, user_id)
     if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
@@ -91,6 +99,7 @@ async def list_ad_unit_reports(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("admin", "staff")),
 ) -> PaginatedResponse[dict[str, Any]]:
+    
     ad_unit = await db.get(AdUnit, ad_unit_id)
     if ad_unit is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Ad unit not found")
@@ -132,10 +141,17 @@ async def list_advertisers(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("admin")),
 ) -> PaginatedResponse[AdvertiserOut]:
+    
     stmt = select(Advertiser).order_by(Advertiser.created_at.desc())
     total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
     result = await db.execute(stmt.offset((page - 1) * size).limit(size))
-    return PaginatedResponse(items=list(result.scalars().all()), total=total, page=page, size=size, pages=(total + size - 1) // size)
+    return PaginatedResponse(
+        items=list(result.scalars().all()), 
+        total=total, 
+        page=page, 
+        size=size, 
+        pages=(total + size - 1) // size
+    )
 
 
 @router.get(
@@ -149,12 +165,19 @@ async def list_pending_approvals(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("admin", "staff")),
 ) -> Dict[str, Any]:
+    
     """Returns pending publishers, advertisers, and ad units in a single payload."""
     async def page_items(stmt):
         total = await db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
         result = await db.execute(stmt.offset((page - 1) * size).limit(size))
         items = list(result.scalars().all())
-        return PaginatedResponse(items=items, total=total, page=page, size=size, pages=(total + size - 1) // size)
+        return PaginatedResponse(
+            items=items, 
+            total=total, 
+            page=page, 
+            size=size, 
+            pages=(total + size - 1) // size
+        )
 
     publishers = await page_items(select(Publisher).where(Publisher.status == PublisherStatus.PENDING_APPROVAL))
     advertisers = await page_items(select(Advertiser).where(Advertiser.status == AccountStatus.PENDING_VERIFICATION))
@@ -177,6 +200,7 @@ async def review_publisher(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("admin", "staff")),
 ) -> Publisher:
+    
     """Sets a publisher's status to active (approved) or rejected."""
     publisher = await db.get(Publisher, publisher_id)
     if publisher is None:
@@ -204,6 +228,7 @@ async def review_advertiser(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("admin", "staff")),
 ) -> Advertiser:
+    
     """Sets an advertiser's status to active (approved) or rejected."""
     advertiser = await db.get(Advertiser, advertiser_id)
     if advertiser is None:
@@ -231,6 +256,7 @@ async def review_ad_unit(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("admin", "staff")),
 ) -> AdUnit:
+    
     """Sets an ad unit's review status to approved or rejected."""
     ad_unit = await db.get(AdUnit, ad_unit_id)
     if ad_unit is None:
@@ -259,6 +285,7 @@ async def set_ad_unit_active(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("admin")),
 ) -> AdUnit:
+    
     ad_unit = await db.get(AdUnit, ad_unit_id)
     if ad_unit is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Ad unit not found")
@@ -277,6 +304,7 @@ async def recent_events(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("admin")),
 ) -> list[dict[str, Any]]:
+    
     stmt = (
         select(Event, Campaign.name, AdUnit.slot_name)
         .join(Campaign, Campaign.id == Event.campaign_id)
@@ -309,6 +337,7 @@ async def my_recent_events(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("advertiser", "publisher")),
 ) -> list[dict[str, Any]]:
+    
     stmt = (
         select(Event, Campaign.name, AdUnit.slot_name)
         .join(Campaign, Campaign.id == Event.campaign_id)

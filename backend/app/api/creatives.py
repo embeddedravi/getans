@@ -26,6 +26,7 @@ async def list_creatives(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "advertiser")),
 ) -> PaginatedResponse[dict]:
+    
     stmt = (
         select(Creative, Campaign)
         .join(Campaign, Campaign.id == Creative.campaign_id)
@@ -46,7 +47,13 @@ async def list_creatives(
         }
         for creative, campaign in rows
     ]
-    return PaginatedResponse(items=items, total=total, page=page, size=size, pages=(total + size - 1) // size)
+    return PaginatedResponse(
+        items=items, 
+        total=total, 
+        page=page, 
+        size=size, 
+        pages=(total + size - 1) // size
+    )
 
 
 @router.get("/polls", summary="List poll creatives visible to the current advertiser or admin")
@@ -56,6 +63,7 @@ async def list_poll_creatives(
     page: int = Query(1, ge=1, description="Page number"),
     size: int = Query(50, ge=1, le=100, description="Items per page"),
 ) -> PaginatedResponse[dict]:
+    
     # 1. Base query for filtering
     base_query = (
         select(Creative, Campaign)
@@ -165,6 +173,7 @@ async def list_creatives_for_campaign(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "advertiser")),
 ) -> PaginatedResponse[CreativeOut]:
+    
     """Retrieves all creatives belonging to a given campaign ID."""
     campaign = await db.get(Campaign, campaign_id)
     if campaign is None:
@@ -181,7 +190,14 @@ async def list_creatives_for_campaign(
     stmt = select(Creative).where(Creative.campaign_id == campaign_id).order_by(Creative.created_at.desc(), Creative.id.desc())
     total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
     result = await db.execute(stmt.offset((page - 1) * size).limit(size))
-    return PaginatedResponse(items=list(result.scalars().all()), total=total, page=page, size=size, pages=(total + size - 1) // size)
+    return PaginatedResponse(
+        items=list(
+            result.scalars().all()), 
+            total=total, 
+            page=page, 
+            size=size, 
+            pages=(total + size - 1) // size
+        )
 
 
 @router.delete(
@@ -194,6 +210,7 @@ async def delete_creative(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "advertiser")),
 ) -> None:
+    
     """Removes a creative asset from the database."""
     creative = await db.get(Creative, creative_id)
     if creative is None:
@@ -213,6 +230,7 @@ async def delete_creative(
     await db.commit()
 
 async def _get_owned_creative(db: AsyncSession, creative_id: int, user: User) -> Creative:
+
     creative = await db.get(Creative, creative_id)
     if creative is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Creative asset not found")
@@ -229,6 +247,7 @@ async def update_creative(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "advertiser")),
 ) -> Creative:
+    
     creative = await _get_owned_creative(db, creative_id, user)
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(creative, field, value)
@@ -244,6 +263,7 @@ async def review_creative(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("admin")),
 ) -> Creative:
+    
     creative = await db.get(Creative, creative_id)
     if creative is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Creative asset not found")
@@ -262,6 +282,7 @@ async def get_poll_results(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "advertiser")),
 ) -> PollResultsOut:
+    
     creative = await _get_owned_creative(db, creative_id, user)
     if creative.format != CreativeFormat.POLL:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Creative is not a poll ad")

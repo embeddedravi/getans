@@ -26,6 +26,7 @@ async def upload_media(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("advertiser")),
 ) -> MediaAsset:
+    
     stored = await media_storage.save_upload(file, (width, height))
     asset = MediaAsset(
         advertiser_id=user.advertiser_id,
@@ -55,12 +56,19 @@ async def list_media(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "advertiser")),
 ) -> PaginatedResponse[MediaAssetOut]:
+    
     stmt = select(MediaAsset).order_by(MediaAsset.id.desc())
     if user.role == "advertiser":
         stmt = stmt.where(MediaAsset.advertiser_id == user.advertiser_id)
     total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
     result = await db.execute(stmt.offset((page - 1) * size).limit(size))
-    return PaginatedResponse(items=list(result.scalars().all()), total=total, page=page, size=size, pages=(total + size - 1) // size)
+    return PaginatedResponse(
+        items=list(result.scalars().all()), 
+        total=total, 
+        page=page, 
+        size=size, 
+        pages=(total + size - 1) // size
+    )
 
 
 @router.delete("/{media_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a media asset")
@@ -69,6 +77,7 @@ async def delete_media(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "advertiser")),
 ) -> None:
+    
     asset = await db.get(MediaAsset, media_id)
     if asset is None or (user.role == "advertiser" and asset.advertiser_id != user.advertiser_id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Media asset not found")

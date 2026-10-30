@@ -46,6 +46,7 @@ async def campaign_stats(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "advertiser")),
 ) -> PaginatedResponse[CampaignStats]:
+    
     """Retrieves aggregated impression, click, and CTR metrics for campaigns within a timeframe."""
     stmt = (
         select(
@@ -87,4 +88,10 @@ async def campaign_stats(
                 ctr=round(ctr, 2),
             )
         )
-    return PaginatedResponse(items=stats, total=total, page=page, size=size, pages=(total + size - 1) // size)
+    return PaginatedResponse(
+        items=stats, 
+        total=total, 
+        page=page, 
+        size=size, 
+        pages=(total + size - 1) // size
+    )

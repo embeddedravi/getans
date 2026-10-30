@@ -60,7 +60,13 @@ async def list_topups(
         }
         for topup, advertiser_name, billing_email in rows
     ]
-    return PaginatedResponse(items=items, total=total, page=page, size=size, pages=(total + size - 1) // size)
+    return PaginatedResponse(
+        items=items, 
+        total=total, 
+        page=page, 
+        size=size, 
+        pages=(total + size - 1) // size
+    )
 
 
 def _credentials() -> tuple[str, str]:
@@ -122,7 +128,13 @@ async def advertiser_topup_history(
         }
         for topup in rows
     ]
-    return PaginatedResponse(items=items, total=total, page=page, size=size, pages=(total + size - 1) // size)
+    return PaginatedResponse(
+        items=items, 
+        total=total, 
+        page=page, 
+        size=size, 
+        pages=(total + size - 1) // size
+    )
 
 
 @router.post("/orders", response_model=AdvertiserTopUpOrderOut)
@@ -131,6 +143,7 @@ async def create_topup_order(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("advertiser")),
 ) -> AdvertiserTopUpOrderOut:
+    
     advertiser = await _advertiser_for_user(db, user)
     if advertiser.status != AccountStatus.ACTIVE:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Advertiser account must be active to add funds")
@@ -186,6 +199,7 @@ async def _credit_topup(
     amount_paise: int,
     currency: str,
 ) -> AdvertiserWalletOut:
+    
     topup = (
         await db.execute(
             select(AdvertiserTopUp).where(AdvertiserTopUp.order_id == order_id).with_for_update()
@@ -225,6 +239,7 @@ async def verify_topup(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("advertiser")),
 ) -> AdvertiserTopUpVerifyOut:
+    
     topup = (
         await db.execute(
             select(AdvertiserTopUp).where(

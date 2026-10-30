@@ -39,6 +39,7 @@ async def login(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
+    
     """Validates mobile + password and produces a bearer access token."""
     await verify_captcha(payload.captcha_challenge, payload.captcha_answer)
     result = await db.execute(select(User).where(User.mobile == payload.mobile))
@@ -86,6 +87,7 @@ async def register(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("admin")),
 ) -> User:
+    
     """Creates a user identified by mobile number. Email is optional."""
     # Mirror the DB tenant-integrity constraint with a friendly error
     if payload.role == UserRole.PUBLISHER and (
@@ -138,6 +140,7 @@ async def update_profile(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> User:
+    
     if not payload.email and not current_user.mobile:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Add a mobile number before removing your email")
     if payload.email and (await db.execute(select(User).where(User.email == payload.email, User.id != current_user.id))).scalar_one_or_none():
@@ -160,6 +163,7 @@ async def change_password(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> MessageResponse:
+    
     if not verify_password(payload.current_password, current_user.hashed_password):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Current password is incorrect")
     current_user.hashed_password = hash_password(payload.new_password)
@@ -173,6 +177,7 @@ async def delete_account(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> None:
+    
     if not verify_password(payload.password, current_user.hashed_password):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Password is incorrect")
     await db.delete(current_user)
@@ -185,6 +190,7 @@ async def delete_account(
     summary="Self-service signup for advertisers and publishers",
 )
 async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)) -> User:
+
     await verify_captcha(payload.captcha_challenge, payload.captcha_answer)
     if not settings.allow_self_signup:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Not found")
@@ -243,6 +249,7 @@ async def reset_password(
     payload: ForgotPasswordReset,
     db: AsyncSession = Depends(get_db),
 ) -> MessageResponse:
+    
     await verify_captcha(payload.captcha_challenge, payload.captcha_answer)
     user = (await db.execute(select(User).where(User.mobile == payload.mobile))).scalar_one_or_none()
     

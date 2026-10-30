@@ -57,6 +57,7 @@ async def request_ad(
     page_keywords: list[str] = Query(default=[]),
     db: AsyncSession = Depends(get_db),
 ) -> AdRequestResponse:
+    
     response.headers["Cache-Control"] = "no-store"
     publisher = await authenticate_publisher(publisher_key)
     if publisher is None:
@@ -91,6 +92,7 @@ async def track_ad_event(
     publisher_key: str = Header(alias="X-Publisher-Key"),
     db: AsyncSession = Depends(get_db),
 ) -> None:
+    
     publisher = await authenticate_publisher(publisher_key)
     if publisher is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid publisher key")

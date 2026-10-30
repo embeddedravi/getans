@@ -21,17 +21,22 @@ from app.schemas.add_unit import AdUnitOut, AdUnitReview
 from app.schemas.advertiser import AdvertiserOut, AdvertiserReview
 from app.schemas.publisher import PublisherOut, PublisherReview
 from app.schemas.user import AdminUserOut, AdminUserUpdate
+from app.schemas.generic import PaginatedResponse
 
 router = APIRouter(prefix="/admin", tags=["Admin Approvals"])
 
 
-@router.get("/users", response_model=list[AdminUserOut], summary="List dashboard users")
+@router.get("/users", response_model=PaginatedResponse[AdminUserOut], summary="List dashboard users")
 async def list_users(
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("admin")),
-) -> list[User]:
-    result = await db.execute(select(User).order_by(User.created_at.desc()))
-    return list(result.scalars().all())
+) -> PaginatedResponse[AdminUserOut]:
+    stmt = select(User).order_by(User.created_at.desc())
+    total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
+    result = await db.execute(stmt.offset((page - 1) * size).limit(size))
+    return PaginatedResponse(items=list(result.scalars().all()), total=total, page=page, size=size, pages=(total + size - 1) // size)
 
 
 @router.patch("/users/{user_id}", response_model=AdminUserOut, summary="Update a dashboard user")
@@ -81,14 +86,16 @@ async def update_user(
 @router.get("/ad-units/{ad_unit_id}/reports", summary="List visitor reports for an ad unit")
 async def list_ad_unit_reports(
     ad_unit_id: int,
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("admin", "staff")),
-) -> list[dict[str, Any]]:
+) -> PaginatedResponse[dict[str, Any]]:
     ad_unit = await db.get(AdUnit, ad_unit_id)
     if ad_unit is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Ad unit not found")
 
-    result = await db.execute(
+    stmt = (
         select(AdReport)
         .where(
             AdReport.ad_unit_id == ad_unit_id,
@@ -96,7 +103,9 @@ async def list_ad_unit_reports(
         )
         .order_by(AdReport.created_at.desc())
     )
-    return [
+    total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
+    result = await db.execute(stmt.offset((page - 1) * size).limit(size))
+    items = [
         {
             "id": report.id,
             "creative_id": report.creative_id,
@@ -105,6 +114,7 @@ async def list_ad_unit_reports(
         }
         for report in result.scalars().all()
     ]
+    return PaginatedResponse(items=items, total=total, page=page, size=size, pages=(total + size - 1) // size)
 
 
 class AdUnitActivation(BaseModel):
@@ -113,15 +123,19 @@ class AdUnitActivation(BaseModel):
 
 @router.get(
     "/advertisers",
-    response_model=list[AdvertiserOut],
+    response_model=PaginatedResponse[AdvertiserOut],
     summary="List all advertisers for administration",
 )
 async def list_advertisers(
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("admin")),
-) -> list[Advertiser]:
-    result = await db.execute(select(Advertiser).order_by(Advertiser.created_at.desc()))
-    return list(result.scalars().all())
+) -> PaginatedResponse[AdvertiserOut]:
+    stmt = select(Advertiser).order_by(Advertiser.created_at.desc())
+    total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
+    result = await db.execute(stmt.offset((page - 1) * size).limit(size))
+    return PaginatedResponse(items=list(result.scalars().all()), total=total, page=page, size=size, pages=(total + size - 1) // size)
 
 
 @router.get(
@@ -130,29 +144,25 @@ async def list_advertisers(
     summary="List all entities awaiting admin approval",
 )
 async def list_pending_approvals(
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("admin", "staff")),
 ) -> Dict[str, Any]:
     """Returns pending publishers, advertisers, and ad units in a single payload."""
-    publishers = list(
-        (await db.execute(
-            select(Publisher).where(Publisher.status == PublisherStatus.PENDING_APPROVAL)
-        )).scalars().all()
-    )
-    advertisers = list(
-        (await db.execute(
-            select(Advertiser).where(Advertiser.status == AccountStatus.PENDING_VERIFICATION)
-        )).scalars().all()
-    )
-    ad_units = list(
-        (await db.execute(
-            select(AdUnit).where(AdUnit.status == AdUnitStatus.PENDING_REVIEW)
-        )).scalars().all()
-    )
+    async def page_items(stmt):
+        total = await db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+        result = await db.execute(stmt.offset((page - 1) * size).limit(size))
+        items = list(result.scalars().all())
+        return PaginatedResponse(items=items, total=total, page=page, size=size, pages=(total + size - 1) // size)
+
+    publishers = await page_items(select(Publisher).where(Publisher.status == PublisherStatus.PENDING_APPROVAL))
+    advertisers = await page_items(select(Advertiser).where(Advertiser.status == AccountStatus.PENDING_VERIFICATION))
+    ad_units = await page_items(select(AdUnit).where(AdUnit.status == AdUnitStatus.PENDING_REVIEW))
     return {
-        "publishers": [PublisherOut.model_validate(p).model_dump(mode="json") for p in publishers],
-        "advertisers": [AdvertiserOut.model_validate(a).model_dump(mode="json") for a in advertisers],
-        "ad_units": [AdUnitOut.model_validate(u).model_dump(mode="json") for u in ad_units],
+        "publishers": publishers.model_copy(update={"items": [PublisherOut.model_validate(p).model_dump(mode="json") for p in publishers.items]}),
+        "advertisers": advertisers.model_copy(update={"items": [AdvertiserOut.model_validate(a).model_dump(mode="json") for a in advertisers.items]}),
+        "ad_units": ad_units.model_copy(update={"items": [AdUnitOut.model_validate(u).model_dump(mode="json") for u in ad_units.items]}),
     }
 
 

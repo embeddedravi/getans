@@ -9,8 +9,8 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -25,6 +25,7 @@ from app.schemas.payment import (
     AdvertiserTopUpVerifyOut,
     AdvertiserWalletOut,
 )
+from app.schemas.generic import PaginatedResponse
 
 router = APIRouter(tags=["Advertiser Payments"])
 _RAZORPAY_API = "https://api.razorpay.com/v1"
@@ -32,17 +33,19 @@ _RAZORPAY_API = "https://api.razorpay.com/v1"
 
 @router.get("/topups", summary="List advertiser top-ups")
 async def list_topups(
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(require_role("admin")),
 ):
-    rows = (
-        await db.execute(
+    stmt = (
             select(AdvertiserTopUp, Advertiser.name, Advertiser.billing_email)
             .join(Advertiser, Advertiser.id == AdvertiserTopUp.advertiser_id)
             .order_by(AdvertiserTopUp.created_at.desc())
         )
-    ).all()
-    return [
+    total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
+    rows = (await db.execute(stmt.offset((page - 1) * size).limit(size))).all()
+    items = [
         {
             "id": topup.id,
             "advertiser_id": topup.advertiser_id,
@@ -57,6 +60,7 @@ async def list_topups(
         }
         for topup, advertiser_name, billing_email in rows
     ]
+    return PaginatedResponse(items=items, total=total, page=page, size=size, pages=(total + size - 1) // size)
 
 
 def _credentials() -> tuple[str, str]:
@@ -90,18 +94,20 @@ async def get_wallet(
 
 @router.get("/history", summary="List the current advertiser's wallet top-ups")
 async def advertiser_topup_history(
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("advertiser")),
 ):
     advertiser = await _advertiser_for_user(db, user)
-    rows = (
-        await db.execute(
+    stmt = (
             select(AdvertiserTopUp)
             .where(AdvertiserTopUp.advertiser_id == user.advertiser_id)
             .order_by(AdvertiserTopUp.created_at.desc())
         )
-    ).scalars().all()
-    return [
+    total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
+    rows = (await db.execute(stmt.offset((page - 1) * size).limit(size))).scalars().all()
+    items = [
         {
             "id": topup.id,
             "advertiser_id": topup.advertiser_id,
@@ -116,6 +122,7 @@ async def advertiser_topup_history(
         }
         for topup in rows
     ]
+    return PaginatedResponse(items=items, total=total, page=page, size=size, pages=(total + size - 1) // size)
 
 
 @router.post("/orders", response_model=AdvertiserTopUpOrderOut)

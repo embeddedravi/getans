@@ -100,6 +100,22 @@ def _api(method: str, path: str, **kwargs):
     return resp.json()
 
 
+def _api_all_pages(path: str, size: int = 100, params: dict | None = None):
+    """Collect a paginated API collection for server-rendered pages."""
+    items = []
+    page = 1
+    pages = 1
+    while page <= pages:
+        page_params = {**(params or {}), "page": page, "size": size}
+        data = _api("GET", path, params=page_params)
+        if isinstance(data, list):
+            return data
+        items.extend(data.get("items", []))
+        pages = data.get("pages", 0)
+        page += 1
+    return items
+
+
 def _captcha_challenge():
     try:
         response = requests.get(f"{API_BASE}/auth/captcha-challenge", timeout=5)
@@ -413,15 +429,14 @@ def home():
     snapshot = {"campaigns": [], "publishers": [], "approvals": 0, "balance": None, "impressions": 0, "clicks": 0}
     try:
         if role in ("admin", "advertiser"):
-            campaigns = _api("GET", "/campaigns")
-            snapshot["campaigns"] = campaigns if isinstance(campaigns, list) else []
+            snapshot["campaigns"] = _api_all_pages("/campaigns")
             end = datetime.now(timezone.utc)
             start = end - timedelta(days=7)
             stats = _api("GET", f"/analytics/campaigns?start={quote(start.isoformat())}&end={quote(end.isoformat())}")
             snapshot["impressions"] = sum(row.get("impressions", 0) for row in stats)
             snapshot["clicks"] = sum(row.get("clicks", 0) for row in stats)
         if role == "publisher":
-            publishers = _api("GET", "/publishers")
+            publishers = _api_all_pages("/publishers")
             snapshot["publishers"] = publishers if isinstance(publishers, list) else []
         if role in ("admin", "staff"):
             pending = _api("GET", "/admin/approvals/pending")
@@ -467,7 +482,7 @@ def analytics():
 @login_required
 def campaigns():
     try:
-        campaigns_list = _api("GET", "/campaigns")
+        campaigns_list = _api_all_pages("/campaigns")
     except Exception:
         campaigns_list = []
     return render_template("campaigns.html", campaigns=campaigns_list, manage_mode=False)
@@ -477,10 +492,10 @@ def campaigns():
 @login_required
 def creative_list():
     try:
-        campaigns_list = _api("GET", "/campaigns")
+        campaigns_list = _api_all_pages("/campaigns")
         rows = []
         for campaign in campaigns_list if isinstance(campaigns_list, list) else []:
-            items = _api("GET", f"/creatives/by-campaign/{campaign['id']}")
+            items = _api_all_pages(f"/creatives/by-campaign/{campaign['id']}")
             rows.extend({"creative": creative, "campaign": campaign} for creative in items)
     except Exception as exc:
         rows = []
@@ -514,14 +529,18 @@ def review_creative_from_list(creative_id: int):
 def poll_management():
     if session.get("role") not in ("admin", "advertiser"):
         abort(403)
+        
+    page = request.args.get("page", 1, type=int)
     campaigns_list = []
-    rows = []
+    data = {"items": [], "total": 0, "page": 1, "size": 50, "pages": 0}
+    
     try:
-        campaigns_list = _api("GET", "/campaigns")
-        rows = _api("GET", "/creatives/polls")
+        campaigns_list = _api_all_pages("/campaigns")
+        data = _api("GET", f"/creatives/polls?page={page}&size=20")
     except Exception as exc:
         flash(f"Could not load poll ads: {exc}", "error")
-    return render_template("polls.html", rows=rows, campaigns=campaigns_list)
+        
+    return render_template("polls.html", data=data, campaigns=campaigns_list)
 
 
 @app.route("/poll/create", methods=["POST"])
@@ -630,7 +649,7 @@ def poll_results(creative_id: int):
 @admin_required
 def manage_campaigns():
     try:
-        campaigns_list = _api("GET", "/campaigns")
+        campaigns_list = _api_all_pages("/campaigns")
     except Exception as exc:
         campaigns_list = []
         flash(f"Could not load campaigns: {exc}", "error")
@@ -683,13 +702,13 @@ def toggle_campaign(campaign_id: int):
 def creatives(campaign_id: int):
     try:
         campaign = _api("GET", f"/campaigns/{campaign_id}")
-        items = _api("GET", f"/creatives/by-campaign/{campaign_id}")
+        items = _api_all_pages(f"/creatives/by-campaign/{campaign_id}")
     except requests.HTTPError:
         flash("Could not load creatives for that campaign.", "error")
         return redirect(url_for("campaigns"))
     try:
         library = [
-            m for m in _api("GET", "/media")
+            m for m in _api_all_pages("/media")
             if m["advertiser_id"] == campaign["advertiser_id"]
         ]
     except Exception:
@@ -849,7 +868,7 @@ def publisher_adslots():
 @advertiser_required
 def publisher_inventory():
     try:
-        ad_units = _api("GET", "/publishers/available-ad-units")
+        ad_units = _api_all_pages("/publishers/available-ad-units")
         error = None
     except Exception:
         ad_units = []
@@ -859,7 +878,7 @@ def publisher_inventory():
 
 def _publisher_workspace(view: str):
     try:
-        publishers_list = _api("GET", "/publishers")
+        publishers_list = _api_all_pages("/publishers")
     except Exception:
         publishers_list = []
 
@@ -873,7 +892,7 @@ def _publisher_workspace(view: str):
         if selected:
             if view == "adslots":
                 try:
-                    ad_units = _api("GET", f"/publishers/{selected_id}/ad-units")
+                    ad_units = _api_all_pages(f"/publishers/{selected_id}/ad-units")
                 except Exception:
                     ad_units = []
 
@@ -890,9 +909,9 @@ def _publisher_workspace(view: str):
 @publisher_required
 def publisher_help():
     try:
-        publisher_rows = _api("GET", "/publishers")
+        publisher_rows = _api_all_pages("/publishers")
         publisher = publisher_rows[0] if publisher_rows else None
-        ad_units = _api("GET", f"/publishers/{publisher['id']}/ad-units") if publisher else []
+        ad_units = _api_all_pages(f"/publishers/{publisher['id']}/ad-units") if publisher else []
     except Exception as exc:
         publisher = None
         ad_units = []
@@ -914,10 +933,10 @@ def support_center():
     ticket_status = request.args.get("status", "all")
     params = {"status": ticket_status} if ticket_status != "all" else None
     try:
-        tickets = _api("GET", "/support/tickets", params=params) or []
+        tickets = _api_all_pages("/support/tickets", params=params)
         selected_id = request.args.get("ticket", type=int)
         selected = _api("GET", f"/support/tickets/{selected_id}") if selected_id else None
-        staff_users = _api("GET", "/support/staff") if is_staff else []
+        staff_users = _api_all_pages("/support/staff") if is_staff else []
         error = None
     except Exception as exc:
         tickets = []
@@ -989,8 +1008,8 @@ def support_update(ticket_id: int):
 @publisher_required
 def publisher_earnings():
     try:
-        publisher_rows = _api("GET", "/publishers")
-        payouts = _api("GET", "/payouts")
+        publisher_rows = _api_all_pages("/publishers")
+        payouts = _api_all_pages("/payouts")
         error = None
     except Exception as exc:
         publisher_rows = []
@@ -1003,7 +1022,7 @@ def publisher_earnings():
 @admin_required
 def manage_advertisers():
     try:
-        advertisers_list = _api("GET", "/admin/advertisers")
+        advertisers_list = _api_all_pages("/admin/advertisers")
     except Exception as exc:
         advertisers_list = []
         flash(f"Could not load advertisers: {exc}", "error")
@@ -1014,7 +1033,7 @@ def manage_advertisers():
 @admin_required
 def manage_publishers():
     try:
-        publishers_list = _api("GET", "/publishers")
+        publishers_list = _api_all_pages("/publishers")
     except Exception as exc:
         publishers_list = []
         flash(f"Could not load publishers: {exc}", "error")
@@ -1027,9 +1046,9 @@ def manage_users():
     try:
         current_user = _api("GET", "/auth/me")
         _remember_user(current_user)
-        users = _api("GET", "/admin/users")
-        publishers_list = _api("GET", "/publishers")
-        advertisers_list = _api("GET", "/admin/advertisers")
+        users = _api_all_pages("/admin/users")
+        publishers_list = _api_all_pages("/publishers")
+        advertisers_list = _api_all_pages("/admin/advertisers")
     except Exception as exc:
         users, publishers_list, advertisers_list = [], [], []
         flash(f"Could not load users: {exc}", "error")
@@ -1089,10 +1108,10 @@ def manage_entity_status(kind: str, item_id: int):
 @admin_required
 def manage_slots():
     try:
-        publishers_list = _api("GET", "/publishers")
+        publishers_list = _api_all_pages("/publishers")
         slots = []
         for publisher in publishers_list:
-            for unit in _api("GET", f"/publishers/{publisher['id']}/ad-units"):
+            for unit in _api_all_pages(f"/publishers/{publisher['id']}/ad-units"):
                 slots.append({**unit, "publisher_name": publisher["name"]})
     except Exception as exc:
         slots = []
@@ -1139,7 +1158,7 @@ def render_wallet(order=None, checkout_error=None):
         if checkout_error is None:
             checkout_error = f"Could not load wallet: {exc}"
     try:
-        transactions = _api("GET", "/payments/history")
+        transactions = _api_all_pages("/payments/history")
         history_error = None
     except Exception as exc:
         transactions = []
@@ -1317,7 +1336,7 @@ def _detail_from(resp: requests.Response) -> str:
 @advertiser_required
 def media_library():
     try:
-        items = _api("GET", "/media")
+        items = _api_all_pages("/media")
     except Exception as exc:
         items = []
         flash(f"Could not load media: {exc}", "error")

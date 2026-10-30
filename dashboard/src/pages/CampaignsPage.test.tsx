@@ -25,7 +25,7 @@ vi.mock("../components/CreativesModal", () => ({
 vi.mock("../lib/api", () => ({
     api: {
         me: vi.fn(),
-        listCampaigns: vi.fn(),
+        listCampaignsPage: vi.fn(),
         createCampaign: vi.fn(),
         updateCampaign: vi.fn(),
         deleteCampaign: vi.fn(),
@@ -57,7 +57,7 @@ beforeEach(() => {
     vi.resetAllMocks();
     vi.spyOn(window, "confirm").mockReturnValue(true);
     mocked.me.mockResolvedValue({ role: "admin" });
-    mocked.listCampaigns.mockResolvedValue([campaign()]);
+    mocked.listCampaignsPage.mockResolvedValue({ items: [campaign()], total: 1, page: 1, size: 100, pages: 1 });
 });
 
 afterEach(() => {
@@ -79,9 +79,7 @@ describe("campaign list", () => {
     });
 
     it("formats caps and total budget", async () => {
-        mocked.listCampaigns.mockResolvedValue([
-            campaign({ daily_cap: 25, total_budget: 100, spent_amount: 12.5 }),
-        ]);
+        mocked.listCampaignsPage.mockResolvedValue({ items: [campaign({ daily_cap: 25, total_budget: 100, spent_amount: 12.5 })], total: 1, page: 1, size: 100, pages: 1 });
         render(<CampaignsPage />);
 
         expect(await screen.findByText("₹25.00/day")).toBeInTheDocument();
@@ -89,7 +87,7 @@ describe("campaign list", () => {
     });
 
     it("shows an empty state", async () => {
-        mocked.listCampaigns.mockResolvedValue([]);
+        mocked.listCampaignsPage.mockResolvedValue({ items: [], total: 0, page: 1, size: 100, pages: 0 });
         render(<CampaignsPage />);
 
         expect(await screen.findByText(/no campaigns yet/i)).toBeInTheDocument();
@@ -103,7 +101,7 @@ describe("row actions", () => {
         fireEvent.click(await screen.findByRole("button", { name: "Pause" }));
 
         await waitFor(() => expect(mocked.updateCampaign).toHaveBeenCalledWith(1, { is_active: false }));
-        await waitFor(() => expect(mocked.listCampaigns).toHaveBeenCalledTimes(2));
+        await waitFor(() => expect(mocked.listCampaignsPage).toHaveBeenCalledTimes(2));
     });
 
     it("deletes only after confirmation", async () => {
@@ -172,7 +170,7 @@ describe("create campaign modal", () => {
             })
         );
         // closes the modal and refreshes the list
-        await waitFor(() => expect(mocked.listCampaigns).toHaveBeenCalledTimes(2));
+        await waitFor(() => expect(mocked.listCampaignsPage).toHaveBeenCalledTimes(2));
         expect(screen.queryByRole("heading", { name: "New campaign" })).not.toBeInTheDocument();
     });
 

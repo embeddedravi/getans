@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
@@ -13,6 +13,7 @@ from app.models.payment import Payout, PayoutStatus
 from app.models.publisher import PaymentMethod, Publisher
 from app.models.user import User
 from app.schemas.payment import PayoutCreate, PayoutOut, PayoutUpdate
+from app.schemas.generic import PaginatedResponse
 
 router = APIRouter(tags=["Payouts"])
 
@@ -83,16 +84,16 @@ async def create_payout(
     return payout
 
 
-@router.get("", response_model=List[PayoutOut], summary="List payouts")
+@router.get("", response_model=PaginatedResponse[PayoutOut], summary="List payouts")
 async def list_payouts(
     publisher_id: Optional[int] = Query(None),
     status_filter: Optional[str] = Query(None, alias="status"),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "publisher")),
-) -> List[Payout]:
-    stmt = select(Payout).order_by(Payout.id.desc()).offset(skip).limit(limit)
+) -> PaginatedResponse[PayoutOut]:
+    stmt = select(Payout).order_by(Payout.id.desc())
     if user.role == "publisher":
         stmt = stmt.where(Payout.publisher_id == user.publisher_id)
     elif publisher_id is not None:
@@ -102,7 +103,9 @@ async def list_payouts(
             stmt = stmt.where(Payout.status == PayoutStatus(status_filter))
         except ValueError:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Unknown payout status")
-    return list((await db.execute(stmt)).scalars().all())
+    total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
+    result = await db.execute(stmt.offset((page - 1) * size).limit(size))
+    return PaginatedResponse(items=list(result.scalars().all()), total=total, page=page, size=size, pages=(total + size - 1) // size)
 
 
 @router.get("/{payout_id}", response_model=PayoutOut, summary="Get a payout")

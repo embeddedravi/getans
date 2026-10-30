@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator, model_validator
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import get_db, require_role
@@ -18,6 +18,7 @@ from app.models.support_ticket import (
     TicketStatus,
 )
 from app.models.user import User, UserRole
+from app.schemas.generic import PaginatedResponse
 
 router = APIRouter(prefix="/support", tags=["Customer Support"])
 CUSTOMER_ROLES = (UserRole.ADVERTISER, UserRole.PUBLISHER)
@@ -96,9 +97,11 @@ async def _get_accessible_ticket(db: AsyncSession, ticket_id: int, user: User) -
 async def list_tickets(
     ticket_status: TicketStatus | None = Query(None, alias="status"),
     priority: TicketPriority | None = None,
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("advertiser", "publisher", "staff", "admin")),
-) -> list[dict]:
+) -> PaginatedResponse[dict]:
     stmt = select(SupportTicket, User).join(User, User.id == SupportTicket.user_id)
     if user.role in CUSTOMER_ROLES:
         stmt = stmt.where(SupportTicket.user_id == user.id)
@@ -106,19 +109,24 @@ async def list_tickets(
         stmt = stmt.where(SupportTicket.status == ticket_status)
     if priority is not None:
         stmt = stmt.where(SupportTicket.priority == priority)
-    rows = (await db.execute(stmt.order_by(SupportTicket.updated_at.desc()))).all()
-    return [_summary(ticket, customer) for ticket, customer in rows]
+    total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
+    rows = (await db.execute(stmt.order_by(SupportTicket.updated_at.desc()).offset((page - 1) * size).limit(size))).all()
+    items = [_summary(ticket, customer) for ticket, customer in rows]
+    return PaginatedResponse(items=items, total=total, page=page, size=size, pages=(total + size - 1) // size)
 
 
 @router.get("/staff")
 async def list_support_staff(
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("staff", "admin")),
-) -> list[dict]:
-    users = (await db.execute(
-        select(User).where(User.role.in_(STAFF_ROLES), User.is_active.is_(True)).order_by(User.role, User.first_name, User.last_name)
-    )).scalars().all()
-    return [{"id": person.id, "name": person.full_name, "role": person.role.value} for person in users]
+) -> PaginatedResponse[dict]:
+    stmt = select(User).where(User.role.in_(STAFF_ROLES), User.is_active.is_(True)).order_by(User.role, User.first_name, User.last_name)
+    total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
+    users = (await db.execute(stmt.offset((page - 1) * size).limit(size))).scalars().all()
+    items = [{"id": person.id, "name": person.full_name, "role": person.role.value} for person in users]
+    return PaginatedResponse(items=items, total=total, page=page, size=size, pages=(total + size - 1) // size)
 
 
 @router.post("/tickets", status_code=status.HTTP_201_CREATED)
@@ -138,6 +146,8 @@ async def create_ticket(
 @router.get("/tickets/{ticket_id}")
 async def get_ticket(
     ticket_id: int,
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("advertiser", "publisher", "staff", "admin")),
 ) -> dict:
@@ -150,10 +160,14 @@ async def get_ticket(
     )
     if user.role not in STAFF_ROLES:
         message_stmt = message_stmt.where(SupportTicketMessage.is_internal.is_(False))
-    messages = (await db.execute(message_stmt.order_by(SupportTicketMessage.created_at))).all()
+    total_messages = await db.scalar(select(func.count()).select_from(message_stmt.order_by(None).subquery())) or 0
+    messages = (await db.execute(
+        message_stmt.order_by(SupportTicketMessage.created_at.desc(), SupportTicketMessage.id.desc())
+        .offset((page - 1) * size).limit(size)
+    )).all()
     return {
         **_summary(ticket, customer),
-        "messages": [
+        "messages": PaginatedResponse(items=[
             {
                 "id": message.id,
                 "author_id": message.author_id,
@@ -163,7 +177,7 @@ async def get_ticket(
                 "created_at": message.created_at.isoformat(),
             }
             for message, author in messages
-        ],
+        ], total=total_messages, page=page, size=size, pages=(total_messages + size - 1) // size),
     }
 
 

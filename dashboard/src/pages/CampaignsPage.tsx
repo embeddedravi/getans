@@ -23,27 +23,37 @@ const BIDDING_LABEL: Record<BiddingStrategy, string> = {
 
 export function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [creativesFor, setCreativesFor] = useState<Campaign | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [publishingId, setPublishingId] = useState<number | null>(null);
   const listing = useListingControls(campaigns, (c) => `${c.id} ${c.name} ${c.status} ${c.bidding_strategy}`, (c) => c.status,
-    ["draft", "scheduled", "active", "paused", "completed", "exhausted", "archived"].map((value) => ({ value, label: value })));
+    ["draft", "scheduled", "active", "paused", "completed", "exhausted", "archived"].map((value) => ({ value, label: value })), 100);
 
   useEffect(() => {
     api.me().then((u) => setIsAdmin((u as { role: string }).role === "admin")).catch(() => { });
   }, []);
 
-  function refresh() {
+  function refresh(targetPage = page) {
     setLoading(true);
     api
-      .listCampaigns()
-      .then((data) => setCampaigns(data as Campaign[]))
+      .listCampaignsPage(targetPage, 100)
+      .then((data) => {
+        setCampaigns(data.items);
+        setTotal(data.total);
+        setPages(data.pages);
+        setPage(data.page);
+        if (data.pages > 0 && targetPage > data.pages) setPage(data.pages);
+      })
+      .catch(() => setCampaigns([]))
       .finally(() => setLoading(false));
   }
 
-  useEffect(refresh, []);
+  useEffect(() => { refresh(page); }, [page]);
 
   async function toggleActive(campaign: Campaign) {
     const nextState = !campaign.is_active;
@@ -77,7 +87,7 @@ export function CampaignsPage() {
     <Layout title="Campaigns">
       <div className="flex justify-between items-center mb-5">
         <p className="text-sm ">
-          {campaigns.length} campaign{campaigns.length === 1 ? "" : "s"}
+          {total} campaign{total === 1 ? "" : "s"}
         </p>
         <button className="btn btn-primary btn-sm" onClick={() => setShowCreate(true)}>
           New campaign
@@ -172,12 +182,18 @@ export function CampaignsPage() {
         </table>
       </div>
 
+      {pages > 1 && <div className="mt-3 flex items-center justify-center gap-3" aria-label="Campaign pages">
+        <button className="btn btn-sm" aria-label="Previous campaigns page" disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)}>‹ Previous</button>
+        <span className="text-sm">Page {page} of {pages}</span>
+        <button className="btn btn-sm" aria-label="Next campaigns page" disabled={page >= pages || loading} onClick={() => setPage((value) => value + 1)}>Next ›</button>
+      </div>}
+
       {showCreate && (
         <CreateCampaignModal
           onClose={() => setShowCreate(false)}
           onCreated={() => {
             setShowCreate(false);
-            refresh();
+            refresh(1);
           }}
         />
       )}

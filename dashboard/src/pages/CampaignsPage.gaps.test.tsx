@@ -27,7 +27,7 @@ vi.mock("../components/CreativesModal", () => ({
 vi.mock("../lib/api", () => ({
     api: {
         me: vi.fn(),
-        listCampaigns: vi.fn(),
+        listCampaignsPage: vi.fn(),
         createCampaign: vi.fn(),
         updateCampaign: vi.fn(),
         deleteCampaign: vi.fn(),
@@ -59,7 +59,7 @@ beforeEach(() => {
     vi.resetAllMocks();
     vi.spyOn(window, "confirm").mockReturnValue(true);
     mocked.me.mockResolvedValue({ role: "admin" });
-    mocked.listCampaigns.mockResolvedValue([campaign()]);
+    mocked.listCampaignsPage.mockResolvedValue({ items: [campaign()], total: 1, page: 1, size: 100, pages: 1 });
 });
 
 afterEach(() => vi.restoreAllMocks());
@@ -76,7 +76,7 @@ describe("CampaignsPage gaps", () => {
     });
 
     it("shows an inactive campaign as Off", async () => {
-        mocked.listCampaigns.mockResolvedValue([campaign({ is_active: false })]);
+        mocked.listCampaignsPage.mockResolvedValue({ items: [campaign({ is_active: false })], total: 1, page: 1, size: 100, pages: 1 });
         render(<CampaignsPage />);
 
         expect(await screen.findByText("Off")).toHaveClass("badge-ghost");
@@ -84,7 +84,7 @@ describe("CampaignsPage gaps", () => {
 
     it("shows the formatted end date instead of 'Ongoing' when one is set", async () => {
         const end = "2026-12-31T12:00:00Z";
-        mocked.listCampaigns.mockResolvedValue([campaign({ end_date: end })]);
+        mocked.listCampaignsPage.mockResolvedValue({ items: [campaign({ end_date: end })], total: 1, page: 1, size: 100, pages: 1 });
         render(<CampaignsPage />);
         await screen.findByText("Autumn sale");
 

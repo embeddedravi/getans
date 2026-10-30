@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Optional
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +12,7 @@ from app.models.media_asset import MediaAsset
 from app.models.user import User
 from app.schemas.media import MediaAssetOut
 from app.services import media_storage
+from app.schemas.generic import PaginatedResponse
 
 router = APIRouter(prefix="/media", tags=["Media"])
 
@@ -47,15 +48,19 @@ async def upload_media(
     return asset
 
 
-@router.get("", response_model=List[MediaAssetOut], summary="List media assets")
+@router.get("", response_model=PaginatedResponse[MediaAssetOut], summary="List media assets")
 async def list_media(
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "advertiser")),
-) -> List[MediaAsset]:
+) -> PaginatedResponse[MediaAssetOut]:
     stmt = select(MediaAsset).order_by(MediaAsset.id.desc())
     if user.role == "advertiser":
         stmt = stmt.where(MediaAsset.advertiser_id == user.advertiser_id)
-    return list((await db.execute(stmt)).scalars().all())
+    total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
+    result = await db.execute(stmt.offset((page - 1) * size).limit(size))
+    return PaginatedResponse(items=list(result.scalars().all()), total=total, page=page, size=size, pages=(total + size - 1) // size)
 
 
 @router.delete("/{media_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a media asset")

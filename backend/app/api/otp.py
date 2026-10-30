@@ -15,7 +15,7 @@ from app.config import settings
 from app.deps import get_db
 from app.models.user import User
 from app.schemas.otp import OTPRequest, OTPRequestResponse, OTPVerify
-from app.schemas.user import MessageResponse
+from app.schemas.generic import MessageResponse
 from app.services.otp import OTPRateLimitError, issue_otp, verify_otp
 from app.services.sms import send_sms
 from app.services.captcha import verify_captcha

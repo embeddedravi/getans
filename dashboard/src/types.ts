@@ -1,4 +1,15 @@
 // Kept in sync with backend/app/schemas/*.py
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  size: number;
+  pages: number;
+}
+
+export interface MessageResponse {
+  message: string;
+}
 
 export type PublisherStatus = "pending_approval" | "active" | "suspended" | "rejected";
 
@@ -164,7 +175,7 @@ export interface SupportTicketMessage {
 }
 
 export interface SupportTicket extends SupportTicketSummary {
-  messages: SupportTicketMessage[];
+  messages: PaginatedResponse<SupportTicketMessage>;
 }
 
 export interface MediaAsset {

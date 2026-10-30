@@ -25,8 +25,13 @@ export function SupportPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [ticketPage, setTicketPage] = useState(1);
+  const ticketPageSize = 10;
+  const [messagePage, setMessagePage] = useState(1);
   const isStaff = role === "staff" || role === "admin";
   const visibleTickets = tickets.filter((ticket) => `${ticket.subject} ${ticket.customer_name} ${ticket.category} ${ticket.status} ${ticket.priority} ${ticket.id}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
+  const ticketPages = Math.max(1, Math.ceil(visibleTickets.length / ticketPageSize));
+  const visibleTicketPage = visibleTickets.slice((ticketPage - 1) * ticketPageSize, ticketPage * ticketPageSize);
   const openCount = tickets.filter((ticket) => ticket.status === "open" || ticket.status === "in_progress").length;
   const waitingCount = tickets.filter((ticket) => ticket.status === "waiting_on_customer").length;
   const resolvedCount = tickets.filter((ticket) => ticket.status === "resolved" || ticket.status === "closed").length;
@@ -37,12 +42,14 @@ export function SupportPage() {
     low: "badge-ghost", normal: "badge-info", high: "badge-warning", urgent: "badge-error",
   };
 
+  useEffect(() => setTicketPage((current) => Math.min(current, ticketPages)), [ticketPages]);
+
   async function refreshTickets(filter = statusFilter) {
     const rows = await api.listSupportTickets(filter);
     setTickets(rows);
     if (selected) {
       const refreshed = rows.find((ticket) => ticket.id === selected.id);
-      if (refreshed) setSelected(await api.getSupportTicket(refreshed.id));
+      if (refreshed) setSelected(await api.getSupportTicket(refreshed.id, messagePage));
       else setSelected(null);
     }
   }
@@ -59,9 +66,12 @@ export function SupportPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function openTicket(ticket: SupportTicketSummary) {
+  async function openTicket(ticket: SupportTicketSummary, page = 1) {
     setError("");
-    try { setSelected(await api.getSupportTicket(ticket.id)); }
+    try {
+      setSelected(await api.getSupportTicket(ticket.id, page));
+      setMessagePage(page);
+    }
     catch (reason) { setError(reason instanceof Error ? reason.message : "Could not load this ticket"); }
   }
 
@@ -85,7 +95,7 @@ export function SupportPage() {
       await api.addSupportTicketMessage(selected.id, reply, internal);
       setReply(""); setInternal(false);
       await refreshTickets();
-      setSelected(await api.getSupportTicket(selected.id));
+      setSelected(await api.getSupportTicket(selected.id, messagePage));
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not send reply"); }
     finally { setBusy(false); }
   }
@@ -96,7 +106,7 @@ export function SupportPage() {
     try {
       await api.updateSupportTicket(selected.id, payload);
       await refreshTickets();
-      setSelected(await api.getSupportTicket(selected.id));
+      setSelected(await api.getSupportTicket(selected.id, messagePage));
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not update ticket"); }
   }
 
@@ -118,8 +128,8 @@ export function SupportPage() {
         <div><p className="text-sm">{isStaff ? "Review and respond to customer requests." : "Create a request and follow replies from the support team."}</p><p className="mt-1 text-xs">{tickets.length} {tickets.length === 1 ? "ticket" : "tickets"} in this view</p></div>
         {!isStaff && <button className="btn btn-primary btn-sm" onClick={() => setShowCreate((value) => !value)}>{showCreate ? "Cancel" : "+ New support ticket"}</button>}
         {isStaff && <div className="flex flex-wrap gap-2">
-          <input type="search" aria-label="Search support tickets" className="input input-bordered input-sm w-52" placeholder="Search tickets…" value={search} onChange={(event) => setSearch(event.target.value)} />
-          <select aria-label="Filter tickets by status" className="select select-bordered select-sm" value={statusFilter} onChange={(event) => void changeFilter(event.target.value)}>
+          <input type="search" aria-label="Search support tickets" className="input input-bordered input-sm w-52" placeholder="Search tickets…" value={search} onChange={(event) => { setSearch(event.target.value); setTicketPage(1); }} />
+          <select aria-label="Filter tickets by status" className="select select-bordered select-sm" value={statusFilter} onChange={(event) => { setTicketPage(1); void changeFilter(event.target.value); }}>
             <option value="all">All statuses</option>{STATUSES.map((value) => <option key={value} value={value}>{label(value)}</option>)}
           </select>
         </div>}
@@ -152,7 +162,7 @@ export function SupportPage() {
         <section className="overflow-hidden rounded border border-base-300 bg-base-200">
           <header className="flex items-center justify-between border-b border-base-300 px-4 py-3"><span className="font-medium">Inbox</span><span className="badge badge-ghost badge-sm">{visibleTickets.length}</span></header>
           {loading ? <p className="p-5 text-sm">Loading tickets…</p> : visibleTickets.length ? <ul className="max-h-[72vh] divide-y divide-base-300 overflow-y-auto">
-            {visibleTickets.map((ticket) => <li key={ticket.id}>
+            {visibleTicketPage.map((ticket) => <li key={ticket.id}>
               <button className={`w-full border-l-2 p-4 text-left transition hover:bg-base-300/60 ${selected?.id === ticket.id ? "border-primary bg-primary/5" : "border-transparent"}`} onClick={() => void openTicket(ticket)}>
                 <span className="flex items-start justify-between gap-2"><span className="line-clamp-2 font-medium">{ticket.subject}</span><span className={`badge badge-xs capitalize ${statusTone[ticket.status]}`}>{label(ticket.status)}</span></span>
                 {isStaff && <span className="mt-2 block text-xs font-medium">{ticket.customer_name}</span>}
@@ -160,6 +170,7 @@ export function SupportPage() {
               </button>
             </li>)}
           </ul> : <div className="p-8 text-center"><p className="font-medium">{isStaff ? "No matching tickets" : "No support tickets yet"}</p><p className="mt-1 text-sm">{isStaff ? "Try another search or status." : "Open a ticket and the support team will follow up here."}</p></div>}
+          {!loading && ticketPages > 1 && <footer className="flex items-center justify-between border-t border-base-300 px-3 py-2"><button className="btn btn-ghost btn-xs" disabled={ticketPage <= 1} onClick={() => setTicketPage((value) => value - 1)}>‹ Previous</button><span className="text-xs">Page {ticketPage} of {ticketPages}</span><button className="btn btn-ghost btn-xs" disabled={ticketPage >= ticketPages} onClick={() => setTicketPage((value) => value + 1)}>Next ›</button></footer>}
         </section>
 
         <section className="flex min-h-[32rem] flex-col overflow-hidden rounded-lg border border-base-300 bg-base-200 shadow-sm">
@@ -175,11 +186,12 @@ export function SupportPage() {
               </div>}
             </header>
             <div className="flex-1 space-y-4 overflow-y-auto bg-base-100/40 p-4">
-              {selected.messages.map((message) => <article key={message.id} className={`max-w-[92%] rounded-xl border p-3 shadow-sm sm:max-w-[80%] ${message.is_internal ? "mx-auto border-warning/50 bg-warning/10" : message.author_id === currentUserId ? "ml-auto border-primary/20 bg-primary/10" : "mr-auto border-base-300 bg-base-100"}`}>
+              {selected.messages.items.map((message) => <article key={message.id} className={`max-w-[92%] rounded-xl border p-3 shadow-sm sm:max-w-[80%] ${message.is_internal ? "mx-auto border-warning/50 bg-warning/10" : message.author_id === currentUserId ? "ml-auto border-primary/20 bg-primary/10" : "mr-auto border-base-300 bg-base-100"}`}>
                 <div className="flex flex-wrap justify-between gap-3 text-xs"><span className="font-medium">{message.author_id === currentUserId ? "You" : message.author_name}{message.is_internal ? " · Internal note" : ""}</span><time className="text-base-content/60">{new Date(message.created_at).toLocaleString()}</time></div>
                 <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">{message.body}</p>
               </article>)}
             </div>
+            {selected.messages.pages > 1 && <div className="flex items-center justify-between border-t border-base-300 px-4 py-2"><button className="btn btn-ghost btn-xs" disabled={messagePage <= 1} onClick={() => void openTicket(selected, messagePage + 1)}>‹ Older messages</button><span className="text-xs">Page {messagePage} of {selected.messages.pages}</span><button className="btn btn-ghost btn-xs" disabled={messagePage >= selected.messages.pages} onClick={() => void openTicket(selected, messagePage - 1)}>Newer messages ›</button></div>}
             {selected.status !== "closed" ? <form onSubmit={sendReply} className="space-y-3 border-t border-base-300 bg-base-200 p-4">
               {isStaff && <label className="flex w-fit items-center gap-2 rounded bg-warning/10 px-2 py-1 text-xs"><input className="checkbox checkbox-xs" type="checkbox" checked={internal} onChange={(event) => setInternal(event.target.checked)} />Internal note — only staff can see this</label>}
               <textarea className="textarea textarea-bordered w-full bg-base-100" required maxLength={5000} rows={3} placeholder={internal ? "Write an internal note…" : "Write a reply…"} value={reply} onChange={(event) => setReply(event.target.value)} />

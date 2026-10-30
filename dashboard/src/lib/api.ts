@@ -1,4 +1,5 @@
 const BASE_URL = "/api";
+import type { Creative, PaginatedResponse } from "../types";
 
 function getToken(): string | null {
   return localStorage.getItem("access_token");
@@ -38,6 +39,41 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json();
 }
 
+async function requestAllPages<T>(path: string): Promise<T[]> {
+  const rows: T[] = [];
+  let page = 1;
+  let pages = 1;
+  do {
+    const separator = path.includes("?") ? "&" : "?";
+    const pagePath = page === 1 ? path : `${path}${separator}page=${page}&size=50`;
+    const result = await request<PaginatedResponse<T> | T[]>(pagePath);
+    if (Array.isArray(result)) return result;
+    rows.push(...result.items);
+    pages = result.pages;
+    page += 1;
+  } while (page <= pages);
+  return rows;
+}
+
+async function requestApprovalsAllPages(): Promise<import("../types").PendingApprovals> {
+  const all: import("../types").PendingApprovals = { publishers: [], advertisers: [], ad_units: [] };
+  let page = 1;
+  let pages = 1;
+  while (page <= pages) {
+    const response = await request<{
+      publishers: PaginatedResponse<import("../types").Publisher>;
+      advertisers: PaginatedResponse<import("../types").Advertiser>;
+      ad_units: PaginatedResponse<import("../types").AdUnit>;
+    }>(`/admin/approvals/pending?page=${page}&size=50`);
+    all.publishers.push(...response.publishers.items);
+    all.advertisers.push(...response.advertisers.items);
+    all.ad_units.push(...response.ad_units.items);
+    pages = Math.max(response.publishers.pages, response.advertisers.pages, response.ad_units.pages);
+    page += 1;
+  }
+  return all;
+}
+
 export const api = {
   captchaChallenge: () => request<{ challenge: string; question: string }>("/auth/captcha-challenge"),
   login: (mobile: string, password: string, captcha_challenge?: string, captcha_answer?: string) =>
@@ -53,17 +89,17 @@ export const api = {
     request<{ message: string }>("/auth/me/password", { method: "POST", body: JSON.stringify({ current_password, new_password }) }),
   deleteAccount: (password: string) =>
     request<void>("/auth/me", { method: "DELETE", body: JSON.stringify({ password }) }),
-  listAdminAdvertisers: () => request<import("../types").Advertiser[]>("/admin/advertisers"),
-  listAdminUsers: () => request<import("../types").AdminUser[]>("/admin/users"),
+  listAdminAdvertisers: () => requestAllPages<import("../types").Advertiser>("/admin/advertisers"),
+  listAdminUsers: () => requestAllPages<import("../types").AdminUser>("/admin/users"),
   updateAdminUser: (id: number, payload: {
     role: import("../types").UserRole;
     is_active: boolean;
     publisher_id: number | null;
     advertiser_id: number | null;
   }) => request<import("../types").AdminUser>(`/admin/users/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
-  listPendingApprovals: () => request<import("../types").PendingApprovals>("/admin/approvals/pending"),
-  listPayouts: (status?: string) => request<import("../types").Payout[]>(`/payouts${status ? `?status=${encodeURIComponent(status)}` : ""}`),
-  listAdvertiserTopUps: () => request<import("../types").AdvertiserTopUp[]>("/payments/topups"),
+  listPendingApprovals: () => requestApprovalsAllPages(),
+  listPayouts: (status?: string) => requestAllPages<import("../types").Payout>(`/payouts${status ? `?status=${encodeURIComponent(status)}` : ""}`),
+  listAdvertiserTopUps: () => requestAllPages<import("../types").AdvertiserTopUp>("/payments/topups"),
   listRecentEvents: (limit = 100, afterId?: number) => request<import("../types").LiveEvent[]>(`/admin/events/recent?limit=${limit}${afterId === undefined ? "" : `&after_id=${afterId}`}`),
   listMyRecentEvents: (limit = 100, afterId?: number) => request<import("../types").LiveEvent[]>(`/admin/events/mine?limit=${limit}${afterId === undefined ? "" : `&after_id=${afterId}`}`),
   updatePayout: (id: number, payload: { status?: import("../types").PayoutStatus; reference?: string }) =>
@@ -75,17 +111,17 @@ export const api = {
   reviewAdUnit: (id: number, status: "approved" | "rejected", rejection_reason?: string) =>
     request(`/admin/ad-units/${id}/review`, { method: "PATCH", body: JSON.stringify({ status, rejection_reason }) }),
   listAdUnitReports: (id: number) =>
-    request<{ id: number; creative_id: number | null; reason: string; created_at: string }[]>(`/admin/ad-units/${id}/reports`),
-  listAvailablePublisherAdUnits: () => request<import("../types").AvailablePublisherAdUnit[]>("/publishers/available-ad-units"),
-  listSupportTickets: (status?: string) => request<import("../types").SupportTicketSummary[]>(`/support/tickets${status && status !== "all" ? `?status=${encodeURIComponent(status)}` : ""}`),
-  getSupportTicket: (id: number) => request<import("../types").SupportTicket>(`/support/tickets/${id}`),
+    requestAllPages<{ id: number; creative_id: number | null; reason: string; created_at: string }>(`/admin/ad-units/${id}/reports`),
+  listAvailablePublisherAdUnits: () => requestAllPages<import("../types").AvailablePublisherAdUnit>("/publishers/available-ad-units"),
+  listSupportTickets: (status?: string) => requestAllPages<import("../types").SupportTicketSummary>(`/support/tickets${status && status !== "all" ? `?status=${encodeURIComponent(status)}` : ""}`),
+  getSupportTicket: (id: number, page = 1, size = 50) => request<import("../types").SupportTicket>(`/support/tickets/${id}?page=${page}&size=${size}`),
   createSupportTicket: (payload: { subject: string; category: import("../types").SupportTicketCategory; message: string }) =>
     request<import("../types").SupportTicketSummary>("/support/tickets", { method: "POST", body: JSON.stringify(payload) }),
   addSupportTicketMessage: (id: number, body: string, is_internal = false) =>
     request<import("../types").SupportTicketMessage>(`/support/tickets/${id}/messages`, { method: "POST", body: JSON.stringify({ body, is_internal }) }),
   updateSupportTicket: (id: number, payload: { status?: import("../types").SupportTicketStatus; priority?: import("../types").SupportTicketPriority; assigned_to_id?: number | null }) =>
     request<import("../types").SupportTicketSummary>(`/support/tickets/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
-  listSupportStaff: () => request<{ id: number; name: string; role: "staff" | "admin" }[]>("/support/staff"),
+  listSupportStaff: () => requestAllPages<{ id: number; name: string; role: "staff" | "admin" }>("/support/staff"),
   setAdUnitActive: (id: number, is_active: boolean) =>
     request(`/admin/ad-units/${id}/active`, { method: "PATCH", body: JSON.stringify({ is_active }) }),
   signup: (payload: unknown) =>
@@ -106,7 +142,9 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
-  listCampaigns: () => request("/campaigns"),
+  listCampaigns: () => requestAllPages<import("../types").Campaign>("/campaigns"),
+  listCampaignsPage: (page: number, size = 100) =>
+    request<PaginatedResponse<import("../types").Campaign>>(`/campaigns?page=${page}&size=${size}`),
   createCampaign: (payload: unknown) =>
     request("/campaigns", { method: "POST", body: JSON.stringify(payload) }),
   updateCampaign: (id: number, payload: unknown) =>
@@ -114,8 +152,17 @@ export const api = {
   deleteCampaign: (id: number) => request(`/campaigns/${id}`, { method: "DELETE" }),
 
   listCreativesForCampaign: (campaignId: number) =>
-    request(`/creatives/by-campaign/${campaignId}`),
-  listPollCreatives: () => request<{ creative: import("../types").Creative; campaign: { id: number; name: string } }[]>("/creatives/polls"),
+    requestAllPages<Creative>(`/creatives/by-campaign/${campaignId}`),
+  listPollCreatives: (params?: { page?: number; size?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set("page", params.page.toString());
+    if (params?.size) query.set("size", params.size.toString());
+    const queryString = query.toString() ? `?${query.toString()}` : "";
+
+    return request<PaginatedResponse<{ creative: Creative; campaign: { id: number; name: string } }>>(
+      `/creatives/polls${queryString}`
+    );
+  },
   createCreative: (payload: unknown) =>
     request("/creatives", { method: "POST", body: JSON.stringify(payload) }),
   deleteCreative: (id: number) => request(`/creatives/${id}`, { method: "DELETE" }),
@@ -129,7 +176,7 @@ export const api = {
   getPollResults: (creativeId: number) =>
     request<import("../types").PollResults>(`/creatives/${creativeId}/poll-results`),
 
-  listMedia: () => request<import("../types").MediaAsset[]>("/media"),
+  listMedia: () => requestAllPages<import("../types").MediaAsset>("/media"),
   uploadMedia: async (file: File) => {
     const form = new FormData();
     form.append("file", file);
@@ -147,10 +194,10 @@ export const api = {
   },
   deleteMedia: (id: number) => request<void>(`/media/${id}`, { method: "DELETE" }),
 
-  listPublishers: () => request("/publishers"),
+  listPublishers: () => requestAllPages<import("../types").Publisher>("/publishers"),
   createPublisher: (payload: unknown) =>
     request("/publishers", { method: "POST", body: JSON.stringify(payload) }),
-  listAdUnits: (publisherId: number) => request(`/publishers/${publisherId}/ad-units`),
+  listAdUnits: (publisherId: number) => requestAllPages<import("../types").AdUnit>(`/publishers/${publisherId}/ad-units`),
   createAdUnit: (publisherId: number, payload: unknown) =>
     request(`/publishers/${publisherId}/ad-units`, {
       method: "POST",
@@ -158,10 +205,10 @@ export const api = {
     }),
 
   campaignStats: (start: string, end: string) =>
-    request(`/analytics/campaigns?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),
+    requestAllPages<import("../types").CampaignStats>(`/analytics/campaigns?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),
 
   advertiserWallet: () => request<import("../types").AdvertiserWallet>("/payments/wallet"),
-  advertiserTopUpHistory: () => request<import("../types").AdvertiserTopUp[]>("/payments/history"),
+  advertiserTopUpHistory: () => requestAllPages<import("../types").AdvertiserTopUp>("/payments/history"),
   createAdvertiserTopUpOrder: (amount: number) =>
     request<import("../types").RazorpayTopUpOrder>("/payments/orders", {
       method: "POST",

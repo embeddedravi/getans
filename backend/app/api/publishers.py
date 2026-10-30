@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import get_db, require_role
@@ -12,6 +10,7 @@ from app.models.publisher import Publisher, PublisherStatus
 from app.models.user import User
 from app.schemas.publisher import PublisherCreate, PublisherOut
 from app.schemas.add_unit import AdUnitCreate, AdUnitOut
+from app.schemas.generic import PaginatedResponse
 
 router = APIRouter(prefix="/publishers", tags=["Publishers & Ad Units"])
 
@@ -43,20 +42,23 @@ async def create_publisher(
 
 @router.get(
     "",
-    response_model=List[PublisherOut],
+    response_model=PaginatedResponse[PublisherOut],
     summary="List registered publishers",
 )
 async def list_publishers(
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "publisher")),
-) -> List[Publisher]:
+) -> PaginatedResponse[PublisherOut]:
     """Lists registered publishers according to permission context."""
     stmt = select(Publisher)
     if user.role == "publisher":
         stmt = stmt.where(Publisher.id == user.publisher_id)
 
-    result = await db.execute(stmt)
-    return list(result.scalars().all())
+    total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
+    result = await db.execute(stmt.order_by(Publisher.id).offset((page - 1) * size).limit(size))
+    return PaginatedResponse(items=list(result.scalars().all()), total=total, page=page, size=size, pages=(total + size - 1) // size)
 
 
 @router.get(
@@ -64,10 +66,12 @@ async def list_publishers(
     summary="List approved active publisher inventory for advertisers",
 )
 async def available_ad_units(
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role("advertiser")),
 ) -> list[dict]:
-    rows = (await db.execute(
+    stmt = (
         select(AdUnit, Publisher)
         .join(Publisher, Publisher.id == AdUnit.publisher_id)
         .where(
@@ -77,8 +81,10 @@ async def available_ad_units(
             AdUnit.is_active.is_(True),
         )
         .order_by(Publisher.name, AdUnit.slot_name)
-    )).all()
-    return [
+    )
+    total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
+    rows = (await db.execute(stmt.offset((page - 1) * size).limit(size))).all()
+    items = [
         {
             "id": unit.id,
             "publisher_id": publisher.id,
@@ -95,6 +101,7 @@ async def available_ad_units(
         }
         for unit, publisher in rows
     ]
+    return PaginatedResponse(items=items, total=total, page=page, size=size, pages=(total + size - 1) // size)
 
 
 @router.get(
@@ -174,14 +181,16 @@ async def create_ad_unit(
 
 @router.get(
     "/{publisher_id}/ad-units",
-    response_model=List[AdUnitOut],
+    response_model=PaginatedResponse[AdUnitOut],
     summary="List ad units for a publisher",
 )
 async def list_ad_units(
     publisher_id: int,
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "publisher")),
-) -> List[AdUnit]:
+) -> PaginatedResponse[AdUnitOut]:
     """Fetches all ad placement units registered under a given publisher."""
     if user.role == "publisher" and user.publisher_id != publisher_id:
         raise HTTPException(
@@ -189,5 +198,7 @@ async def list_ad_units(
             detail="Access denied to ad units",
         )
 
-    result = await db.execute(select(AdUnit).where(AdUnit.publisher_id == publisher_id))
-    return list(result.scalars().all())
+    stmt = select(AdUnit).where(AdUnit.publisher_id == publisher_id).order_by(AdUnit.id)
+    total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
+    result = await db.execute(stmt.offset((page - 1) * size).limit(size))
+    return PaginatedResponse(items=list(result.scalars().all()), total=total, page=page, size=size, pages=(total + size - 1) // size)

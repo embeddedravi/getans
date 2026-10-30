@@ -2,15 +2,17 @@ from __future__ import annotations
 
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import get_db, require_role
 from app.models.campaign import Campaign
 from app.models.creative import Creative, ReviewStatus, CreativeFormat
 from app.models.user import User
+
 from app.models.media_asset import MediaKind, MediaAsset
+from app.schemas.generic import PaginatedResponse
 from app.schemas.creative import CreativeCreate, CreativeOut, CreativeUpdate, CreativeReview, PollResultsOut
 from app.models.event import Event, EventType
 
@@ -21,23 +23,51 @@ router = APIRouter(prefix="/creatives", tags=["Creatives"])
 async def list_poll_creatives(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "advertiser")),
-) -> list[dict]:
-    query = (
+    page: int = Query(1, ge=1, description="Page number"),
+    size: int = Query(50, ge=1, le=100, description="Items per page"),
+) -> PaginatedResponse[dict]:
+    # 1. Base query for filtering
+    base_query = (
         select(Creative, Campaign)
         .join(Campaign, Campaign.id == Creative.campaign_id)
         .where(Creative.format == CreativeFormat.POLL)
-        .order_by(Creative.created_at.desc(), Creative.id.desc())
     )
     if user.role == "advertiser":
-        query = query.where(Campaign.advertiser_id == user.advertiser_id)
-    rows = (await db.execute(query)).all()
-    return [
+        base_query = base_query.where(Campaign.advertiser_id == user.advertiser_id)
+
+    # 2. Get the total count of matching records
+    count_query = select(func.count()).select_from(base_query.subquery())
+    total = (await db.execute(count_query)).scalar_one()
+
+    # 3. Calculate total pages
+    pages = (total + size - 1) // size if total > 0 else 0
+
+    # 4. Apply sorting, pagination (limit/offset), and execute
+    paginated_query = (
+        base_query
+        .order_by(Creative.created_at.desc(), Creative.id.desc())
+        .offset((page - 1) * size)
+        .limit(size)
+    )
+    rows = (await db.execute(paginated_query)).all()
+
+    # 5. Format items
+    items = [
         {
             "creative": CreativeOut.model_validate(creative).model_dump(mode="json"),
             "campaign": {"id": campaign.id, "name": campaign.name},
         }
         for creative, campaign in rows
     ]
+
+    # 6. Return the paginated structure
+    return PaginatedResponse(
+        items=items,
+        total=total,
+        page=page,
+        size=size,
+        pages=pages,
+    )
 
 
 @router.post(
@@ -95,14 +125,16 @@ async def create_creative(
 
 @router.get(
     "/by-campaign/{campaign_id}",
-    response_model=List[CreativeOut],
+    response_model=PaginatedResponse[CreativeOut],
     summary="List creatives by campaign",
 )
 async def list_creatives_for_campaign(
     campaign_id: int,
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "advertiser")),
-) -> List[Creative]:
+) -> PaginatedResponse[CreativeOut]:
     """Retrieves all creatives belonging to a given campaign ID."""
     campaign = await db.get(Campaign, campaign_id)
     if campaign is None:
@@ -116,8 +148,10 @@ async def list_creatives_for_campaign(
             detail="Access denied to campaign creatives",
         )
 
-    result = await db.execute(select(Creative).where(Creative.campaign_id == campaign_id))
-    return list(result.scalars().all())
+    stmt = select(Creative).where(Creative.campaign_id == campaign_id).order_by(Creative.created_at.desc(), Creative.id.desc())
+    total = await db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
+    result = await db.execute(stmt.offset((page - 1) * size).limit(size))
+    return PaginatedResponse(items=list(result.scalars().all()), total=total, page=page, size=size, pages=(total + size - 1) // size)
 
 
 @router.delete(

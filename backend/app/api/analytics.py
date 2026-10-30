@@ -7,7 +7,7 @@ these endpoints back the charts that need a date range rather than a live tick.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, ConfigDict, Field
@@ -18,6 +18,7 @@ from app.deps import get_db, require_role
 from app.models.campaign import Campaign
 from app.models.event import Event, EventType
 from app.models.user import User
+from app.schemas.generic import PaginatedResponse
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
@@ -34,15 +35,17 @@ class CampaignStats(BaseModel):
 
 @router.get(
     "/campaigns",
-    response_model=List[CampaignStats],
+    response_model=PaginatedResponse[CampaignStats],
     summary="Get Campaign Performance Analytics",
 )
 async def campaign_stats(
     start: datetime = Query(..., description="Start range timestamp (UTC)"),
     end: datetime = Query(..., description="End range timestamp (UTC)"),
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "advertiser")),
-) -> List[CampaignStats]:
+) -> PaginatedResponse[CampaignStats]:
     """Retrieves aggregated impression, click, and CTR metrics for campaigns within a timeframe."""
     stmt = (
         select(
@@ -69,7 +72,8 @@ async def campaign_stats(
     if user.role == "advertiser":
         stmt = stmt.where(Campaign.advertiser_id == user.advertiser_id)
 
-    result = await db.execute(stmt)
+    total = await db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    result = await db.execute(stmt.offset((page - 1) * size).limit(size))
 
     stats: List[CampaignStats] = []
     for campaign_id, name, impressions, clicks in result.all():
@@ -83,4 +87,4 @@ async def campaign_stats(
                 ctr=round(ctr, 2),
             )
         )
-    return stats
+    return PaginatedResponse(items=stats, total=total, page=page, size=size, pages=(total + size - 1) // size)

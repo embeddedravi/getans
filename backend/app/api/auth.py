@@ -16,7 +16,8 @@ from app.config import settings
 from sqlalchemy.exc import IntegrityError
 from app.models.advertiser import Advertiser
 from app.models.publisher import Publisher
-from app.schemas.user import SignupRequest, SignupRole, ForgotPasswordReset, MessageResponse, ProfileUpdate, PasswordChange, AccountDeletion
+from app.schemas.generic import MessageResponse
+from app.schemas.user import SignupRequest, SignupRole, ForgotPasswordReset, ProfileUpdate, PasswordChange, AccountDeletion
 from app.services.otp import verify_otp
 from app.services.captcha import issue_captcha, verify_captcha
 

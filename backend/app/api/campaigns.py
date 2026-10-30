@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import get_db, require_role
@@ -11,6 +11,7 @@ from app.models.campaign import Campaign, CampaignStatus
 from app.models.advertiser import Advertiser
 from app.models.user import User
 from app.schemas.campaign import CampaignCreate, CampaignOut, CampaignUpdate
+from app.schemas.generic import PaginatedResponse
 
 router = APIRouter(prefix="/campaigns", tags=["Campaigns"])
 
@@ -99,19 +100,21 @@ async def create_campaign(
 
 @router.get(
     "",
-    response_model=List[CampaignOut],
+    response_model=PaginatedResponse[CampaignOut],
     summary="List available campaigns",
 )
 async def list_campaigns(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_role("admin", "advertiser")),
-) -> List[Campaign]:
+) -> PaginatedResponse[CampaignOut]:
     """Retrieves campaigns scoped to the user's account role."""
-    stmt = _apply_advertiser_scope(select(Campaign), user).offset(skip).limit(limit)
+    base = _apply_advertiser_scope(select(Campaign), user)
+    total = await db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    stmt = base.order_by(Campaign.created_at.desc(), Campaign.id.desc()).offset((page - 1) * size).limit(size)
     result = await db.execute(stmt)
-    return list(result.scalars().all())
+    return PaginatedResponse(items=list(result.scalars().all()), total=total, page=page, size=size, pages=(total + size - 1) // size)
 
 
 @router.get(

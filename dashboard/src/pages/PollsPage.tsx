@@ -9,6 +9,13 @@ type PollRow = { campaign: Pick<Campaign, "id" | "name">; creative: Creative };
 export function PollsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [rows, setRows] = useState<PollRow[]>([]);
+  
+  // Pagination states
+  const [page, setPage] = useState(1);
+  const [size] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(0);
+
   const [campaignId, setCampaignId] = useState("");
   const [name, setName] = useState("");
   const [question, setQuestion] = useState("");
@@ -21,15 +28,18 @@ export function PollsPage() {
   const [notice, setNotice] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
 
-  async function refresh() {
+  async function refresh(targetPage = page) {
     setLoading(true);
     try {
-      const [campaignList, pollList] = await Promise.all([
+      const [campaignList, response] = await Promise.all([
         api.listCampaigns() as Promise<Campaign[]>,
-        api.listPollCreatives(),
+        api.listPollCreatives({ page: targetPage, size }), // Pass page and size to API
       ]);
       setCampaigns(campaignList);
-      setRows(pollList);
+      setRows(response.items);
+      setTotal(response.total);
+      setPages(response.pages);
+      setPage(response.page);
       setError("");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not load poll ads.");
@@ -39,9 +49,9 @@ export function PollsPage() {
   }
 
   useEffect(() => {
-    void refresh();
+    void refresh(page);
     api.me().then((user) => setIsAdmin((user as { role?: string }).role === "admin")).catch(() => setIsAdmin(false));
-  }, []);
+  }, [page]);
 
   async function createPoll(event: FormEvent) {
     event.preventDefault();
@@ -54,7 +64,7 @@ export function PollsPage() {
       });
       setName(""); setQuestion(""); setOptions(["", "", "", ""]); setClickUrl("");
       setNotice("Poll ad created and submitted for review.");
-      await refresh();
+      await refresh(1); // Jump back to the first page to see the new poll
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not create poll ad.");
     } finally { setBusy(false); }
@@ -62,14 +72,14 @@ export function PollsPage() {
 
   async function changeActive(creative: Creative) {
     setError("");
-    try { await api.updateCreative(creative.id, { is_active: !creative.is_active }); await refresh(); }
+    try { await api.updateCreative(creative.id, { is_active: !creative.is_active }); await refresh(page); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Could not update poll ad."); }
   }
 
   async function removePoll(creative: Creative) {
     if (!window.confirm(`Delete “${creative.name || `Poll #${creative.id}`}”?`)) return;
     setError("");
-    try { await api.deleteCreative(creative.id); await refresh(); }
+    try { await api.deleteCreative(creative.id); await refresh(page); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Could not delete poll ad."); }
   }
 
@@ -83,7 +93,7 @@ export function PollsPage() {
     const reason = status === "rejected" ? window.prompt("Reason for rejection?")?.trim() : undefined;
     if (status === "rejected" && !reason) return;
     setError("");
-    try { await api.reviewCreative(creative.id, status, reason); await refresh(); }
+    try { await api.reviewCreative(creative.id, status, reason); await refresh(page); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Could not review poll ad."); }
   }
 
@@ -121,26 +131,51 @@ export function PollsPage() {
       </>}
 
       <section className="space-y-3">
-        <div className="flex items-center justify-between"><h2 className="font-display text-lg font-semibold">Poll ads</h2><span className="text-xs opacity-70">{rows.length} total</span></div>
-        <div className="overflow-x-auto rounded border border-base-300 bg-base-200"><table className="table">
-          <thead><tr className="text-xs"><th>Poll</th><th>Campaign</th><th>Review</th><th>Serving</th><th>Actions</th>{isAdmin && <th>Moderation</th>}</tr></thead>
-          <tbody>{loading ? <tr><td colSpan={isAdmin ? 6 : 5} className="py-6 text-center text-sm">Loading poll ads…</td></tr>
-            : rows.length === 0 ? <tr><td colSpan={isAdmin ? 6 : 5} className="py-6 text-center text-sm">No poll ads found.</td></tr>
-              : rows.map(({ campaign, creative }) => <tr key={creative.id}>
-                <td><div className="font-medium">{creative.name || `Poll #${creative.id}`}</div><div className="max-w-sm truncate text-xs opacity-70">{creative.custom_attributes?.poll_question || "Poll"}</div></td>
-                <td>{campaign.name}</td>
-                <td><span className={`badge badge-sm ${creative.review_status === "approved" ? "badge-success" : creative.review_status === "rejected" ? "badge-error" : "badge-warning"}`}>{creative.review_status}</span></td>
-                <td><span className={`badge badge-sm ${creative.is_active ? "badge-success" : "badge-ghost"}`}>{creative.is_active ? "Active" : "Paused"}</span></td>
-                <td><div className="flex flex-wrap gap-1"><button className="btn btn-ghost btn-xs" onClick={() => void viewResults(creative)}>Results</button>
-                  <button className="btn btn-ghost btn-xs" onClick={() => void changeActive(creative)}>{creative.is_active ? "Pause" : "Activate"}</button>
-                  <button className="btn btn-ghost btn-xs text-error" onClick={() => void removePoll(creative)}>Delete</button>
-                </div></td>
-                {isAdmin && <td><div className="flex flex-wrap gap-1">
-                  {creative.review_status !== "approved" && <button className="btn btn-success btn-xs" onClick={() => void reviewPoll(creative, "approved")}>Approve</button>}
-                  {creative.review_status !== "rejected" && <button className="btn btn-warning btn-xs" onClick={() => void reviewPoll(creative, "rejected")}>Reject</button>}
-                </div></td>}
-              </tr>)}</tbody>
-        </table></div>
+        <div className="flex items-center justify-between"><h2 className="font-display text-lg font-semibold">Poll ads</h2><span className="text-xs opacity-70">{total} total</span></div>
+        <div className="overflow-x-auto rounded border border-base-300 bg-base-200">
+          <table className="table">
+            <thead><tr className="text-xs"><th>Poll</th><th>Campaign</th><th>Review</th><th>Serving</th><th>Actions</th>{isAdmin && <th>Moderation</th>}</tr></thead>
+            <tbody>{loading ? <tr><td colSpan={isAdmin ? 6 : 5} className="py-6 text-center text-sm">Loading poll ads…</td></tr>
+              : rows.length === 0 ? <tr><td colSpan={isAdmin ? 6 : 5} className="py-6 text-center text-sm">No poll ads found.</td></tr>
+                : rows.map(({ campaign, creative }) => <tr key={creative.id}>
+                  <td><div className="font-medium">{creative.name || `Poll #${creative.id}`}</div><div className="max-w-sm truncate text-xs opacity-70">{creative.custom_attributes?.poll_question || "Poll"}</div></td>
+                  <td>{campaign.name}</td>
+                  <td><span className={`badge badge-sm ${creative.review_status === "approved" ? "badge-success" : creative.review_status === "rejected" ? "badge-error" : "badge-warning"}`}>{creative.review_status}</span></td>
+                  <td><span className={`badge badge-sm ${creative.is_active ? "badge-success" : "badge-ghost"}`}>{creative.is_active ? "Active" : "Paused"}</span></td>
+                  <td><div className="flex flex-wrap gap-1"><button className="btn btn-ghost btn-xs" onClick={() => void viewResults(creative)}>Results</button>
+                    <button className="btn btn-ghost btn-xs" onClick={() => void changeActive(creative)}>{creative.is_active ? "Pause" : "Activate"}</button>
+                    <button className="btn btn-ghost btn-xs text-error" onClick={() => void removePoll(creative)}>Delete</button>
+                  </div></td>
+                  {isAdmin && <td><div className="flex flex-wrap gap-1">
+                    {creative.review_status !== "approved" && <button className="btn btn-success btn-xs" onClick={() => void reviewPoll(creative, "approved")}>Approve</button>}
+                    {creative.review_status !== "rejected" && <button className="btn btn-warning btn-xs" onClick={() => void reviewPoll(creative, "rejected")}>Reject</button>}
+                  </div></td>}
+                </tr>)}</tbody>
+          </table>
+
+          {/* Pagination Footer */}
+          {pages > 1 && (
+            <div className="flex items-center justify-between p-4 border-t border-base-300 text-xs">
+              <span>Page {page} of {pages}</span>
+              <div className="join">
+                <button 
+                  className={`join-item btn btn-xs ${page <= 1 ? "btn-disabled" : ""}`}
+                  onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                  disabled={page <= 1}
+                >
+                  « Prev
+                </button>
+                <button 
+                  className={`join-item btn btn-xs ${page >= pages ? "btn-disabled" : ""}`}
+                  onClick={() => setPage((p) => Math.min(p + 1, pages))}
+                  disabled={page >= pages}
+                >
+                  Next »
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </section>
     </div>
     {results && <div className="modal modal-open" role="dialog" aria-modal="true" aria-label="Poll results">

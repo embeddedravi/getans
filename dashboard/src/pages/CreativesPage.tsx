@@ -9,6 +9,9 @@ type CreativeRow = { creative: Creative; campaign: Campaign };
 
 export function CreativesPage() {
   const [rows, setRows] = useState<CreativeRow[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [campaignsPath, setCampaignsPath] = useState("/campaigns");
@@ -17,31 +20,34 @@ export function CreativesPage() {
   const listing = useListingControls(rows, ({ creative, campaign }) =>
     `${creative.name ?? ""} ${creative.id} ${campaign.name} ${creative.review_status} ${creative.width} ${creative.height}`,
     ({ creative }) => creative.review_status,
-    ["pending", "approved", "rejected"].map((value) => ({ value, label: value })));
+    ["pending", "approved", "rejected"].map((value) => ({ value, label: value })), 100);
 
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
     api.me().then((user) => {
-      if (!cancelled && (user as { role?: string }).role === "admin") {
+      if ((user as { role?: string }).role === "admin") {
         setIsAdmin(true);
         setCampaignsPath("/manage-campaign");
       }
     }).catch(() => { });
-    api.listCampaigns()
-      .then(async (campaigns) => {
-        const results = await Promise.all((campaigns as Campaign[]).map(async (campaign) => {
-          const creatives = await api.listCreativesForCampaign(campaign.id) as Creative[];
-          return creatives.map((creative) => ({ creative, campaign }));
-        }));
-        if (!cancelled) setRows(results.flat());
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    setLoading(true);
+    api.listCreativesPage(page, 50, controller.signal)
+      .then((response) => {
+        if (cancelled) return;
+        setRows(response.items);
+        setTotal(response.total);
+        setPages(response.pages);
       })
       .catch((cause) => {
         if (!cancelled) setError(cause instanceof Error ? cause.message : "Could not load creatives.");
       })
       .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, []);
+    return () => { cancelled = true; controller.abort(); };
+  }, [page]);
 
   async function reviewCreative(creative: Creative, status: "approved" | "rejected") {
     const reason = status === "rejected" ? window.prompt("Reason for rejection?")?.trim() : undefined;
@@ -63,7 +69,7 @@ export function CreativesPage() {
   return (
     <Layout title="Creatives">
       <div className="mb-5 flex items-center justify-between">
-        <p className="text-sm">{rows.length} creative{rows.length === 1 ? "" : "s"}</p>
+        <p className="text-sm">{total} creative{total === 1 ? "" : "s"}</p>
         <Link className="btn btn-primary btn-sm" to={campaignsPath}>Manage campaigns</Link>
       </div>
       {error && <div role="alert" className="alert alert-error mb-3 py-2 text-sm">{error}</div>}
@@ -90,6 +96,11 @@ export function CreativesPage() {
           </tbody>
         </table>
       </div>
+      {pages > 1 && <div className="mt-3 flex items-center justify-center gap-3" aria-label="Creative pages">
+        <button className="btn btn-sm" aria-label="Previous creatives page" disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)}>‹ Previous</button>
+        <span className="text-sm">Page {page} of {pages}</span>
+        <button className="btn btn-sm" aria-label="Next creatives page" disabled={page >= pages || loading} onClick={() => setPage((value) => value + 1)}>Next ›</button>
+      </div>}
     </Layout>
   );
 }

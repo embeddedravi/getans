@@ -19,6 +19,36 @@ from app.models.event import Event, EventType
 router = APIRouter(prefix="/creatives", tags=["Creatives"])
 
 
+@router.get("", summary="List creatives with campaign details")
+async def list_creatives(
+    page: int = Query(1, ge=1, description="Page number"),
+    size: int = Query(50, ge=1, le=100, description="Items per page"),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_role("admin", "advertiser")),
+) -> PaginatedResponse[dict]:
+    stmt = (
+        select(Creative, Campaign)
+        .join(Campaign, Campaign.id == Creative.campaign_id)
+    )
+    if user.role == "advertiser":
+        stmt = stmt.where(Campaign.advertiser_id == user.advertiser_id)
+
+    total = await db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    rows = (await db.execute(
+        stmt.order_by(Creative.created_at.desc(), Creative.id.desc())
+        .offset((page - 1) * size)
+        .limit(size)
+    )).all()
+    items = [
+        {
+            "creative": CreativeOut.model_validate(creative).model_dump(mode="json"),
+            "campaign": {"id": campaign.id, "name": campaign.name},
+        }
+        for creative, campaign in rows
+    ]
+    return PaginatedResponse(items=items, total=total, page=page, size=size, pages=(total + size - 1) // size)
+
+
 @router.get("/polls", summary="List poll creatives visible to the current advertiser or admin")
 async def list_poll_creatives(
     db: AsyncSession = Depends(get_db),

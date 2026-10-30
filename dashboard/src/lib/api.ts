@@ -153,6 +153,8 @@ export const api = {
 
   listCreativesForCampaign: (campaignId: number) =>
     requestAllPages<Creative>(`/creatives/by-campaign/${campaignId}`),
+  listCreativesPage: (page: number, size = 50, signal?: AbortSignal) =>
+    request<PaginatedResponse<{ creative: Creative; campaign: { id: number; name: string } }>>(`/creatives?page=${page}&size=${size}`, { signal }),
   listPollCreatives: (params?: { page?: number; size?: number }) => {
     const query = new URLSearchParams();
     if (params?.page) query.set("page", params.page.toString());
